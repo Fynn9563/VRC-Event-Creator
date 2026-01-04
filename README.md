@@ -59,11 +59,6 @@ Create and save per-group event templates, generate upcoming event dates from si
   </tr>
 </table>
 
-## Download
-- GitHub Releases: https://github.com/Cynacedia/VRC-Event-Creator/releases
-- The Windows portable `.exe` runs standalone (no Node.js required to run it).
-- App data is stored in the standard Electron user data directory (shown in Settings > Application Info), unless you override it with `VRC_EVENT_DATA_DIR`.
-
 ## Features
 - Profiles/templates that auto-fill event details per group.
 - Recurring pattern generator with upcoming date lists and manual date/time fallback.
@@ -72,6 +67,10 @@ Create and save per-group event templates, generate upcoming event dates from si
 - Theme Studio with presets and full UI color control (supports #RRGGBBAA).
 - Gallery picker and upload for image IDs.
 - Localization with first-run language selection (en, fr, es, de, ja, zh, pt, ko, ru).
+
+## Download
+- Releases: https://github.com/Cynacedia/VRC-Event-Creator/releases
+- The Windows portable `.exe` runs standalone (no Node.js required to run it).
 
 ## Privacy & Data storage
 Your password is not stored. Only session tokens are cached.
@@ -96,31 +95,15 @@ __**Do not share cache files or application data folders.**__
 - Gallery uploads are limited to PNG/JPG, 64-2048 px, under 10 MB, and 64 images per account.
 - VRChat currently only allows up to 10 upcoming events at a time.
 
-## Updates
-- Checks on startup and once per hour while running.
-- UPDATE links to the GitHub repo when a new version is available.
-- Event creation and editing are blocked while UPDATE is shown.
-- No auto-updater; update manually by downloading the latest `.exe` here: https://github.com/Cynacedia/VRC-Event-Creator/releases.
-
 ## Troubleshooting
 - Login issues: delete `cache.json` and sign in again (use the data folder from About).
 - Missing groups: your account must have calendar access in the target group.
 - Rate limiting: VRChat may rate limit event creation. Wait and retry, and stop if several attempts fail. Do not spam refresh or event creation buttons.
-
-## Translations
-*Languages are machine translated and may be inaccurate, please contribute corrections.
-- English: README.md
-- Français: README/README.fr.md
-- Español: README/README.es.md
-- Deutsch: README/README.de.md
-- 日本語: README/README.ja.md
-- 中文（简体）: README/README.zh.md
-- Português: README/README.pt.md
-- 한국어: README/README.ko.md
-- Русский: README/README.ru.md
+- Updates: Some features are blocked when updates are pending. Download and run the latest release.
 
 ## Disclaimer
-This project is not affiliated with or endorsed by VRChat. Use at your own risk.
+- This project is not affiliated with or endorsed by VRChat. Use at your own risk.
+- Languages are machine translated and may be inaccurate, please contribute corrections.
 
 ## Requirements (building from source)
 - Node.js 20+ (22.21.1 recommended)

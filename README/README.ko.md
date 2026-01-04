@@ -58,11 +58,6 @@
   </tr>
 </table>
 
-## 다운로드
-- GitHub Releases: https://github.com/Cynacedia/VRC-Event-Creator/releases
-- Windows용 포터블 `.exe`는 단독 실행됩니다(실행에 Node.js 불필요).
-- 앱 데이터는 표준 Electron 사용자 데이터 디렉터리에 저장됩니다(설정 > 애플리케이션 정보에서 확인). `VRC_EVENT_DATA_DIR`로 변경 가능합니다.
-
 ## 기능
 - 그룹별 이벤트 상세를 자동으로 채우는 프로필/템플릿.
 - 반복 패턴 생성기(다가오는 날짜 목록 + 수동 날짜/시간 입력).
@@ -71,6 +66,10 @@
 - 프리셋이 포함된 테마 스튜디오와 전체 UI 색상 제어(#RRGGBBAA 지원).
 - 이미지 ID용 갤러리 선택 및 업로드.
 - 첫 실행 언어 선택이 있는 현지화(en, fr, es, de, ja, zh, pt, ko, ru).
+
+## 다운로드
+- 릴리스: https://github.com/Cynacedia/VRC-Event-Creator/releases
+- Windows 포터블 `.exe`는 단독으로 실행됩니다(실행에 Node.js가 필요하지 않습니다).
 
 ## 개인정보 및 데이터 저장
 비밀번호는 저장되지 않습니다. 세션 토큰만 캐시됩니다.
@@ -95,31 +94,15 @@ __**캐시 파일이나 앱 데이터 폴더를 공유하지 마세요.**__
 - 갤러리 업로드 제한: PNG/JPG, 64-2048 px, 10MB 미만, 계정당 64장.
 - VRChat은 현재 동시에 최대 10개의 예정 이벤트만 허용합니다.
 
-## 업데이트
-- 시작 시와 실행 중 매시간 확인합니다.
-- 새 버전이 있으면 UPDATE가 GitHub 저장소로 연결됩니다.
-- UPDATE가 표시되면 이벤트 생성과 편집이 차단됩니다.
-- 자동 업데이트 없음; 여기에서 최신 `.exe`를 다운로드해 수동으로 업데이트하세요: https://github.com/Cynacedia/VRC-Event-Creator/releases.
-
 ## 문제 해결
 - 로그인 문제: `cache.json`을 삭제하고 다시 로그인하세요(애플리케이션 정보에 표시된 데이터 폴더 사용).
 - 그룹이 보이지 않음: 대상 그룹에 대한 캘린더 접근 권한이 필요합니다.
 - 속도 제한: VRChat이 이벤트 생성에 제한을 둘 수 있습니다. 잠시 기다렸다가 재시도하고, 여러 번 실패하면 중지하세요. 새로고침/이벤트 생성 버튼을 반복 클릭하지 마세요.
-
-## 번역
-*번역은 기계 번역이라 부정확할 수 있습니다. 수정 제안에 참여해 주세요.
-- English: ../README.md
-- Français: README.fr.md
-- Español: README.es.md
-- Deutsch: README.de.md
-- 日本語: README.ja.md
-- 中文（简体）: README.zh.md
-- Português: README.pt.md
-- 한국어: README.ko.md
-- Русский: README.ru.md
+- 업데이트: 업데이트가 대기 중일 때 일부 기능이 차단됩니다. 최신 릴리스를 다운로드해 실행하세요.
 
 ## 면책 조항
-이 프로젝트는 VRChat과 관련이 없으며 VRChat의 승인을 받지 않았습니다. 사용은 본인 책임입니다.
+- 이 프로젝트는 VRChat과 관련이 없으며 승인받지 않았습니다. 사용은 본인 책임입니다.
+- 언어는 기계 번역이며 부정확할 수 있습니다. 수정 제안에 참여해 주세요.
 
 ## 요구 사항(소스에서 빌드)
 - Node.js 20+ (22.21.1 권장)

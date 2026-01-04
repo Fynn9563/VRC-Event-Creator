@@ -58,11 +58,6 @@ Créez et enregistrez des modèles d'événements par groupe, générez des date
   </tr>
 </table>
 
-## Téléchargement
-- GitHub Releases: https://github.com/Cynacedia/VRC-Event-Creator/releases
-- L'exécutable portable Windows `.exe` fonctionne de façon autonome (aucun Node.js requis pour l'exécuter).
-- Les données de l'application sont stockées dans le répertoire de données utilisateur standard d'Electron (affiché dans Paramètres > Informations sur l'application), sauf si vous le remplacez avec `VRC_EVENT_DATA_DIR`.
-
 ## Fonctionnalités
 - Profils/modèles qui préremplissent les détails des événements par groupe.
 - Générateur de récurrences avec liste des prochaines dates et option manuelle date/heure.
@@ -71,6 +66,10 @@ Créez et enregistrez des modèles d'événements par groupe, générez des date
 - Studio de thèmes avec préréglages et contrôle complet des couleurs UI (prend en charge #RRGGBBAA).
 - Sélecteur et téléversement d'images de galerie pour les ID d'image.
 - Localisation avec sélection de langue au premier lancement (en, fr, es, de, ja, zh, pt, ko, ru).
+
+## Téléchargement
+- Releases : https://github.com/Cynacedia/VRC-Event-Creator/releases
+- L'exécutable portable Windows `.exe` fonctionne de façon autonome (aucun Node.js requis pour l'exécuter).
 
 ## Confidentialité et stockage des données
 Votre mot de passe n'est pas stocké. Seuls les jetons de session sont mis en cache.
@@ -95,31 +94,15 @@ __**Ne partagez pas les fichiers de cache ni les dossiers de données de l'appli
 - Les téléversements de galerie sont limités à PNG/JPG, 64-2048 px, moins de 10 Mo et 64 images par compte.
 - VRChat n'autorise actuellement que 10 événements à venir à la fois.
 
-## Mises à jour
-- Vérifie au démarrage et une fois par heure pendant l'exécution.
-- UPDATE renvoie vers le dépôt GitHub lorsqu'une nouvelle version est disponible.
-- La création et l'édition d'événements sont bloquées lorsque UPDATE est affiché.
-- Pas de mise à jour automatique ; mettez à jour manuellement en téléchargeant le dernier `.exe` ici : https://github.com/Cynacedia/VRC-Event-Creator/releases.
-
 ## Dépannage
 - Problèmes de connexion : supprimez `cache.json` et reconnectez-vous (utilisez le dossier de données indiqué dans Informations sur l'application).
 - Groupes manquants : votre compte doit avoir accès au calendrier dans le groupe cible.
 - Limitation de débit : VRChat peut limiter la création d'événements. Attendez et réessayez, et arrêtez si plusieurs tentatives échouent. Ne spammez pas les boutons d'actualisation ou de création d'événements.
-
-## Traductions
-*Ces traductions sont générées automatiquement et peuvent être inexactes, merci de proposer des corrections.
-- English : ../README.md
-- Français : README.fr.md
-- Español : README.es.md
-- Deutsch : README.de.md
-- 日本語 : README.ja.md
-- 中文（简体） : README.zh.md
-- Português : README.pt.md
-- 한국어 : README.ko.md
-- Русский : README.ru.md
+- Mises à jour : Certaines fonctionnalités sont bloquées lorsqu'une mise à jour est en attente. Téléchargez et lancez la dernière version.
 
 ## Avertissement
-Ce projet n'est pas affilié à VRChat et n'est pas approuvé par VRChat. Utilisez-le à vos risques.
+- Ce projet n'est pas affilié à VRChat et n'est pas approuvé par VRChat. Utilisez-le à vos risques.
+- Les langues sont traduites automatiquement et peuvent être inexactes ; merci de proposer des corrections.
 
 ## Prérequis (compilation depuis les sources)
 - Node.js 20+ (22.21.1 recommandé)

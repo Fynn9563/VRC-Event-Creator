@@ -58,11 +58,6 @@
   </tr>
 </table>
 
-## 下载
-- GitHub Releases: https://github.com/Cynacedia/VRC-Event-Creator/releases
-- Windows 便携版 `.exe` 可独立运行（运行不需要 Node.js）。
-- 应用数据存储在标准的 Electron 用户数据目录中（在 设置 > 应用信息 中显示），除非通过 `VRC_EVENT_DATA_DIR` 覆盖。
-
 ## 功能
 - 按组自动填充活动详情的资料/模板。
 - 重复模式生成器：提供即将到来的日期列表，并可手动输入日期/时间。
@@ -71,6 +66,10 @@
 - 主题工作室与预设，完整的界面配色控制（支持 #RRGGBBAA）。
 - 图片 ID 的图库选择与上传。
 - 首启语言选择的本地化（en, fr, es, de, ja, zh, pt, ko, ru）。
+
+## 下载
+- 发布版：https://github.com/Cynacedia/VRC-Event-Creator/releases
+- Windows 便携式 `.exe` 可独立运行（运行不需要 Node.js）。
 
 ## 隐私与数据存储
 不会存储你的密码，只会缓存会话令牌。
@@ -95,31 +94,15 @@ __**不要分享缓存文件或应用数据文件夹。**__
 - 图库上传限制：PNG/JPG、64-2048 px、小于 10 MB、每个账号最多 64 张。
 - VRChat 目前每次最多允许 10 个即将到来的活动。
 
-## 更新
-- 启动时检查，运行期间每小时检查一次。
-- 有新版本时，UPDATE 会链接到 GitHub 仓库。
-- 显示 UPDATE 时将阻止创建和编辑活动。
-- 无自动更新；请在此下载最新的 `.exe` 手动更新：https://github.com/Cynacedia/VRC-Event-Creator/releases。
-
 ## 故障排查
 - 登录问题：删除 `cache.json` 后重新登录（使用应用信息中显示的数据文件夹）。
 - 找不到组：你的账号需要在目标组中具备日历访问权限。
 - 频率限制：VRChat 可能限制活动创建。请等待并重试，多次失败时停止操作。不要反复点击刷新或创建活动按钮。
-
-## 翻译
-*翻译为机器翻译，可能不准确，欢迎提交修正。
-- English：../README.md
-- Français：README.fr.md
-- Español：README.es.md
-- Deutsch：README.de.md
-- 日本語：README.ja.md
-- 中文（简体）：README.zh.md
-- Português：README.pt.md
-- 한국어：README.ko.md
-- Русский：README.ru.md
+- 更新：有更新待处理时，部分功能会被限制。请下载并运行最新版本。
 
 ## 免责声明
-本项目与 VRChat 无关，也未获得 VRChat 的认可。使用风险自负。
+- 本项目与 VRChat 无关，也未获得其认可。请自行承担风险。
+- 语言为机器翻译，可能不准确，欢迎提交修正。
 
 ## 要求（从源代码构建）
 - Node.js 20+（推荐 22.21.1）

@@ -58,11 +58,6 @@ Crie e salve modelos de eventos por grupo, gere datas futuras a partir de padrõ
   </tr>
 </table>
 
-## Download
-- Releases do GitHub: https://github.com/Cynacedia/VRC-Event-Creator/releases
-- O `.exe` portátil do Windows roda de forma independente (não é necessário Node.js para executá-lo).
-- Os dados do app são armazenados no diretório padrão de dados do Electron (mostrado em Configurações > Informações do aplicativo), a menos que você o substitua com `VRC_EVENT_DATA_DIR`.
-
 ## Recursos
 - Perfis/modelos que preenchem automaticamente os detalhes do evento por grupo.
 - Gerador de padrões recorrentes com lista de próximas datas e opção manual de data/hora.
@@ -71,6 +66,10 @@ Crie e salve modelos de eventos por grupo, gere datas futuras a partir de padrõ
 - Estúdio de temas com presets e controle total de cores da UI (suporta #RRGGBBAA).
 - Seletor e upload de imagens da galeria para IDs de imagem.
 - Localização com seleção de idioma no primeiro início (en, fr, es, de, ja, zh, pt, ko, ru).
+
+## Download
+- Lançamentos: https://github.com/Cynacedia/VRC-Event-Creator/releases
+- O `.exe` portátil do Windows funciona de forma independente (não é necessário Node.js para executá-lo).
 
 ## Privacidade e armazenamento de dados
 Sua senha não é armazenada. Apenas tokens de sessão ficam em cache.
@@ -95,31 +94,15 @@ __**Não compartilhe arquivos de cache nem pastas de dados do aplicativo.**__
 - Uploads da galeria: PNG/JPG, 64-2048 px, menos de 10 MB e 64 imagens por conta.
 - O VRChat atualmente permite no máximo 10 eventos futuros por vez.
 
-## Atualizações
-- Verifica na inicialização e uma vez por hora durante o uso.
-- UPDATE leva ao repositório do GitHub quando há uma nova versão.
-- Criação e edição de eventos ficam bloqueadas quando UPDATE aparece.
-- Sem atualizador automático; atualize manualmente baixando o `.exe` mais recente aqui: https://github.com/Cynacedia/VRC-Event-Creator/releases.
-
 ## Solução de problemas
 - Problemas de login: exclua `cache.json` e faça login novamente (use a pasta de dados mostrada em Sobre).
 - Grupos ausentes: sua conta precisa de acesso ao calendário no grupo alvo.
 - Limite de taxa: o VRChat pode limitar a criação de eventos. Aguarde e tente novamente, e pare se várias tentativas falharem. Não fique spamando os botões de atualizar ou criar eventos.
-
-## Traduções
-*As traduções são geradas por máquina e podem estar imprecisas. Contribua com correções, por favor.
-- English: ../README.md
-- Français: README.fr.md
-- Español: README.es.md
-- Deutsch: README.de.md
-- 日本語: README.ja.md
-- 中文（简体）: README.zh.md
-- Português: README.pt.md
-- 한국어: README.ko.md
-- Русский: README.ru.md
+- Atualizações: Alguns recursos ficam bloqueados quando há atualizações pendentes. Baixe e execute a versão mais recente.
 
 ## Aviso
-Este projeto não é afiliado nem endossado pela VRChat. Use por sua conta e risco.
+- Este projeto não é afiliado ou endossado pela VRChat. Use por sua conta e risco.
+- Os idiomas são traduzidos automaticamente e podem estar incorretos; contribua com correções, por favor.
 
 ## Requisitos (compilar a partir do código-fonte)
 - Node.js 20+ (22.21.1 recomendado)
