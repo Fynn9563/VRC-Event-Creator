@@ -72,7 +72,8 @@ Créez et enregistrez des modèles d'événements par groupe, générez des date
 - Sélecteur et téléversement d'images de galerie pour les ID d'image.
 - Localisation avec sélection de langue au premier lancement (en, fr, es, de, ja, zh, pt, ko, ru).
 
-## Stockage des données
+## Confidentialité et stockage des données
+Votre mot de passe n'est pas stocké. Seuls les jetons de session sont mis en cache.
 L'application stocke ses fichiers dans le répertoire de données utilisateur d'Electron (indiqué dans Paramètres > Informations sur l'application) :
 
 - `profiles.json` (modèles de profils)
@@ -83,7 +84,7 @@ L'application stocke ses fichiers dans le répertoire de données utilisateur d'
 Vous pouvez remplacer le répertoire de données avec la variable d'environnement `VRC_EVENT_DATA_DIR`.
 Au premier lancement, l'application tentera d'importer un `profiles.json` existant depuis le dossier du projet.
 
-Ne partagez pas les fichiers de cache ; ils contiennent des jetons de session.
+__**Ne partagez pas les fichiers de cache ni les dossiers de données de l'application.**__
 
 ## Notes d'utilisation
 - Les profils nécessitent un nom de profil, un nom d'événement et une description avant de continuer.
@@ -98,16 +99,12 @@ Ne partagez pas les fichiers de cache ; ils contiennent des jetons de session.
 - Vérifie au démarrage et une fois par heure pendant l'exécution.
 - UPDATE renvoie vers le dépôt GitHub lorsqu'une nouvelle version est disponible.
 - La création et l'édition d'événements sont bloquées lorsque UPDATE est affiché.
-- Pas de mise à jour automatique ; mises à jour manuelles.
+- Pas de mise à jour automatique ; mettez à jour manuellement en téléchargeant le dernier `.exe` ici : https://github.com/Cynacedia/VRC-Event-Creator/releases.
 
 ## Dépannage
 - Problèmes de connexion : supprimez `cache.json` et reconnectez-vous (utilisez le dossier de données indiqué dans Informations sur l'application).
 - Groupes manquants : votre compte doit avoir accès au calendrier dans le groupe cible.
 - Limitation de débit : VRChat peut limiter la création d'événements. Attendez et réessayez, et arrêtez si plusieurs tentatives échouent. Ne spammez pas les boutons d'actualisation ou de création d'événements.
-
-## Confidentialité et sécurité
-- Votre mot de passe n'est pas stocké. Seuls les jetons de session sont mis en cache.
-- Ne partagez pas `cache.json` ni les dossiers de données de l'application.
 
 ## Traductions
 *Ces traductions sont générées automatiquement et peuvent être inexactes, merci de proposer des corrections.
@@ -121,13 +118,6 @@ Ne partagez pas les fichiers de cache ; ils contiennent des jetons de session.
 - 한국어 : README.ko.md
 - Русский : README.ru.md
 
-## Fonctionnement
-- L'application utilise Electron :
-  - `electron/main.js` gère les appels API VRChat, la persistance des profils et le cache de session.
-  - `electron/preload.js` expose les méthodes IPC au rendu.
-  - `electron/renderer/` rend l'interface et gère le flux de l'assistant.
-  - `electron/core/date-utils.js` génère les dates à venir à partir des récurrences.
-
 ## Avertissement
 Ce projet n'est pas affilié à VRChat et n'est pas approuvé par VRChat. Utilisez-le à vos risques.
 
@@ -135,31 +125,3 @@ Ce projet n'est pas affilié à VRChat et n'est pas approuvé par VRChat. Utilis
 - Node.js 20+ (22.21.1 recommandé)
 - npm
 - Un compte VRChat avec l'autorisation de créer des événements pour au moins un groupe
-
-## Installation (depuis les sources)
-1) Installez les dépendances :
-
-```bash
-npm install
-```
-
-2) Fournissez un email de contact pour l'API VRChat :
-- Saisissez-le au premier lancement, ou mettez-le à jour dans la section Informations sur l'application.
-
-## Exécution (depuis les sources)
-```bash
-npm run start:gui
-```
-
-## Compilation
-- Build portable Windows :
-
-```bash
-npm run dist:gui
-```
-
-- Builds multiplateformes (nécessite les outils macOS/Linux pour DMG/AppImage) :
-
-```bash
-npm run dist:gui:all
-```

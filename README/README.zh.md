@@ -72,7 +72,8 @@
 - 图片 ID 的图库选择与上传。
 - 首启语言选择的本地化（en, fr, es, de, ja, zh, pt, ko, ru）。
 
-## 数据存储
+## 隐私与数据存储
+不会存储你的密码，只会缓存会话令牌。
 应用文件存储在 Electron 用户数据目录中（在 设置 > 应用信息 中显示）：
 
 - `profiles.json`（配置文件模板）
@@ -83,7 +84,7 @@
 你可以通过环境变量 `VRC_EVENT_DATA_DIR` 覆盖数据目录。
 首次启动时，应用会尝试从项目文件夹导入现有的 `profiles.json`。
 
-不要分享缓存文件；其中包含会话令牌。
+__**不要分享缓存文件或应用数据文件夹。**__
 
 ## 使用说明
 - 继续前需要填写资料名称、活动名称和描述。
@@ -98,16 +99,12 @@
 - 启动时检查，运行期间每小时检查一次。
 - 有新版本时，UPDATE 会链接到 GitHub 仓库。
 - 显示 UPDATE 时将阻止创建和编辑活动。
-- 无自动更新；需手动更新。
+- 无自动更新；请在此下载最新的 `.exe` 手动更新：https://github.com/Cynacedia/VRC-Event-Creator/releases。
 
 ## 故障排查
 - 登录问题：删除 `cache.json` 后重新登录（使用应用信息中显示的数据文件夹）。
 - 找不到组：你的账号需要在目标组中具备日历访问权限。
 - 频率限制：VRChat 可能限制活动创建。请等待并重试，多次失败时停止操作。不要反复点击刷新或创建活动按钮。
-
-## 隐私与安全
-- 不会存储你的密码，只会缓存会话令牌。
-- 不要分享 `cache.json` 或应用数据文件夹。
 
 ## 翻译
 *翻译为机器翻译，可能不准确，欢迎提交修正。
@@ -121,13 +118,6 @@
 - 한국어：README.ko.md
 - Русский：README.ru.md
 
-## 工作原理
-- 应用使用 Electron：
-  - `electron/main.js` 处理 VRChat API 调用、配置文件持久化与会话缓存。
-  - `electron/preload.js` 向渲染进程暴露 IPC 方法。
-  - `electron/renderer/` 负责渲染 UI 并管理向导流程。
-  - `electron/core/date-utils.js` 根据模式生成即将到来的日期。
-
 ## 免责声明
 本项目与 VRChat 无关，也未获得 VRChat 的认可。使用风险自负。
 
@@ -135,31 +125,3 @@
 - Node.js 20+（推荐 22.21.1）
 - npm
 - 拥有至少一个组的活动创建权限的 VRChat 账号
-
-## 安装（从源代码）
-1) 安装依赖：
-
-```bash
-npm install
-```
-
-2) 提供 VRChat API 联系邮箱：
-- 首次启动时填写，或在应用信息中更新。
-
-## 运行（从源代码）
-```bash
-npm run start:gui
-```
-
-## 构建
-- Windows 便携版构建：
-
-```bash
-npm run dist:gui
-```
-
-- 跨平台构建（需要 macOS/Linux 工具以生成 DMG/AppImage）：
-
-```bash
-npm run dist:gui:all
-```

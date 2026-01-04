@@ -72,7 +72,8 @@ Erstelle und speichere gruppenbezogene Event-Vorlagen, generiere kommende Termin
 - Galerieauswahl und Upload für Bild-IDs.
 - Lokalisierung mit Sprachauswahl beim ersten Start (en, fr, es, de, ja, zh, pt, ko, ru).
 
-## Datenspeicher
+## Datenschutz und Datenspeicher
+Dein Passwort wird nicht gespeichert. Nur Session-Tokens werden gecacht.
 Die App speichert ihre Dateien im Electron-Benutzerdatenverzeichnis (angezeigt unter Einstellungen > Anwendungsinfo):
 
 - `profiles.json` (Profilvorlagen)
@@ -83,7 +84,7 @@ Die App speichert ihre Dateien im Electron-Benutzerdatenverzeichnis (angezeigt u
 Du kannst das Datenverzeichnis mit der Umgebungsvariable `VRC_EVENT_DATA_DIR` überschreiben.
 Beim ersten Start versucht die App, eine vorhandene `profiles.json` aus dem Projektordner zu importieren.
 
-Teile keine Cache-Dateien; sie enthalten Session-Tokens.
+__**Teile keine Cache-Dateien oder App-Datenordner.**__
 
 ## Hinweise zur Nutzung
 - Profile benötigen einen Profilnamen, Eventnamen und eine Beschreibung, bevor du fortfahren kannst.
@@ -98,16 +99,12 @@ Teile keine Cache-Dateien; sie enthalten Session-Tokens.
 - Prüft beim Start und stündlich während der Ausführung.
 - UPDATE verlinkt auf das GitHub-Repo, wenn eine neue Version verfügbar ist.
 - Erstellung und Bearbeitung von Events sind blockiert, solange UPDATE angezeigt wird.
-- Kein Auto-Updater; Updates manuell.
+- Kein Auto-Updater; lade das neueste `.exe` hier herunter und aktualisiere manuell: https://github.com/Cynacedia/VRC-Event-Creator/releases.
 
 ## Fehlerbehebung
 - Login-Probleme: `cache.json` löschen und erneut anmelden (verwende den Datenordner aus Anwendungsinfo).
 - Fehlende Gruppen: Dein Konto benötigt Kalenderzugriff in der Zielgruppe.
 - Rate-Limiting: VRChat kann die Event-Erstellung begrenzen. Warte und versuche es erneut. Stoppe, wenn mehrere Versuche fehlschlagen. Buttons für Refresh oder Event-Erstellung nicht spammen.
-
-## Datenschutz und Sicherheit
-- Dein Passwort wird nicht gespeichert. Nur Session-Tokens werden gecacht.
-- Teile weder `cache.json` noch App-Datenordner.
 
 ## Übersetzungen
 *Die Übersetzungen sind maschinell erstellt und können ungenau sein. Bitte Korrekturen beitragen.
@@ -121,13 +118,6 @@ Teile keine Cache-Dateien; sie enthalten Session-Tokens.
 - 한국어: README.ko.md
 - Русский: README.ru.md
 
-## So funktioniert es
-- Die App nutzt Electron:
-  - `electron/main.js` handhabt VRChat-API-Aufrufe, Profilpersistenz und Session-Cache.
-  - `electron/preload.js` stellt IPC-Methoden für den Renderer bereit.
-  - `electron/renderer/` rendert die UI und steuert den Wizard-Flow.
-  - `electron/core/date-utils.js` erzeugt kommende Termine aus Patterns.
-
 ## Haftungsausschluss
 Dieses Projekt ist nicht mit VRChat verbunden und wird nicht von VRChat unterstützt. Nutzung auf eigenes Risiko.
 
@@ -135,31 +125,3 @@ Dieses Projekt ist nicht mit VRChat verbunden und wird nicht von VRChat unterst�
 - Node.js 20+ (22.21.1 empfohlen)
 - npm
 - Ein VRChat-Konto mit Berechtigung, Events für mindestens eine Gruppe zu erstellen
-
-## Einrichtung (aus dem Quellcode)
-1) Abhängigkeiten installieren:
-
-```bash
-npm install
-```
-
-2) Kontakt-E-Mail für die VRChat-API angeben:
-- Beim ersten Start eingeben oder in der Anwendungsinfo aktualisieren.
-
-## Ausführen (aus dem Quellcode)
-```bash
-npm run start:gui
-```
-
-## Build
-- Portabler Windows-Build:
-
-```bash
-npm run dist:gui
-```
-
-- Plattformübergreifende Builds (benötigt macOS/Linux-Tools für DMG/AppImage):
-
-```bash
-npm run dist:gui:all
-```
