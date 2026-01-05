@@ -300,7 +300,6 @@ export const ko = {
     profileLabel: "프로필 불러오기(선택)",
     profileSelect: "프로필 선택",
     profileLoad: "불러오기",
-    profileHint: "프로필의 기본값을 적용합니다. 저장하기 전에는 변경되지 않습니다.",
     profileSelectError: "불러올 프로필을 선택하세요.",
     profileLoadFailed: "프로필 기본값을 불러올 수 없습니다.",
     profileLoaded: "프로필 기본값을 불러왔습니다.",
@@ -477,3 +476,4 @@ export const ko = {
     next: "다음"
   }
 };
+

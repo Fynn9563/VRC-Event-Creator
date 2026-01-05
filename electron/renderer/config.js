@@ -4,7 +4,7 @@ export const CATEGORIES = [
   { label: "Hangout", value: "hangout", labelKey: "categories.hangout" },
   { label: "Exploration", value: "exploration", labelKey: "categories.exploration" },
   { label: "Roleplaying", value: "roleplaying", labelKey: "categories.roleplaying" },
-  { label: "Film and Media", value: "film", labelKey: "categories.film" },
+  { label: "Film and Media", value: "film_media", labelKey: "categories.film" },
   { label: "Gaming", value: "gaming", labelKey: "categories.gaming" },
   { label: "Music", value: "music", labelKey: "categories.music" },
   { label: "Dance", value: "dance", labelKey: "categories.dance" },

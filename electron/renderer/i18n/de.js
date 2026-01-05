@@ -303,7 +303,6 @@ export const de = {
     profileLabel: "Profil laden (optional)",
     profileSelect: "Profil auswählen",
     profileLoad: "Laden",
-    profileHint: "Profil laden, um Standardwerte zu übernehmen. Nichts ändert sich, bis du speicherst.",
     profileSelectError: "Profil zum Laden auswählen.",
     profileLoadFailed: "Profil-Standardwerte konnten nicht geladen werden.",
     profileLoaded: "Profil-Standardwerte geladen.",
@@ -480,3 +479,4 @@ export const de = {
     next: "Weiter"
   }
 };
+

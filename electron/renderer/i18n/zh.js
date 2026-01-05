@@ -303,7 +303,6 @@ export const zh = {
     profileLabel: "加载模板（可选）",
     profileSelect: "选择一个模板",
     profileLoad: "加载",
-    profileHint: "加载模板以应用默认值。只有保存后才会生效。",
     profileSelectError: "请选择要加载的模板。",
     profileLoadFailed: "无法加载模板默认值。",
     profileLoaded: "模板默认值已加载。",
@@ -480,3 +479,4 @@ export const zh = {
     next: "下一步"
   }
 };
+

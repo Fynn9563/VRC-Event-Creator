@@ -300,7 +300,6 @@ export const en = {
     profileLabel: "Load Profile (optional)",
     profileSelect: "Select a profile",
     profileLoad: "Load",
-    profileHint: "Load a profile to apply its defaults. Nothing changes until you save.",
     profileSelectError: "Select a profile to load.",
     profileLoadFailed: "Could not load profile defaults.",
     profileLoaded: "Profile defaults loaded.",
@@ -477,3 +476,4 @@ export const en = {
     next: "Next"
   }
 };
+

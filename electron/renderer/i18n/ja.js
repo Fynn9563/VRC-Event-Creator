@@ -303,7 +303,6 @@ export const ja = {
     profileLabel: "プロフィールを読み込む（任意）",
     profileSelect: "プロフィールを選択",
     profileLoad: "読み込み",
-    profileHint: "プロフィールの既定値を適用します。保存するまで変更されません。",
     profileSelectError: "読み込むプロフィールを選択してください。",
     profileLoadFailed: "プロフィールの既定値を読み込めませんでした。",
     profileLoaded: "プロフィールの既定値を読み込みました。",
@@ -480,3 +479,4 @@ export const ja = {
     next: "次へ"
   }
 };
+

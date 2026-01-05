@@ -303,7 +303,6 @@ export const es = {
     profileLabel: "Cargar perfil (opcional)",
     profileSelect: "Selecciona un perfil",
     profileLoad: "Cargar",
-    profileHint: "Carga un perfil para aplicar sus valores. Nada cambia hasta que guardes.",
     profileSelectError: "Selecciona un perfil para cargar.",
     profileLoadFailed: "No se pudieron cargar los valores del perfil.",
     profileLoaded: "Valores del perfil cargados.",
@@ -480,3 +479,4 @@ export const es = {
     next: "Siguiente"
   }
 };
+

@@ -763,7 +763,7 @@ a:visited {
 
 .modify-panel {
   width: min(980px, 96vw);
-  max-height: min(760px, calc(100vh - 64px));
+  max-height: min(760px, calc(100vh - 120px));
   display: flex;
   flex-direction: column;
   gap: var(--space-3);

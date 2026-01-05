@@ -300,7 +300,6 @@ export const pt = {
     profileLabel: "Carregar perfil (opcional)",
     profileSelect: "Selecionar um perfil",
     profileLoad: "Carregar",
-    profileHint: "Carregue um perfil para aplicar seus padrões. Nada muda até você salvar.",
     profileSelectError: "Selecione um perfil para carregar.",
     profileLoadFailed: "Não foi possível carregar os padrões do perfil.",
     profileLoaded: "Padrões do perfil carregados.",
@@ -477,3 +476,4 @@ export const pt = {
     next: "Próximo"
   }
 };
+

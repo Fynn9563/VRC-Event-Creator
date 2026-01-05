@@ -303,7 +303,6 @@ export const fr = {
     profileLabel: "Charger un profil (optionnel)",
     profileSelect: "Sélectionner un profil",
     profileLoad: "Charger",
-    profileHint: "Chargez un profil pour appliquer ses valeurs. Rien ne change tant que vous n'enregistrez pas.",
     profileSelectError: "Sélectionnez un profil à charger.",
     profileLoadFailed: "Impossible de charger les valeurs du profil.",
     profileLoaded: "Valeurs du profil chargées.",
@@ -480,3 +479,4 @@ export const fr = {
     next: "Suivant"
   }
 };
+

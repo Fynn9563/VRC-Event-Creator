@@ -675,7 +675,6 @@
               <select id="modify-profile"></select>
               <button id="modify-profile-load" class="ghost compact-button" type="button" data-i18n="modify.profileLoad">Load</button>
             </div>
-            <p class="hint" data-i18n="modify.profileHint">Load a profile to apply its defaults. Nothing changes until you save.</p>
           </div>
 
           <div class="grid two grid-paired">
@@ -714,16 +713,24 @@
             </div>
           </div>
 
-          <div class="field">
-            <label for="modify-event-description" data-i18n="modify.description">Description</label>
-            <textarea id="modify-event-description" rows="4" maxlength="1024"></textarea>
-          </div>
-
-          <div class="grid two grid-paired">
             <div class="field">
-              <label for="modify-event-tags" data-i18n="modify.tags">Tags (max 5)</label>
-              <div class="tag-input" id="modify-tags-input">
-                <div class="tag-chips" id="modify-tags-chips"></div>
+              <label for="modify-event-description" data-i18n="modify.description">Description</label>
+              <textarea id="modify-event-description" rows="4" maxlength="1024"></textarea>
+            </div>
+
+            <div class="field">
+              <label for="modify-event-image-id" data-i18n="modify.imageId">Image ID (optional)</label>
+              <div class="inline-row">
+                <input id="modify-event-image-id" type="text" placeholder="ex. file_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" data-i18n-placeholder="modify.imageIdPlaceholder" />
+                <button id="modify-event-image-picker" class="ghost compact-button" type="button" data-i18n="gallery.chooseButton">Select</button>
+              </div>
+            </div>
+
+            <div class="grid two grid-paired">
+              <div class="field">
+                <label for="modify-event-tags" data-i18n="modify.tags">Tags (max 5)</label>
+                <div class="tag-input" id="modify-tags-input">
+                  <div class="tag-chips" id="modify-tags-chips"></div>
                 <input id="modify-event-tags" type="text" />
               </div>
             </div>
@@ -731,25 +738,17 @@
               <label for="modify-event-access" data-i18n="modify.accessType">Access Type</label>
               <select id="modify-event-access"></select>
             </div>
-          </div>
-          <div class="role-restrictions is-hidden" id="modify-role-restrictions">
-            <div class="role-restrictions-header">
-              <div>
-                <div class="role-restrictions-title" data-i18n="events.roleRestrictions.title">Role Restrictions</div>
+            </div>
+            <div class="role-restrictions is-hidden" id="modify-role-restrictions">
+              <div class="role-restrictions-header">
+                <div>
+                  <div class="role-restrictions-title" data-i18n="events.roleRestrictions.title">Role Restrictions</div>
                 <p class="hint" data-i18n="events.roleRestrictions.hint">Optional - If enabled, only the selected group roles may join.</p>
                 <p class="hint" data-i18n="events.roleRestrictions.optional">For instance moderators, all roles at or above the lowest selected moderator role may join.</p>
               </div>
+              </div>
+              <div class="role-restrictions-list" id="modify-role-list"></div>
             </div>
-            <div class="role-restrictions-list" id="modify-role-list"></div>
-          </div>
-
-          <div class="field">
-            <label for="modify-event-image-id" data-i18n="modify.imageId">Image ID (optional)</label>
-            <div class="inline-row">
-              <input id="modify-event-image-id" type="text" placeholder="ex. file_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" data-i18n-placeholder="modify.imageIdPlaceholder" />
-              <button id="modify-event-image-picker" class="ghost compact-button" type="button" data-i18n="gallery.chooseButton">Select</button>
-            </div>
-          </div>
 
           <div class="grid two grid-paired">
             <div class="field">
