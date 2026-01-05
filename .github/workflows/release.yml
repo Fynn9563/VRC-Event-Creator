@@ -37,6 +37,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Configure publish target
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.build.publish.owner = '${{ github.repository_owner }}';
+            pkg.build.publish.repo = '${{ github.event.repository.name }}';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+
       - name: Build Electron app
         run: npx electron-builder --publish never
 

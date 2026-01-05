@@ -13,20 +13,13 @@ app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
 
 const APP_NAME = "VRChat Event Creator";
 const IS_DEV = !app.isPackaged;
-const APP_VERSION = (() => {
-  try {
-    const pkgPath = path.join(__dirname, "..", "package.json");
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-    if (pkg?.version) {
-      return String(pkg.version);
-    }
-  } catch (err) {
-    // Fall back to a safe default if package.json is unavailable.
-  }
-  return "0.0.0";
+const pkg = (() => {
+  const pkgPath = path.join(__dirname, "..", "package.json");
+  return JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 })();
-const UPDATE_REPO_OWNER = "Cynacedia";
-const UPDATE_REPO_NAME = "VRC-Event-Creator";
+const APP_VERSION = pkg.version;
+const UPDATE_REPO_OWNER = pkg.build.publish.owner;
+const UPDATE_REPO_NAME = pkg.build.publish.repo;
 const UPDATE_REPO_URL = `https://github.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}`;
 
 // Auto-updater configuration
