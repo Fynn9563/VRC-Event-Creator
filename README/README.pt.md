@@ -25,43 +25,6 @@ Crie e salve modelos de eventos por grupo, gere datas futuras a partir de padrõ
   <img src=".imgs/1MP-CE_CreationFlow-01-05-26.gif" width="900" alt="Event creation flow (profile to publish)" />
 </p>
 
-## Capturas de tela
-<table>
-  <tr>
-    <td align="center">
-      <img src=".imgs/1MP-Basics-Screenshot%202026-01-02%20230956.png" width="300" alt="Perfis: modelos" />
-      <br />
-      Perfis: modelos
-    </td>
-    <td align="center">
-      <img src=".imgs/2MP-Schedule-Screenshot%202026-01-02%20231523.png" width="300" alt="Perfis: regras de agenda" />
-      <br />
-      Perfis: regras de agenda
-    </td>
-    <td align="center">
-      <img src=".imgs/3CE-ProfileSelect-Screenshot%202026-01-02%20231634.png" width="300" alt="Criar: selecionar perfil" />
-      <br />
-      Criar: selecionar perfil
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src=".imgs/4CE-DateSelect-Screenshot%202026-01-02%20231805.png" width="300" alt="Criar: escolher uma data" />
-      <br />
-      Criar: escolher uma data
-    </td>
-    <td align="center">
-      <img src=".imgs/5CE-Review-Screenshot%202026-01-02%20231907.png" width="300" alt="Criar: revisar e enviar" />
-      <br />
-      Criar: revisar e enviar
-    </td>
-    <td align="center">
-      <img src=".imgs/6S-ThemeStudio-Screenshot%202026-01-02%20232221.png" width="300" alt="Estúdio de temas: interface personalizada" />
-      <br />
-      Estúdio de temas: interface personalizada
-    </td>
-  </tr>
-</table>
 
 ## Recursos
 - Perfis/modelos que preenchem automaticamente os detalhes do evento por grupo.
@@ -113,5 +76,6 @@ __**Não compartilhe arquivos de cache nem pastas de dados do aplicativo.**__
 - Node.js 20+ (22.21.1 recomendado)
 - npm
 - Uma conta VRChat com permissão para criar eventos para pelo menos um grupo
+
 
 

@@ -25,43 +25,6 @@ Crea y guarda plantillas de eventos por grupo, genera fechas próximas a partir 
   <img src=".imgs/1MP-CE_CreationFlow-01-05-26.gif" width="900" alt="Event creation flow (profile to publish)" />
 </p>
 
-## Capturas de pantalla
-<table>
-  <tr>
-    <td align="center">
-      <img src=".imgs/1MP-Basics-Screenshot%202026-01-02%20230956.png" width="300" alt="Perfiles: plantillas" />
-      <br />
-      Perfiles: plantillas
-    </td>
-    <td align="center">
-      <img src=".imgs/2MP-Schedule-Screenshot%202026-01-02%20231523.png" width="300" alt="Perfiles: reglas de programación" />
-      <br />
-      Perfiles: reglas de programación
-    </td>
-    <td align="center">
-      <img src=".imgs/3CE-ProfileSelect-Screenshot%202026-01-02%20231634.png" width="300" alt="Crear: seleccionar perfil" />
-      <br />
-      Crear: seleccionar perfil
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src=".imgs/4CE-DateSelect-Screenshot%202026-01-02%20231805.png" width="300" alt="Crear: elegir una fecha" />
-      <br />
-      Crear: elegir una fecha
-    </td>
-    <td align="center">
-      <img src=".imgs/5CE-Review-Screenshot%202026-01-02%20231907.png" width="300" alt="Crear: revisar y enviar" />
-      <br />
-      Crear: revisar y enviar
-    </td>
-    <td align="center">
-      <img src=".imgs/6S-ThemeStudio-Screenshot%202026-01-02%20232221.png" width="300" alt="Estudio de temas: interfaz personalizada" />
-      <br />
-      Estudio de temas: interfaz personalizada
-    </td>
-  </tr>
-</table>
 
 ## Funcionalidades
 - Perfiles/plantillas que rellenan automáticamente los detalles del evento por grupo.
@@ -113,5 +76,6 @@ __**No compartas archivos de caché ni carpetas de datos de la aplicación.**__
 - Node.js 20+ (22.21.1 recomendado)
 - npm
 - Una cuenta de VRChat con permiso para crear eventos en al menos un grupo
+
 
 

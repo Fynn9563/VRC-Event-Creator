@@ -25,43 +25,6 @@
   <img src=".imgs/1MP-CE_CreationFlow-01-05-26.gif" width="900" alt="Event creation flow (profile to publish)" />
 </p>
 
-## 截图
-<table>
-  <tr>
-    <td align="center">
-      <img src=".imgs/1MP-Basics-Screenshot%202026-01-02%20230956.png" width="300" alt="资料：模板" />
-      <br />
-      资料：模板
-    </td>
-    <td align="center">
-      <img src=".imgs/2MP-Schedule-Screenshot%202026-01-02%20231523.png" width="300" alt="资料：排期规则" />
-      <br />
-      资料：排期规则
-    </td>
-    <td align="center">
-      <img src=".imgs/3CE-ProfileSelect-Screenshot%202026-01-02%20231634.png" width="300" alt="创建：选择资料" />
-      <br />
-      创建：选择资料
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src=".imgs/4CE-DateSelect-Screenshot%202026-01-02%20231805.png" width="300" alt="创建：选择日期" />
-      <br />
-      创建：选择日期
-    </td>
-    <td align="center">
-      <img src=".imgs/5CE-Review-Screenshot%202026-01-02%20231907.png" width="300" alt="创建：确认并提交" />
-      <br />
-      创建：确认并提交
-    </td>
-    <td align="center">
-      <img src=".imgs/6S-ThemeStudio-Screenshot%202026-01-02%20232221.png" width="300" alt="主题工作室：自定义界面" />
-      <br />
-      主题工作室：自定义界面
-    </td>
-  </tr>
-</table>
 
 ## 功能
 - 按组自动填充活动详情的资料/模板。
@@ -113,5 +76,6 @@ __**不要分享缓存文件或应用数据文件夹。**__
 - Node.js 20+（推荐 22.21.1）
 - npm
 - 拥有至少一个组的活动创建权限的 VRChat 账号
+
 
 

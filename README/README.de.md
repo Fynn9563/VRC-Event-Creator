@@ -25,43 +25,6 @@ Erstelle und speichere gruppenbezogene Event-Vorlagen, generiere kommende Termin
   <img src=".imgs/1MP-CE_CreationFlow-01-05-26.gif" width="900" alt="Event creation flow (profile to publish)" />
 </p>
 
-## Screenshots
-<table>
-  <tr>
-    <td align="center">
-      <img src=".imgs/1MP-Basics-Screenshot%202026-01-02%20230956.png" width="300" alt="Profile: Vorlagen" />
-      <br />
-      Profile: Vorlagen
-    </td>
-    <td align="center">
-      <img src=".imgs/2MP-Schedule-Screenshot%202026-01-02%20231523.png" width="300" alt="Profile: Planungsregeln" />
-      <br />
-      Profile: Planungsregeln
-    </td>
-    <td align="center">
-      <img src=".imgs/3CE-ProfileSelect-Screenshot%202026-01-02%20231634.png" width="300" alt="Erstellen: Profil wählen" />
-      <br />
-      Erstellen: Profil wählen
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src=".imgs/4CE-DateSelect-Screenshot%202026-01-02%20231805.png" width="300" alt="Erstellen: Datum wählen" />
-      <br />
-      Erstellen: Datum wählen
-    </td>
-    <td align="center">
-      <img src=".imgs/5CE-Review-Screenshot%202026-01-02%20231907.png" width="300" alt="Erstellen: prüfen & absenden" />
-      <br />
-      Erstellen: prüfen & absenden
-    </td>
-    <td align="center">
-      <img src=".imgs/6S-ThemeStudio-Screenshot%202026-01-02%20232221.png" width="300" alt="Theme Studio: eigene UI" />
-      <br />
-      Theme Studio: eigene UI
-    </td>
-  </tr>
-</table>
 
 ## Funktionen
 - Profile/Vorlagen, die Event-Details pro Gruppe automatisch ausfüllen.
@@ -113,5 +76,6 @@ __**Teile keine Cache-Dateien oder App-Datenordner.**__
 - Node.js 20+ (22.21.1 empfohlen)
 - npm
 - Ein VRChat-Konto mit Berechtigung, Events für mindestens eine Gruppe zu erstellen
+
 
 

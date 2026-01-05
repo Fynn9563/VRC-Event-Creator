@@ -25,43 +25,6 @@ VRChat向けのオールインワンなイベント作成ツールで、繰り�
   <img src=".imgs/1MP-CE_CreationFlow-01-05-26.gif" width="900" alt="Event creation flow (profile to publish)" />
 </p>
 
-## スクリーンショット
-<table>
-  <tr>
-    <td align="center">
-      <img src=".imgs/1MP-Basics-Screenshot%202026-01-02%20230956.png" width="300" alt="プロフィール：テンプレート" />
-      <br />
-      プロフィール：テンプレート
-    </td>
-    <td align="center">
-      <img src=".imgs/2MP-Schedule-Screenshot%202026-01-02%20231523.png" width="300" alt="プロフィール：スケジュール規則" />
-      <br />
-      プロフィール：スケジュール規則
-    </td>
-    <td align="center">
-      <img src=".imgs/3CE-ProfileSelect-Screenshot%202026-01-02%20231634.png" width="300" alt="作成：プロフィール選択" />
-      <br />
-      作成：プロフィール選択
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src=".imgs/4CE-DateSelect-Screenshot%202026-01-02%20231805.png" width="300" alt="作成：日付を選択" />
-      <br />
-      作成：日付を選択
-    </td>
-    <td align="center">
-      <img src=".imgs/5CE-Review-Screenshot%202026-01-02%20231907.png" width="300" alt="作成：確認して送信" />
-      <br />
-      作成：確認して送信
-    </td>
-    <td align="center">
-      <img src=".imgs/6S-ThemeStudio-Screenshot%202026-01-02%20232221.png" width="300" alt="テーマスタジオ：UIカスタム" />
-      <br />
-      テーマスタジオ：UIカスタム
-    </td>
-  </tr>
-</table>
 
 ## 特長
 - グループごとにイベント詳細を自動入力するプロフィール/テンプレート。
@@ -113,5 +76,6 @@ __**キャッシュファイルやアプリのデータフォルダは共有し�
 - Node.js 20+（22.21.1推奨）
 - npm
 - 少なくとも1つのグループでイベントを作成できるVRChatアカウント
+
 
 

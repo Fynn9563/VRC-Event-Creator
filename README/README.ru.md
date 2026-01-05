@@ -25,43 +25,6 @@
   <img src=".imgs/1MP-CE_CreationFlow-01-05-26.gif" width="900" alt="Event creation flow (profile to publish)" />
 </p>
 
-## Скриншоты
-<table>
-  <tr>
-    <td align="center">
-      <img src=".imgs/1MP-Basics-Screenshot%202026-01-02%20230956.png" width="300" alt="Профили: шаблоны" />
-      <br />
-      Профили: шаблоны
-    </td>
-    <td align="center">
-      <img src=".imgs/2MP-Schedule-Screenshot%202026-01-02%20231523.png" width="300" alt="Профили: правила расписания" />
-      <br />
-      Профили: правила расписания
-    </td>
-    <td align="center">
-      <img src=".imgs/3CE-ProfileSelect-Screenshot%202026-01-02%20231634.png" width="300" alt="Создание: выбрать профиль" />
-      <br />
-      Создание: выбрать профиль
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src=".imgs/4CE-DateSelect-Screenshot%202026-01-02%20231805.png" width="300" alt="Создание: выбрать дату" />
-      <br />
-      Создание: выбрать дату
-    </td>
-    <td align="center">
-      <img src=".imgs/5CE-Review-Screenshot%202026-01-02%20231907.png" width="300" alt="Создание: проверить и отправить" />
-      <br />
-      Создание: проверить и отправить
-    </td>
-    <td align="center">
-      <img src=".imgs/6S-ThemeStudio-Screenshot%202026-01-02%20232221.png" width="300" alt="Студия тем: настройка UI" />
-      <br />
-      Студия тем: настройка UI
-    </td>
-  </tr>
-</table>
 
 ## Возможности
 - Профили/шаблоны, которые автоматически заполняют детали события для каждой группы.
@@ -113,5 +76,6 @@ __**Не делитесь файлами кэша или папками данн
 - Node.js 20+ (рекомендуется 22.21.1)
 - npm
 - Аккаунт VRChat с правом создавать события хотя бы в одной группе
+
 
 

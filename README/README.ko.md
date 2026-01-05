@@ -25,43 +25,6 @@
   <img src=".imgs/1MP-CE_CreationFlow-01-05-26.gif" width="900" alt="Event creation flow (profile to publish)" />
 </p>
 
-## 스크린샷
-<table>
-  <tr>
-    <td align="center">
-      <img src=".imgs/1MP-Basics-Screenshot%202026-01-02%20230956.png" width="300" alt="프로필: 템플릿" />
-      <br />
-      프로필: 템플릿
-    </td>
-    <td align="center">
-      <img src=".imgs/2MP-Schedule-Screenshot%202026-01-02%20231523.png" width="300" alt="프로필: 일정 규칙" />
-      <br />
-      프로필: 일정 규칙
-    </td>
-    <td align="center">
-      <img src=".imgs/3CE-ProfileSelect-Screenshot%202026-01-02%20231634.png" width="300" alt="생성: 프로필 선택" />
-      <br />
-      생성: 프로필 선택
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src=".imgs/4CE-DateSelect-Screenshot%202026-01-02%20231805.png" width="300" alt="생성: 날짜 선택" />
-      <br />
-      생성: 날짜 선택
-    </td>
-    <td align="center">
-      <img src=".imgs/5CE-Review-Screenshot%202026-01-02%20231907.png" width="300" alt="생성: 검토 후 제출" />
-      <br />
-      생성: 검토 후 제출
-    </td>
-    <td align="center">
-      <img src=".imgs/6S-ThemeStudio-Screenshot%202026-01-02%20232221.png" width="300" alt="테마 스튜디오: 사용자 UI" />
-      <br />
-      테마 스튜디오: 사용자 UI
-    </td>
-  </tr>
-</table>
 
 ## 기능
 - 그룹별 이벤트 상세를 자동으로 채우는 프로필/템플릿.
@@ -113,5 +76,6 @@ __**캐시 파일이나 앱 데이터 폴더를 공유하지 마세요.**__
 - Node.js 20+ (22.21.1 권장)
 - npm
 - 최소 한 개 이상의 그룹에서 이벤트를 만들 수 있는 VRChat 계정
+
 
 

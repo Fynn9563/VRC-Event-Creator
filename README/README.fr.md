@@ -25,43 +25,6 @@ Créez et enregistrez des modèles d'événements par groupe, générez des date
   <img src=".imgs/1MP-CE_CreationFlow-01-05-26.gif" width="900" alt="Event creation flow (profile to publish)" />
 </p>
 
-## Captures d'écran
-<table>
-  <tr>
-    <td align="center">
-      <img src=".imgs/1MP-Basics-Screenshot%202026-01-02%20230956.png" width="300" alt="Profils : modèles" />
-      <br />
-      Profils : modèles
-    </td>
-    <td align="center">
-      <img src=".imgs/2MP-Schedule-Screenshot%202026-01-02%20231523.png" width="300" alt="Profils : règles de planification" />
-      <br />
-      Profils : règles de planification
-    </td>
-    <td align="center">
-      <img src=".imgs/3CE-ProfileSelect-Screenshot%202026-01-02%20231634.png" width="300" alt="Création : choisir un profil" />
-      <br />
-      Création : choisir un profil
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src=".imgs/4CE-DateSelect-Screenshot%202026-01-02%20231805.png" width="300" alt="Création : choisir une date" />
-      <br />
-      Création : choisir une date
-    </td>
-    <td align="center">
-      <img src=".imgs/5CE-Review-Screenshot%202026-01-02%20231907.png" width="300" alt="Création : vérifier et valider" />
-      <br />
-      Création : vérifier et valider
-    </td>
-    <td align="center">
-      <img src=".imgs/6S-ThemeStudio-Screenshot%202026-01-02%20232221.png" width="300" alt="Studio de thèmes : interface personnalisée" />
-      <br />
-      Studio de thèmes : interface personnalisée
-    </td>
-  </tr>
-</table>
 
 ## Fonctionnalités
 - Profils/modèles qui préremplissent les détails des événements par groupe.
@@ -113,5 +76,6 @@ __**Ne partagez pas les fichiers de cache ni les dossiers de données de l'appli
 - Node.js 20+ (22.21.1 recommandé)
 - npm
 - Un compte VRChat avec l'autorisation de créer des événements pour au moins un groupe
+
 
 

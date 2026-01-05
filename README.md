@@ -26,43 +26,6 @@ Create and save per-group event templates, generate upcoming event dates from si
   <img src="README/.imgs/1MP-CE_CreationFlow-01-05-26.gif" width="900" alt="Event creation flow (profile to publish)" />
 </p>
 
-## Screenshots
-<table>
-  <tr>
-    <td align="center">
-      <img src="README/.imgs/1MP-Basics-Screenshot%202026-01-02%20230956.png" width="300" alt="Profiles: templates" />
-      <br />
-      Profiles: templates
-    </td>
-    <td align="center">
-      <img src="README/.imgs/2MP-Schedule-Screenshot%202026-01-02%20231523.png" width="300" alt="Profiles: schedule rules" />
-      <br />
-      Profiles: schedule rules
-    </td>
-    <td align="center">
-      <img src="README/.imgs/3CE-ProfileSelect-Screenshot%202026-01-02%20231634.png" width="300" alt="Create: select profile" />
-      <br />
-      Create: select profile
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="README/.imgs/4CE-DateSelect-Screenshot%202026-01-02%20231805.png" width="300" alt="Create: pick a date" />
-      <br />
-      Create: pick a date
-    </td>
-    <td align="center">
-      <img src="README/.imgs/5CE-Review-Screenshot%202026-01-02%20231907.png" width="300" alt="Create: review & submit" />
-      <br />
-      Create: review & submit
-    </td>
-    <td align="center">
-      <img src="README/.imgs/6S-ThemeStudio-Screenshot%202026-01-02%20232221.png" width="300" alt="Theme Studio: custom UI" />
-      <br />
-      Theme Studio: custom UI
-    </td>
-  </tr>
-</table>
 
 ## Features
 - Profiles/templates that auto-fill event details per group.
@@ -114,4 +77,5 @@ __**Do not share cache files or application data folders.**__
 - Node.js 20+ (22.21.1 recommended)
 - npm
 - A VRChat account with permission to create events for at least one group
+
 
