@@ -130,40 +130,56 @@ function ensureThemePresetDir() {
   fs.mkdirSync(THEME_PRESETS_DIR, { recursive: true });
 }
 
+function loadSeededThemeKeys() {
+  try {
+    if (fs.existsSync(THEME_PRESETS_SEED_PATH)) {
+      const content = fs.readFileSync(THEME_PRESETS_SEED_PATH, "utf8");
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed.map(k => String(k).toLowerCase()));
+      }
+    }
+  } catch (err) {
+    // Ignore read errors
+  }
+  return new Set();
+}
+
+function saveSeededThemeKeys(keys) {
+  try {
+    fs.writeFileSync(THEME_PRESETS_SEED_PATH, JSON.stringify(Array.from(keys)));
+  } catch (err) {
+    // Ignore write errors
+  }
+}
+
 function seedThemePresets() {
   if (!THEME_PRESETS_DIR || !THEME_PRESETS_BUNDLED_DIR) {
     return;
-  }
-  try {
-    if (fs.existsSync(THEME_PRESETS_SEED_PATH)) {
-      return;
-    }
-  } catch (err) {
-    // Ignore seed checks.
   }
   if (!fs.existsSync(THEME_PRESETS_BUNDLED_DIR)) {
     return;
   }
   ensureThemePresetDir();
+  const seededKeys = loadSeededThemeKeys();
   const bundled = fs.readdirSync(THEME_PRESETS_BUNDLED_DIR)
     .filter(file => file.toLowerCase().endsWith(".json"));
   bundled.forEach(file => {
-    const source = path.join(THEME_PRESETS_BUNDLED_DIR, file);
-    const target = path.join(THEME_PRESETS_DIR, file);
-    if (fs.existsSync(target)) {
+    const key = path.basename(file, ".json").toLowerCase();
+    // Skip if already seeded
+    if (seededKeys.has(key)) {
       return;
     }
+    const source = path.join(THEME_PRESETS_BUNDLED_DIR, file);
+    const target = path.join(THEME_PRESETS_DIR, file);
     try {
       fs.copyFileSync(source, target);
+      seededKeys.add(key);
     } catch (err) {
-      // Ignore copy errors.
+      // Ignore copy errors
     }
   });
-  try {
-    fs.writeFileSync(THEME_PRESETS_SEED_PATH, "seeded");
-  } catch (err) {
-    // Ignore seed write errors.
-  }
+  saveSeededThemeKeys(seededKeys);
 }
 
 function readThemePresetFile(filePath) {
