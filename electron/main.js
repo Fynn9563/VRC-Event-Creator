@@ -787,8 +787,10 @@ ipcMain.handle("app:checkUpdate", async () => {
   try {
     const result = await autoUpdater.checkForUpdates();
     const latestVersion = result?.updateInfo?.version || null;
+    // Only report update if latest version is actually newer
+    const updateAvailable = latestVersion && latestVersion !== APP_VERSION;
     return {
-      updateAvailable: result?.updateInfo ? true : false,
+      updateAvailable,
       currentVersion: APP_VERSION,
       latestVersion,
       repoUrl: UPDATE_REPO_URL
