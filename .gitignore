@@ -10,6 +10,12 @@ cache.json
 settings.json
 themes.json
 
+# Security scan output
+owasp-report/
+
+# Local tooling
+tools/
+
 # OS files
 .DS_Store
 Thumbs.db
