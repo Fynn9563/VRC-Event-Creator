@@ -24,17 +24,6 @@ export const en = {
     logoutFailed: "Logout failed.",
     loggedOut: "Logged out."
   },
-  contact: {
-    title: "Contact Email Required",
-    subtitle: "VRChat requires this so they can reach you about API usage or issues.",
-    emailLabel: "Contact Email",
-    emailPlaceholder: "you@example.com",
-    saveButton: "Continue",
-    hint: "VRChat requires a contact email for API usage so they can reach you about usage or issues.",
-    saved: "Contact email saved.",
-    invalid: "Enter a valid contact email.",
-    required: "Set contact email before logging in."
-  },
   twoFactor: {
     title: "Two-Factor Code",
     subtitle: "Enter your authentication code",
@@ -143,16 +132,14 @@ export const en = {
     },
     account: {
       title: "Account & API",
-      description: "VRChat requires a contact email for API usage so they can reach you about usage or issues.",
-      sessionHint: "Login sessions are cached locally to reduce sign-ins. Do not share your cache file.",
-      contactEmail: "Contact Email"
+      sessionHint: "Session is cached locally. Keep your cache file private."
     },
     dataStorage: {
       title: "Data Storage",
       description: "Configure where the application stores its data files",
       dataDirectory: "Data Directory",
       changeButton: "Change",
-      openButton: "Open Folder",
+      openButton: "Open",
       restartHint: "Requires restart to take effect"
     },
     appInfo: {
@@ -476,4 +463,7 @@ export const en = {
     next: "Next"
   }
 };
+
+
+
 

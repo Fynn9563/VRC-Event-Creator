@@ -37,7 +37,7 @@
 
 ## 下载
 - 发布版：https://github.com/Cynacedia/VRC-Event-Creator/releases
-- Windows 便携式 `.exe` 可独立运行（运行不需要 Node.js）。
+- Windows 便携式 `.exe` 可独立运行。
 
 ## 隐私与数据存储
 不会存储你的密码，只会缓存会话令牌。
@@ -45,7 +45,7 @@
 
 - `profiles.json`（配置文件模板）
 - `cache.json`（会话令牌）
-- `settings.json`（联系邮箱）
+- `settings.json`（应用设置）
 - `themes.json`（主题预设和自定义颜色）
 
 你可以通过环境变量 `VRC_EVENT_DATA_DIR` 覆盖数据目录。
@@ -55,7 +55,6 @@ __**不要分享缓存文件或应用数据文件夹。**__
 
 ## 使用说明
 - 继续前需要填写资料名称、活动名称和描述。
-- 首次启动需提供联系人邮箱以使用 VRChat API。
 - 私有群组只能使用访问类型 = 群组。
 - 时长使用 DD:HH:MM，最大 31 天。
 - 标签最多 5 个，语言最多 3 个。
@@ -76,6 +75,7 @@ __**不要分享缓存文件或应用数据文件夹。**__
 - Node.js 20+（推荐 22.21.1）
 - npm
 - 拥有至少一个组的活动创建权限的 VRChat 账号
+
 
 
 

@@ -37,7 +37,7 @@ Créez et enregistrez des modèles d'événements par groupe, générez des date
 
 ## Téléchargement
 - Releases : https://github.com/Cynacedia/VRC-Event-Creator/releases
-- L'exécutable portable Windows `.exe` fonctionne de façon autonome (aucun Node.js requis pour l'exécuter).
+- L'exécutable portable Windows `.exe` fonctionne de façon autonome.
 
 ## Confidentialité et stockage des données
 Votre mot de passe n'est pas stocké. Seuls les jetons de session sont mis en cache.
@@ -45,7 +45,7 @@ L'application stocke ses fichiers dans le répertoire de données utilisateur d'
 
 - `profiles.json` (modèles de profils)
 - `cache.json` (jetons de session)
-- `settings.json` (email de contact)
+- `settings.json` (paramètres de l'application)
 - `themes.json` (préréglages de thèmes et couleurs personnalisées)
 
 Vous pouvez remplacer le répertoire de données avec la variable d'environnement `VRC_EVENT_DATA_DIR`.
@@ -55,7 +55,6 @@ __**Ne partagez pas les fichiers de cache ni les dossiers de données de l'appli
 
 ## Notes d'utilisation
 - Les profils nécessitent un nom de profil, un nom d'événement et une description avant de continuer.
-- Un email de contact est requis au premier lancement pour l'usage de l'API VRChat.
 - Les groupes privés ne peuvent utiliser que le type d'accès = Groupe.
 - La durée utilise DD:HH:MM et est limitée à 31 jours.
 - Les tags sont limités à 5 et les langues à 3.

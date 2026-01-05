@@ -54,9 +54,8 @@ const message = t("auth.loggedInAs", { name: "User123" });
 
 - `nav.*` - Navigation menu items
 - `auth.*` - Authentication (login, logout, 2FA)
-- `contact.*` - Contact email overlay
 - `languageSetup.*` - First-run language selection
-- `settings.*` - Settings page (theme, account, data storage, app info)
+- `settings.*` - Settings page (theme, app info)
 - `events.*` - Event creation page
 - `profiles.*` - Profile management page
 - `gallery.*` - Gallery image picker
