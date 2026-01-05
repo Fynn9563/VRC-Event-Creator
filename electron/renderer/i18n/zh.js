@@ -248,6 +248,15 @@ export const zh = {
     tags: "标签（最多5）",
     access: "访问",
     accessType: "访问类型",
+    roleRestrictions: {
+      title: "角色限制",
+      hint: "可选 - 启用后，仅所选的群组角色可以加入。",
+      optional: "对于实例管理员，所选最低管理员角色及以上的所有角色都可加入。",
+      allAccess: "无（所有人都可加入）",
+      managementRoles: "管理角色",
+      roles: "角色",
+      noRoles: "该群组没有可用的角色。"
+    },
     imageId: "图片ID（可选）",
     imageIdPlaceholder: "例如：file_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
     sendNotification: "发送通知",

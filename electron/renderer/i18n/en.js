@@ -245,6 +245,15 @@ export const en = {
     tags: "Tags (max 5)",
     access: "Access",
     accessType: "Access Type",
+    roleRestrictions: {
+      title: "Role Restrictions",
+      hint: "Optional - If enabled, only the selected group roles may join.",
+      optional: "For instance moderators, all roles at or above the lowest selected moderator role may join.",
+      allAccess: "None (Everyone can join)",
+      managementRoles: "Management Roles",
+      roles: "Roles",
+      noRoles: "No roles available for this group."
+    },
     imageId: "Image ID (optional)",
     imageIdPlaceholder: "ex. file_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
     sendNotification: "Send Notification",

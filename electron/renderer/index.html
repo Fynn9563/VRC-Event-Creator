@@ -141,19 +141,6 @@
                     </div>
                     <div class="grid two">
                       <div class="field">
-                        <label for="event-tags" data-i18n="events.tags">Tags (max 5)</label>
-                        <div class="tag-input" id="event-tags-input">
-                          <div class="tag-chips" id="event-tags-chips"></div>
-                          <input id="event-tags" type="text" />
-                        </div>
-                      </div>
-                      <div class="field">
-                        <label for="event-access" data-i18n="events.accessType">Access Type</label>
-                        <select id="event-access"></select>
-                      </div>
-                    </div>
-                    <div class="grid two">
-                      <div class="field">
                         <label for="event-image-id" data-i18n="events.imageId">Image ID (optional)</label>
                         <div class="inline-row">
                           <input id="event-image-id" type="text" placeholder="ex. file_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" data-i18n-placeholder="events.imageIdPlaceholder" />
@@ -166,6 +153,29 @@
                           <span data-i18n="events.sendNotification">Send Notification</span>
                         </label>
                       </div>
+                    </div>
+                    <div class="grid two">
+                      <div class="field">
+                        <label for="event-tags" data-i18n="events.tags">Tags (max 5)</label>
+                        <div class="tag-input" id="event-tags-input">
+                          <div class="tag-chips" id="event-tags-chips"></div>
+                          <input id="event-tags" type="text" />
+                        </div>
+                      </div>
+                      <div class="field">
+                        <label for="event-access" data-i18n="events.accessType">Access Type</label>
+                        <select id="event-access"></select>
+                      </div>
+                    </div>
+                    <div class="role-restrictions is-hidden" id="event-role-restrictions">
+                      <div class="role-restrictions-header">
+                        <div>
+                          <div class="role-restrictions-title" data-i18n="events.roleRestrictions.title">Role Restrictions</div>
+                          <p class="hint" data-i18n="events.roleRestrictions.hint">Optional - If enabled, only the selected group roles may join.</p>
+                          <p class="hint" data-i18n="events.roleRestrictions.optional">For instance moderators, all roles at or above the lowest selected moderator role may join.</p>
+                        </div>
+                      </div>
+                      <div class="role-restrictions-list" id="event-role-list"></div>
                     </div>
                     <div class="grid two">
                       <div class="field">
@@ -368,14 +378,24 @@
 
                 <div class="wizard-step is-hidden" data-step="4">
                   <div class="card">
-                    <h3 data-i18n="profiles.section.audience">Audience</h3>
-                    <div class="field">
-                      <label for="profile-access" data-i18n="profiles.accessType">Access Type</label>
-                      <select id="profile-access"></select>
-                    </div>
-                    <div class="grid two">
+                      <h3 data-i18n="profiles.section.audience">Audience</h3>
                       <div class="field">
-                        <label data-i18n="profiles.languages">Languages (max 3)</label>
+                        <label for="profile-access" data-i18n="profiles.accessType">Access Type</label>
+                        <select id="profile-access"></select>
+                      </div>
+                      <div class="role-restrictions is-hidden" id="profile-role-restrictions">
+                        <div class="role-restrictions-header">
+                          <div>
+                            <div class="role-restrictions-title" data-i18n="events.roleRestrictions.title">Role Restrictions</div>
+                            <p class="hint" data-i18n="events.roleRestrictions.hint">Optional - If enabled, only the selected group roles may join.</p>
+                            <p class="hint" data-i18n="events.roleRestrictions.optional">For instance moderators, all roles at or above the lowest selected moderator role may join.</p>
+                          </div>
+                        </div>
+                        <div class="role-restrictions-list" id="profile-role-list"></div>
+                      </div>
+                      <div class="grid two">
+                        <div class="field">
+                          <label data-i18n="profiles.languages">Languages (max 3)</label>
                         <input id="profile-language-filter" type="search" placeholder="Filter languages..." data-i18n-placeholder="profiles.filterLanguages" />
                         <div class="multi-list" id="profile-language-list"></div>
                         <div class="hint" id="profile-language-hint">0 selected</div>
@@ -711,6 +731,16 @@
               <label for="modify-event-access" data-i18n="modify.accessType">Access Type</label>
               <select id="modify-event-access"></select>
             </div>
+          </div>
+          <div class="role-restrictions is-hidden" id="modify-role-restrictions">
+            <div class="role-restrictions-header">
+              <div>
+                <div class="role-restrictions-title" data-i18n="events.roleRestrictions.title">Role Restrictions</div>
+                <p class="hint" data-i18n="events.roleRestrictions.hint">Optional - If enabled, only the selected group roles may join.</p>
+                <p class="hint" data-i18n="events.roleRestrictions.optional">For instance moderators, all roles at or above the lowest selected moderator role may join.</p>
+              </div>
+            </div>
+            <div class="role-restrictions-list" id="modify-role-list"></div>
           </div>
 
           <div class="field">

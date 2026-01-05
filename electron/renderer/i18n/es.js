@@ -248,6 +248,15 @@ export const es = {
     tags: "Etiquetas (máx. 5)",
     access: "Acceso",
     accessType: "Tipo de acceso",
+      roleRestrictions: {
+        title: "Restricciones de roles",
+        hint: "Opcional - Si está habilitado, solo los roles de grupo seleccionados pueden unirse.",
+        optional: "Para los moderadores de instancia, todos los roles en o por encima del rol de moderador más bajo seleccionado pueden unirse.",
+        allAccess: "Ninguno (Todos pueden unirse)",
+        managementRoles: "Roles de gestión",
+        roles: "Roles",
+        noRoles: "No hay roles disponibles para este grupo."
+      },
     imageId: "ID de imagen (opcional)",
     imageIdPlaceholder: "ej. file_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
     sendNotification: "Enviar notificación",

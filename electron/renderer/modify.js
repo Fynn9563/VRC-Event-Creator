@@ -3,9 +3,11 @@ import { renderSelect, renderChecklist, showToast } from "./ui.js";
 import { buildTimezones, ensureTimezoneOption, createTagInput, enforceTagsInput, sanitizeText, formatDuration, normalizeDurationInput, parseDurationInput, sanitizeDurationInputValue, formatDurationPreview, enforceGroupAccess, getTodayDateString, getMaxEventDateString } from "./utils.js";
 import { ACCESS_TYPES, CATEGORIES, EVENT_DESCRIPTION_LIMIT, EVENT_NAME_LIMIT, LANGUAGES, PLATFORMS, TAG_LIMIT } from "./config.js";
 import { t, getLanguageDisplayName } from "./i18n/index.js";
+import { fetchGroupRoles, renderRoleList } from "./roles.js";
 
 const HOLD_DURATION_MS = 2000;
 let modifyApi = null;
+let roleFetchToken = 0;
 
 function getGroupName(groupId) {
   if (!groupId) {
@@ -28,6 +30,60 @@ export function updateModifyDurationPreview() {
     return;
   }
   dom.modifyEventDurationPreview.textContent = formatDurationPreview(dom.modifyEventDuration.value, getDurationUnits());
+}
+
+function getRoleLabels() {
+  return {
+    allAccess: t("events.roleRestrictions.allAccess"),
+    managementRoles: t("events.roleRestrictions.managementRoles"),
+    roles: t("events.roleRestrictions.roles"),
+    noRoles: t("events.roleRestrictions.noRoles")
+  };
+}
+
+async function renderModifyRoleRestrictions() {
+  if (!dom.modifyRoleRestrictions || !dom.modifyRoleList) {
+    return;
+  }
+  const groupId = state.modify.selectedEvent?.groupId || dom.modifyGroup?.value;
+  const isGroupAccess = dom.modifyEventAccess?.value === "group";
+  const shouldShow = Boolean(groupId) && isGroupAccess;
+  dom.modifyRoleRestrictions.classList.toggle("is-hidden", !shouldShow);
+  if (!shouldShow) {
+    dom.modifyRoleList.innerHTML = "";
+    return;
+  }
+  const labels = getRoleLabels();
+  const requestId = ++roleFetchToken;
+  dom.modifyRoleList.innerHTML = `<div class="hint">${t("common.loading")}</div>`;
+  try {
+    const roles = await fetchGroupRoles(modifyApi, groupId);
+    if (requestId !== roleFetchToken) {
+      return;
+    }
+    const validIds = new Set(roles.map(role => role.id));
+    state.modify.roleIds = (state.modify.roleIds || []).filter(id => validIds.has(id));
+    renderRoleList({
+      container: dom.modifyRoleList,
+      roles,
+      selectedIds: state.modify.roleIds,
+      labels,
+      onChange: next => {
+        state.modify.roleIds = next;
+      }
+    });
+  } catch (err) {
+    dom.modifyRoleList.innerHTML = "";
+    const empty = document.createElement("div");
+    empty.className = "hint";
+    empty.textContent = labels.noRoles;
+    dom.modifyRoleList.appendChild(empty);
+  }
+}
+
+function handleModifyAccessChange() {
+  enforceGroupAccess(dom.modifyEventAccess, state.modify.selectedEvent?.groupId || dom.modifyGroup?.value);
+  void renderModifyRoleRestrictions();
 }
 
 function getGroupBanner(groupId) {
@@ -253,6 +309,7 @@ function applyModifyFormFromEvent(event) {
   dom.modifyEventAccess.value = event.accessType || "public";
   enforceGroupAccess(dom.modifyEventAccess, event.groupId);
   dom.modifyEventImageId.value = event.imageId || "";
+  state.modify.roleIds = Array.isArray(event.roleIds) ? event.roleIds.slice() : [];
   const { systemTz } = buildTimezones();
   const timezone = event.timezone || systemTz;
   ensureTimezoneOption(dom.modifyEventTimezone, timezone);
@@ -268,6 +325,7 @@ function applyModifyFormFromEvent(event) {
   renderModifyLanguageList();
   renderModifyPlatformList();
   renderModifyProfileOptions(event.groupId);
+  void renderModifyRoleRestrictions();
 }
 
 function openModifyModal(event) {
@@ -305,6 +363,7 @@ function applyProfileToModifyForm(profile) {
   dom.modifyEventAccess.value = profile.accessType || dom.modifyEventAccess.value || "public";
   enforceGroupAccess(dom.modifyEventAccess, groupId);
   dom.modifyEventImageId.value = profile.imageId || dom.modifyEventImageId.value;
+  state.modify.roleIds = Array.isArray(profile.roleIds) ? profile.roleIds.slice() : state.modify.roleIds;
   if (profile.duration) {
     dom.modifyEventDuration.value = formatDuration(profile.duration);
     updateModifyDurationPreview();
@@ -317,6 +376,7 @@ function applyProfileToModifyForm(profile) {
   state.modify.platforms = Array.isArray(profile.platforms) ? profile.platforms.slice() : state.modify.platforms;
   renderModifyLanguageList();
   renderModifyPlatformList();
+  void renderModifyRoleRestrictions();
 }
 
 function getProfileLabel(profileKey, profile) {
@@ -476,16 +536,17 @@ async function handleModifySave() {
   state.modify.saving = true;
   dom.modifySave.disabled = true;
 
-  const eventData = {
-    title,
-    description,
-    category: dom.modifyEventCategory.value,
-    accessType: dom.modifyEventAccess.value,
-    languages: state.modify.languages.slice(),
-    platforms: state.modify.platforms.slice(),
-    tags,
-    imageId: dom.modifyEventImageId.value.trim() || null
-  };
+    const eventData = {
+      title,
+      description,
+      category: dom.modifyEventCategory.value,
+      accessType: dom.modifyEventAccess.value,
+      languages: state.modify.languages.slice(),
+      platforms: state.modify.platforms.slice(),
+      tags,
+      imageId: dom.modifyEventImageId.value.trim() || null,
+      roleIds: dom.modifyEventAccess.value === "group" ? state.modify.roleIds.slice() : []
+    };
   try {
     const result = await modifyApi.updateEvent({
       groupId: event.groupId,
@@ -613,6 +674,9 @@ export function initModifyEvents(api) {
       }
     });
   }
+  if (dom.modifyEventAccess) {
+    dom.modifyEventAccess.addEventListener("change", handleModifyAccessChange);
+  }
   if (dom.modifyEventDuration) {
     dom.modifyEventDuration.addEventListener("input", () => {
       dom.modifyEventDuration.value = sanitizeDurationInputValue(dom.modifyEventDuration.value);
@@ -638,6 +702,7 @@ export function syncModifyLocalization() {
   renderModifyPlatformList();
   renderModifyCount();
   renderModifyEventGrid();
+  void renderModifyRoleRestrictions();
 }
 
 export function initModifySelects() {

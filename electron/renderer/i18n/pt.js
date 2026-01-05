@@ -245,6 +245,15 @@ export const pt = {
     tags: "Tags (máx. 5)",
     access: "Acesso",
     accessType: "Tipo de acesso",
+    roleRestrictions: {
+      title: "Restrições de cargos",
+      hint: "Opcional - Se ativado, apenas os cargos de grupo selecionados podem participar.",
+      optional: "Para moderadores de instância, todos os cargos no nível ou acima do cargo de moderador mais baixo selecionado podem participar.",
+      allAccess: "Nenhum (Todos podem participar)",
+      managementRoles: "Cargos de gestão",
+      roles: "Cargos",
+      noRoles: "Nenhum cargo disponível para este grupo."
+    },
     imageId: "ID da imagem (opcional)",
     imageIdPlaceholder: "ex. file_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
     sendNotification: "Enviar notificação",

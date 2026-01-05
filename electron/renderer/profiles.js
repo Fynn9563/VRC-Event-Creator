@@ -3,6 +3,9 @@ import { EVENT_DESCRIPTION_LIMIT, EVENT_NAME_LIMIT, TAG_LIMIT } from "./config.j
 import { dom, state, setProfileEditConfirmed, getProfileEditConfirmed, getProfileWizard } from "./state.js";
 import { t } from "./i18n/index.js";
 import { enforceTagsInput, sanitizeText, formatDuration, normalizeDurationInput, parseDurationInput, formatDurationPreview, enforceGroupAccess } from "./utils.js";
+import { fetchGroupRoles, renderRoleList } from "./roles.js";
+
+let roleFetchToken = 0;
 
 function getDurationUnits() {
   return {
@@ -10,6 +13,54 @@ function getDurationUnits() {
     hour: t("common.durationUnits.hour"),
     minute: t("common.durationUnits.minute")
   };
+}
+
+function getRoleLabels() {
+  return {
+    allAccess: t("events.roleRestrictions.allAccess"),
+    managementRoles: t("events.roleRestrictions.managementRoles"),
+    roles: t("events.roleRestrictions.roles"),
+    noRoles: t("events.roleRestrictions.noRoles")
+  };
+}
+
+export async function renderProfileRoleRestrictions(api) {
+  if (!dom.profileRoleRestrictions || !dom.profileRoleList) {
+    return;
+  }
+  const groupId = dom.profileGroup.value;
+  const isGroupAccess = dom.profileAccess.value === "group";
+  const shouldShow = Boolean(groupId) && isGroupAccess;
+  dom.profileRoleRestrictions.classList.toggle("is-hidden", !shouldShow);
+  if (!shouldShow) {
+    dom.profileRoleList.innerHTML = "";
+    return;
+  }
+  const requestId = ++roleFetchToken;
+  dom.profileRoleList.innerHTML = `<div class="hint">${t("common.loading")}</div>`;
+  try {
+    const roles = await fetchGroupRoles(api, groupId);
+    if (requestId !== roleFetchToken) {
+      return;
+    }
+    const validIds = new Set(roles.map(role => role.id));
+    state.profile.roleIds = (state.profile.roleIds || []).filter(id => validIds.has(id));
+    renderRoleList({
+      container: dom.profileRoleList,
+      roles,
+      selectedIds: state.profile.roleIds,
+      labels: getRoleLabels(),
+      onChange: next => {
+        state.profile.roleIds = next;
+      }
+    });
+  } catch (err) {
+    dom.profileRoleList.innerHTML = "";
+    const empty = document.createElement("div");
+    empty.className = "hint";
+    empty.textContent = getRoleLabels().noRoles;
+    dom.profileRoleList.appendChild(empty);
+  }
 }
 
 export function updateProfileDurationPreview() {
@@ -76,6 +127,13 @@ export function resetProfileForm() {
   setProfileMode("create");
   setProfileEditConfirmed(false);
   state.profile.currentKey = null;
+  state.profile.roleIds = [];
+  if (dom.profileRoleRestrictions) {
+    dom.profileRoleRestrictions.classList.add("is-hidden");
+  }
+  if (dom.profileRoleList) {
+    dom.profileRoleList.innerHTML = "";
+  }
   dom.profileDisplayName.value = "";
   dom.profileName.value = "";
   dom.profileDescription.value = "";
@@ -131,6 +189,7 @@ export function applyProfileToForm(groupId, profileKey) {
   }
   dom.profileAccess.value = profile.accessType || "public";
   enforceGroupAccess(dom.profileAccess, groupId);
+  state.profile.roleIds = Array.isArray(profile.roleIds) ? profile.roleIds.slice() : [];
   dom.profileImageId.value = profile.imageId || "";
   dom.profileDuration.value = formatDuration(profile.duration || 120);
   updateProfileDurationPreview();
@@ -253,13 +312,14 @@ export function handleProfileWizardStepChange({ current, next }) {
 }
 
 // Handle profile group change
-export function handleProfileGroupChange() {
+export function handleProfileGroupChange(api) {
   setProfileEditConfirmed(false);
   state.profile.currentKey = null;
   resetProfileForm();
   enforceGroupAccess(dom.profileAccess, dom.profileGroup.value);
   dom.profileExisting.value = "";
   updateProfileActionButtons();
+  void renderProfileRoleRestrictions(api);
 
   const wizard = getProfileWizard();
   if (wizard) {
@@ -303,19 +363,26 @@ export function handleProfileEdit() {
 }
 
 // Handle profile selection change
-export function handleProfileSelection() {
+export function handleProfileSelection(api) {
   setProfileEditConfirmed(false);
   const selected = dom.profileExisting.value;
 
   if (!selected) {
     resetProfileForm();
     updateProfileActionButtons();
+    void renderProfileRoleRestrictions(api);
     return;
   }
 
   const [groupId, profileKey] = selected.split("::");
   applyProfileToForm(groupId, profileKey);
   updateProfileActionButtons();
+  void renderProfileRoleRestrictions(api);
+}
+
+export function handleProfileAccessChange(api) {
+  enforceGroupAccess(dom.profileAccess, dom.profileGroup.value);
+  void renderProfileRoleRestrictions(api);
 }
 
 // Handle profile save
@@ -374,6 +441,10 @@ export async function handleProfileSave(api) {
     return { success: false, message: "Duration must be a positive number." };
   }
 
+  const roleIds = dom.profileAccess.value === "group"
+    ? (state.profile.roleIds || []).filter(id => typeof id === "string" && id.trim())
+    : [];
+
   const profilePayload = {
     groupId,
     groupName: getGroupName(groupId),
@@ -387,6 +458,7 @@ export async function handleProfileSave(api) {
       platforms: state.profile.platforms.slice(),
       tags,
       accessType: dom.profileAccess.value,
+      roleIds,
       imageId: dom.profileImageId.value.trim() || null,
       duration,
       sendNotification: Boolean(dom.profileSendNotification.checked),

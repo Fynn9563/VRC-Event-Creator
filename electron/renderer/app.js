@@ -6,8 +6,8 @@ import { setStatus, setFootMeta, showToast, setAuthState, setUpdateAvailable, sh
 import { initI18n, setLanguage, getCurrentLanguage, getLanguageOptions, applyTranslations, t, getLanguageDisplayName } from "./i18n/index.js";
 import { createTagInput, loadSettings, requireContactEmail, handleOpenDataDir, handleChangeDataDir, buildTimezones, normalizeDurationInput, sanitizeDurationInputValue, enforceGroupAccess, getTodayDateString, getMaxEventDateString } from "./utils.js";
 import { checkSession, handleLogin, handleLoginClose, handleLogout, handleContactSave, handleSettingsSave } from "./auth.js";
-import { resetProfileForm, applyProfileToForm, renderProfileList, updateProfileActionButtons, handleProfileNew, handleProfileEdit, handleProfileDelete, handleProfileSelection, handleProfileGroupChange, handleProfileSave, updateProfileDurationPreview } from "./profiles.js";
-import { syncDateInputs, applyManualEventDefaults, handleEventGroupChange, handleEventProfileChange, handleEventCreate, renderEventLanguageList, renderEventProfileOptions, renderEventPlatformList, updateDateOptions, refreshUpcomingEventCount, renderUpcomingEventCountLabel, updateEventDurationPreview } from "./events.js";
+import { resetProfileForm, applyProfileToForm, renderProfileList, updateProfileActionButtons, handleProfileNew, handleProfileEdit, handleProfileDelete, handleProfileSelection, handleProfileGroupChange, handleProfileSave, updateProfileDurationPreview, handleProfileAccessChange, renderProfileRoleRestrictions } from "./profiles.js";
+import { syncDateInputs, applyManualEventDefaults, handleEventGroupChange, handleEventProfileChange, handleEventCreate, handleEventAccessChange, renderEventRoleRestrictions, renderEventLanguageList, renderEventProfileOptions, renderEventPlatformList, updateDateOptions, refreshUpcomingEventCount, renderUpcomingEventCountLabel, updateEventDurationPreview } from "./events.js";
 import { initGalleryPicker, openGalleryPicker } from "./gallery.js";
 import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLocalization, updateModifyDurationPreview } from "./modify.js";
 
@@ -227,6 +227,8 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
       }
       renderProfileList(api);
       renderEventProfileOptions(api);
+      void renderEventRoleRestrictions(api);
+      void renderProfileRoleRestrictions(api);
       await refreshUpcomingEventCount(api);
       setFootMeta(t("common.ready"));
     } catch (err) {
@@ -366,13 +368,15 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
 
     renderProfileList(api);
     renderEventProfileOptions(api);
-    renderEventLanguageList();
-    renderEventPlatformList();
-    renderProfileLanguageList();
-    renderProfilePlatformList();
-    renderPatternList();
-    renderUpcomingEventCountLabel();
-    syncModifyLocalization();
+    void renderEventRoleRestrictions(api);
+      renderEventLanguageList();
+      renderEventPlatformList();
+      renderProfileLanguageList();
+      renderProfilePlatformList();
+      void renderProfileRoleRestrictions(api);
+      renderPatternList();
+      renderUpcomingEventCountLabel();
+      syncModifyLocalization();
 
     const profileKey = dom.eventProfile.value;
     const groupId = dom.eventGroup.value;
@@ -447,22 +451,23 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
 
   function handleProfileWizardStepChange({ current, next }) {
     // Going backward - allow and keep group/profile selection on step 0
-    if (next < current) {
-      if (next === 0) {
-        // Returning to step 0 - keep group selected, unlock it, refresh profile list
-        const currentGroup = dom.profileGroup.value;
-        resetProfileForm();
+      if (next < current) {
+        if (next === 0) {
+          // Returning to step 0 - keep group selected, unlock it, refresh profile list
+          const currentGroup = dom.profileGroup.value;
+          resetProfileForm();
         if (currentGroup) {
           dom.profileGroup.value = currentGroup;
           renderProfileList(api);
         }
-        updateProfileActionButtons();
-        renderProfileLanguageList();
-        renderProfilePlatformList();
-        renderPatternList();
+          updateProfileActionButtons();
+          renderProfileLanguageList();
+          renderProfilePlatformList();
+          void renderProfileRoleRestrictions(api);
+          renderPatternList();
+        }
+        return true;
       }
-      return true;
-    }
     // Going forward from step 0
     if (current === 0 && next > 0) {
       if (!dom.profileGroup.value) {
@@ -478,6 +483,7 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
           updateProfileActionButtons();
           renderProfileLanguageList();
           renderProfilePlatformList();
+          void renderProfileRoleRestrictions(api);
           renderPatternList();
         }
       } else if (!getProfileEditConfirmed()) {
@@ -487,6 +493,7 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
         updateProfileActionButtons();
         renderProfileLanguageList();
         renderProfilePlatformList();
+        void renderProfileRoleRestrictions(api);
         renderPatternList();
       }
     }
@@ -651,6 +658,7 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     dom.eventGroup.addEventListener("change", () => { void handleEventGroupChange(api); });
     dom.eventProfile.addEventListener("change", () => handleEventProfileChange(api));
     dom.eventProfileClear.addEventListener("click", () => { dom.eventProfile.value = "__manual__"; handleEventProfileChange(api); });
+    dom.eventAccess.addEventListener("change", () => handleEventAccessChange(api));
     dom.eventDateSource.addEventListener("change", handleDateSourceChange);
     dom.eventTimezone.addEventListener("change", () => {
       if (!state.event.profile) {
@@ -715,13 +723,14 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     if (dom.modifyEventImagePicker) {
       dom.modifyEventImagePicker.addEventListener("click", () => openGalleryPicker(dom.modifyEventImageId));
     }
-    dom.profileGroup.addEventListener("change", () => { handleProfileGroupChange(); renderProfileList(api); });
-    dom.profileExisting.addEventListener("change", handleProfileSelection);
-    dom.profileNew.addEventListener("click", () => { const r = handleProfileNew(); if (!r.success && r.message) showToast(r.message, true); });
-    dom.profileEdit.addEventListener("click", () => { const r = handleProfileEdit(); if (!r.success && r.message) showToast(r.message, true); });
-    dom.profileDelete.addEventListener("click", async () => { const r = await handleProfileDelete(api); if (r.success) { showToast(r.message); await refreshData(); resetProfileForm(); renderProfileLanguageList(); renderProfilePlatformList(); renderPatternList(); } else if (!r.cancelled) showToast(r.message, true); });
-    dom.profileSave.addEventListener("click", async () => { const r = await handleProfileSave(api); if (r.success) { showToast(r.message); await refreshData(); renderProfileList(api); dom.profileExisting.value = `${r.groupId}::${r.profileKey}`; applyProfileToForm(r.groupId, r.profileKey); updateProfileActionButtons(); renderProfileLanguageList(); renderProfilePlatformList(); renderPatternList(); } else showToast(r.message, true); });
-    dom.profileLanguageFilter.addEventListener("input", renderProfileLanguageList);
+      dom.profileGroup.addEventListener("change", () => { handleProfileGroupChange(api); renderProfileList(api); });
+      dom.profileExisting.addEventListener("change", () => handleProfileSelection(api));
+      dom.profileNew.addEventListener("click", () => { const r = handleProfileNew(); if (!r.success && r.message) showToast(r.message, true); });
+      dom.profileEdit.addEventListener("click", () => { const r = handleProfileEdit(); if (!r.success && r.message) showToast(r.message, true); });
+    dom.profileDelete.addEventListener("click", async () => { const r = await handleProfileDelete(api); if (r.success) { showToast(r.message); await refreshData(); resetProfileForm(); renderProfileLanguageList(); renderProfilePlatformList(); renderPatternList(); void renderProfileRoleRestrictions(api); } else if (!r.cancelled) showToast(r.message, true); });
+      dom.profileSave.addEventListener("click", async () => { const r = await handleProfileSave(api); if (r.success) { showToast(r.message); await refreshData(); renderProfileList(api); dom.profileExisting.value = `${r.groupId}::${r.profileKey}`; applyProfileToForm(r.groupId, r.profileKey); updateProfileActionButtons(); renderProfileLanguageList(); renderProfilePlatformList(); renderPatternList(); await renderProfileRoleRestrictions(api); } else showToast(r.message, true); });
+      dom.profileLanguageFilter.addEventListener("input", renderProfileLanguageList);
+      dom.profileAccess.addEventListener("change", () => handleProfileAccessChange(api));
     if (dom.profileDuration) {
       dom.profileDuration.addEventListener("input", () => {
         dom.profileDuration.value = sanitizeDurationInputValue(dom.profileDuration.value);
@@ -782,8 +791,10 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     resetProfileForm();
     renderProfileLanguageList();
     renderProfilePlatformList();
+    void renderProfileRoleRestrictions(api);
     renderPatternList();
     applyManualEventDefaults();
+    void renderEventRoleRestrictions(api);
     // Set date range to today through one year from now.
     const today = getTodayDateString();
     const maxDate = getMaxEventDateString();

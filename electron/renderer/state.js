@@ -82,6 +82,8 @@ export const dom = {
   eventTagsChips: document.getElementById("event-tags-chips"),
   eventTags: document.getElementById("event-tags"),
   eventAccess: document.getElementById("event-access"),
+  eventRoleRestrictions: document.getElementById("event-role-restrictions"),
+  eventRoleList: document.getElementById("event-role-list"),
   eventImageId: document.getElementById("event-image-id"),
   eventImagePicker: document.getElementById("event-image-picker"),
   eventSendNotification: document.getElementById("event-send-notification"),
@@ -112,6 +114,8 @@ export const dom = {
   modifyTagsChips: document.getElementById("modify-tags-chips"),
   modifyEventTags: document.getElementById("modify-event-tags"),
   modifyEventAccess: document.getElementById("modify-event-access"),
+  modifyRoleRestrictions: document.getElementById("modify-role-restrictions"),
+  modifyRoleList: document.getElementById("modify-role-list"),
   modifyEventImageId: document.getElementById("modify-event-image-id"),
   modifyEventImagePicker: document.getElementById("modify-event-image-picker"),
   modifyEventDate: document.getElementById("modify-event-date"),
@@ -136,6 +140,8 @@ export const dom = {
   profileTagsChips: document.getElementById("profile-tags-chips"),
   profileTags: document.getElementById("profile-tags"),
   profileAccess: document.getElementById("profile-access"),
+  profileRoleRestrictions: document.getElementById("profile-role-restrictions"),
+  profileRoleList: document.getElementById("profile-role-list"),
   profileImageId: document.getElementById("profile-image-id"),
   profileImagePicker: document.getElementById("profile-image-picker"),
   profileDuration: document.getElementById("profile-duration"),
@@ -166,6 +172,7 @@ export const state = {
   },
   user: null,
   groups: [],
+  groupRoles: {},
   profiles: {},
   event: {
     languages: [],
@@ -179,7 +186,8 @@ export const state = {
     upcomingLimit: 10,
     createBlocked: false,
     createInProgress: false,
-    tagInput: null
+    tagInput: null,
+    roleIds: []
   },
   modify: {
     events: [],
@@ -187,6 +195,7 @@ export const state = {
     selectedEvent: null,
     languages: [],
     platforms: [],
+    roleIds: [],
     tagInput: null,
     loading: false,
     saving: false
@@ -196,6 +205,7 @@ export const state = {
     currentKey: null,
     languages: ["eng"],
     platforms: ["standalonewindows", "android"],
+    roleIds: [],
     patterns: [],
     tagInput: null
   },

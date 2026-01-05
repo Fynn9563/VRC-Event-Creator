@@ -3,8 +3,19 @@ import { showToast, renderSelect, renderChecklist } from "./ui.js";
 import { buildTimezones, ensureTimezoneOption, enforceTagsInput, sanitizeText, formatDuration, normalizeDurationInput, parseDurationInput, formatDurationPreview, enforceGroupAccess, getMaxEventDateString } from "./utils.js";
 import { EVENT_DESCRIPTION_LIMIT, EVENT_NAME_LIMIT, LANGUAGES, PLATFORMS, TAG_LIMIT } from "./config.js";
 import { t, getCurrentLanguage, getLanguageDisplayName } from "./i18n/index.js";
+import { fetchGroupRoles, renderRoleList } from "./roles.js";
 
 const UPCOMING_EVENT_LIMIT = 10;
+let roleFetchToken = 0;
+
+function getRoleLabels() {
+  return {
+    allAccess: t("events.roleRestrictions.allAccess"),
+    managementRoles: t("events.roleRestrictions.managementRoles"),
+    roles: t("events.roleRestrictions.roles"),
+    noRoles: t("events.roleRestrictions.noRoles")
+  };
+}
 
 function updateEventCreateDisabled() {
   dom.eventCreate.disabled = !state.user
@@ -249,6 +260,7 @@ export function applyManualEventDefaults(options = {}) {
     dom.eventTimezone.value = systemTz;
     state.event.languages = ["eng"];
     state.event.platforms = ["standalonewindows", "android"];
+    state.event.roleIds = [];
     renderEventLanguageList();
     renderEventPlatformList();
   }
@@ -256,10 +268,56 @@ export function applyManualEventDefaults(options = {}) {
   updateDateOptions(null, null);
 }
 
+export async function renderEventRoleRestrictions(api) {
+  if (!dom.eventRoleRestrictions || !dom.eventRoleList) {
+    return;
+  }
+  const groupId = dom.eventGroup.value;
+  const isGroupAccess = dom.eventAccess.value === "group";
+  const shouldShow = Boolean(groupId) && isGroupAccess;
+  dom.eventRoleRestrictions.classList.toggle("is-hidden", !shouldShow);
+  if (!shouldShow) {
+    dom.eventRoleList.innerHTML = "";
+    return;
+  }
+  const labels = getRoleLabels();
+  const requestId = ++roleFetchToken;
+  dom.eventRoleList.innerHTML = `<div class="hint">${t("common.loading")}</div>`;
+  try {
+    const roles = await fetchGroupRoles(api, groupId);
+    if (requestId !== roleFetchToken) {
+      return;
+    }
+    const validIds = new Set(roles.map(role => role.id));
+    state.event.roleIds = (state.event.roleIds || []).filter(id => validIds.has(id));
+    renderRoleList({
+      container: dom.eventRoleList,
+      roles,
+      selectedIds: state.event.roleIds,
+      labels,
+      onChange: next => {
+        state.event.roleIds = next;
+      }
+    });
+  } catch (err) {
+    dom.eventRoleList.innerHTML = "";
+    const empty = document.createElement("div");
+    empty.className = "hint";
+    empty.textContent = labels.noRoles;
+    dom.eventRoleList.appendChild(empty);
+  }
+}
+
+export function handleEventAccessChange(api) {
+  enforceGroupAccess(dom.eventAccess, dom.eventGroup.value);
+  void renderEventRoleRestrictions(api);
+}
+
 export async function handleEventGroupChange(api) {
   state.event.selectedGroupId = dom.eventGroup.value;
   renderEventProfileOptions(api);
   enforceGroupAccess(dom.eventAccess, dom.eventGroup.value);
+  void renderEventRoleRestrictions(api);
   await refreshUpcomingEventCount(api);
 }
 
@@ -274,6 +332,7 @@ export function handleEventProfileChange(api) {
     dom.eventProfileClear.disabled = true;
     applyManualEventDefaults({ preserve: true });
     enforceGroupAccess(dom.eventAccess, groupId);
+    void renderEventRoleRestrictions(api);
     return;
   }
   state.event.selectedProfileKey = profileKey;
@@ -384,6 +443,9 @@ export async function handleEventCreate(api) {
     imageId: dom.eventImageId.value.trim() || null,
     sendCreationNotification: Boolean(dom.eventSendNotification.checked)
   };
+  if (eventData.accessType === "group") {
+    eventData.roleIds = (state.event.roleIds || []).filter(id => typeof id === "string" && id.trim());
+  }
   if (eventData.languages.length > 3) {
     return { success: false, message: "Maximum 3 languages allowed." };
   }
@@ -522,6 +584,7 @@ export function applyProfileToEventForm(groupId, profileKey, api) {
   }
   dom.eventAccess.value = profile.accessType || "public";
   enforceGroupAccess(dom.eventAccess, groupId);
+  state.event.roleIds = Array.isArray(profile.roleIds) ? profile.roleIds.slice() : [];
   dom.eventImageId.value = profile.imageId || "";
   dom.eventSendNotification.checked = Boolean(profile.sendNotification);
   dom.eventDuration.value = formatDuration(profile.duration || 120);
@@ -535,6 +598,7 @@ export function applyProfileToEventForm(groupId, profileKey, api) {
   renderEventPlatformList();
   updateDateMode(profile);
   updateDateOptions(api, profile);
+  void renderEventRoleRestrictions(api);
 }
 
 function getProfileLabel(profileKey, profile) {

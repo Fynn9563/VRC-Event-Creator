@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("vrcEvent", {
   },
   submitTwoFactor: code => ipcRenderer.invoke("auth:twofactor:submit", code),
   getGroups: () => ipcRenderer.invoke("groups:list"),
+  getGroupRoles: payload => ipcRenderer.invoke("groups:roles", payload),
   getProfiles: () => ipcRenderer.invoke("profiles:list"),
   createProfile: payload => ipcRenderer.invoke("profiles:create", payload),
   updateProfile: payload => ipcRenderer.invoke("profiles:update", payload),

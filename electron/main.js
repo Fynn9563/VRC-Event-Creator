@@ -53,6 +53,7 @@ let THEME_PRESETS_BUNDLED_DIR;
 const RESERVED_THEME_PRESET_KEYS = new Set(["default", "wired", "custom", "blue"]);
 const groupPermissionCache = new Map();
 const groupPrivacyCache = new Map();
+const groupRolesCache = new Map();
 
 function resolveDataDir() {
   const override = process.env.VRC_EVENT_DATA_DIR;
@@ -425,6 +426,7 @@ function resetClient() {
   currentUser = null;
   groupPermissionCache.clear();
   groupPrivacyCache.clear();
+  groupRolesCache.clear();
 }
 
 async function clearSession() {
@@ -1052,6 +1054,23 @@ ipcMain.handle("groups:list", async () => {
   return enriched;
 });
 
+ipcMain.handle("groups:roles", async (_, payload) => {
+  requireContactEmail();
+  const { groupId } = payload || {};
+  if (!groupId) {
+    throw new Error("Missing group.");
+  }
+  await ensureUser();
+  await ensureCalendarPermission(groupId);
+  let roles = groupRolesCache.get(groupId);
+  if (!roles) {
+    const response = await vrchat.getGroupRoles({ path: { groupId } });
+    roles = response.data || [];
+    groupRolesCache.set(groupId, roles);
+  }
+  return roles;
+});
+
 ipcMain.handle("profiles:list", async () => {
   return profiles;
 });
@@ -1132,26 +1151,26 @@ ipcMain.handle("events:create", async (_, payload) => {
     await vrchat.createGroupCalendarEvent({
       throwOnError: true,
       path: { groupId },
-      body: {
-        title: eventData.title,
-        description: eventData.description,
-        startsAt: startsAtUtc,
-        endsAt: endsAtUtc,
-        category: eventData.category,
-        sendCreationNotification: eventData.sendCreationNotification,
-        accessType: eventData.accessType,
-        languages: eventData.languages || [],
-        platforms: eventData.platforms || [],
-        tags: eventData.tags || [],
-        imageId: eventData.imageId || null,
-        featured: false,
-        isDraft: false,
-        parentId: null,
-        roleIds: []
-      }
-    });
-    return { ok: true };
-  } catch (err) {
+        body: {
+          title: eventData.title,
+          description: eventData.description,
+          startsAt: startsAtUtc,
+          endsAt: endsAtUtc,
+          category: eventData.category,
+          sendCreationNotification: eventData.sendCreationNotification,
+          accessType: eventData.accessType,
+          languages: eventData.languages || [],
+          platforms: eventData.platforms || [],
+          tags: eventData.tags || [],
+          imageId: eventData.imageId || null,
+          featured: false,
+          isDraft: false,
+          parentId: null,
+          roleIds: Array.isArray(eventData.roleIds) ? eventData.roleIds : []
+        }
+      });
+      return { ok: true };
+    } catch (err) {
     const status = err?.response?.status || null;
     return {
       ok: false,
@@ -1205,36 +1224,38 @@ ipcMain.handle("events:listGroup", async (_, payload) => {
       }
       return true;
     })
-    .map(event => {
-      const startValue = getEventStartValue(event);
-      const endValue = getEventEndValue(event);
-      const startsAt = parseEventDateValue(startValue);
-      const endsAt = parseEventDateValue(endValue);
-      const startsAtUtc = startsAt?.isValid ? startsAt.toUTC().toISO() : null;
-      const endsAtUtc = endsAt?.isValid ? endsAt.toUTC().toISO() : null;
-      let durationMinutes = null;
-      if (startsAt?.isValid && endsAt?.isValid) {
-        durationMinutes = Math.max(1, Math.round(endsAt.diff(startsAt, "minutes").minutes));
-      }
-      const languages = getEventField(event, "languages");
-      const platforms = getEventField(event, "platforms");
-      const tags = getEventField(event, "tags");
-      return {
-        id: getEventId(event),
-        groupId,
-        title: getEventField(event, "title") || "",
-        description: getEventField(event, "description") || "",
-        category: getEventField(event, "category") || "hangout",
-        accessType: getEventField(event, "accessType") || "public",
-        languages: Array.isArray(languages) ? languages : [],
-        platforms: Array.isArray(platforms) ? platforms : [],
-        tags: Array.isArray(tags) ? tags : [],
-        imageId: getEventField(event, "imageId") || null,
-        imageUrl: getEventImageUrl(event),
-        startsAtUtc,
-        endsAtUtc,
-        durationMinutes,
-        timezone: getEventField(event, "timezone") || null
+      .map(event => {
+        const startValue = getEventStartValue(event);
+        const endValue = getEventEndValue(event);
+        const startsAt = parseEventDateValue(startValue);
+        const endsAt = parseEventDateValue(endValue);
+        const startsAtUtc = startsAt?.isValid ? startsAt.toUTC().toISO() : null;
+        const endsAtUtc = endsAt?.isValid ? endsAt.toUTC().toISO() : null;
+        let durationMinutes = null;
+        if (startsAt?.isValid && endsAt?.isValid) {
+          durationMinutes = Math.max(1, Math.round(endsAt.diff(startsAt, "minutes").minutes));
+        }
+        const languages = getEventField(event, "languages");
+        const platforms = getEventField(event, "platforms");
+        const tags = getEventField(event, "tags");
+        const roleIds = getEventField(event, "roleIds");
+        return {
+          id: getEventId(event),
+          groupId,
+          title: getEventField(event, "title") || "",
+          description: getEventField(event, "description") || "",
+          category: getEventField(event, "category") || "hangout",
+          accessType: getEventField(event, "accessType") || "public",
+          languages: Array.isArray(languages) ? languages : [],
+          platforms: Array.isArray(platforms) ? platforms : [],
+          tags: Array.isArray(tags) ? tags : [],
+          roleIds: Array.isArray(roleIds) ? roleIds : [],
+          imageId: getEventField(event, "imageId") || null,
+          imageUrl: getEventImageUrl(event),
+          startsAtUtc,
+          endsAtUtc,
+          durationMinutes,
+          timezone: getEventField(event, "timezone") || null
       };
     })
     .sort((a, b) => {
@@ -1263,26 +1284,26 @@ ipcMain.handle("events:update", async (_, payload) => {
     await vrchat.updateGroupCalendarEvent({
       throwOnError: true,
       path: { groupId, calendarId: eventId },
-      body: {
-        title: eventData.title,
-        description: eventData.description,
-        startsAt: times.startsAtUtc,
-        endsAt: times.endsAtUtc,
-        category: eventData.category,
-        sendCreationNotification: eventData.sendCreationNotification,
-        accessType: eventData.accessType,
-        languages: eventData.languages || [],
-        platforms: eventData.platforms || [],
-        tags: eventData.tags || [],
-        imageId: eventData.imageId || null,
-        featured: false,
-        isDraft: false,
-        parentId: null,
-        roleIds: []
-      }
-    });
-    return { ok: true };
-  } catch (err) {
+        body: {
+          title: eventData.title,
+          description: eventData.description,
+          startsAt: times.startsAtUtc,
+          endsAt: times.endsAtUtc,
+          category: eventData.category,
+          sendCreationNotification: eventData.sendCreationNotification,
+          accessType: eventData.accessType,
+          languages: eventData.languages || [],
+          platforms: eventData.platforms || [],
+          tags: eventData.tags || [],
+          imageId: eventData.imageId || null,
+          featured: false,
+          isDraft: false,
+          parentId: null,
+          ...(Array.isArray(eventData.roleIds) ? { roleIds: eventData.roleIds } : {})
+        }
+      });
+      return { ok: true };
+    } catch (err) {
     return {
       ok: false,
       error: {

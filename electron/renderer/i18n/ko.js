@@ -245,6 +245,15 @@ export const ko = {
     tags: "태그 (최대 5)",
     access: "접근",
     accessType: "접근 유형",
+    roleRestrictions: {
+      title: "역할 제한",
+      hint: "선택 사항 - 활성화하면 선택한 그룹 역할만 참여할 수 있습니다.",
+      optional: "인스턴스 모더레이터의 경우, 선택한 최하위 모더레이터 역할 이상은 모두 참여할 수 있습니다.",
+      allAccess: "없음 (모두 참여 가능)",
+      managementRoles: "관리 역할",
+      roles: "역할",
+      noRoles: "이 그룹에 사용 가능한 역할이 없습니다."
+    },
     imageId: "이미지 ID (선택)",
     imageIdPlaceholder: "예: file_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
     sendNotification: "알림 보내기",
