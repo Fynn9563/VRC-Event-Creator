@@ -1,8 +1,8 @@
 const { app, BrowserWindow, ipcMain, shell, dialog, nativeImage } = require("electron");
+const { autoUpdater } = require("electron-updater");
 
 const path = require("path");
 const fs = require("fs");
-const https = require("https");
 const { DateTime } = require("luxon");
 const { VRChat } = require("vrchat");
 const { KeyvFile } = require("keyv-file");
@@ -28,10 +28,10 @@ const APP_VERSION = (() => {
 const UPDATE_REPO_OWNER = "Cynacedia";
 const UPDATE_REPO_NAME = "VRC-Event-Creator";
 const UPDATE_REPO_URL = `https://github.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}`;
-const UPDATE_CHECK_URLS = [
-  `https://raw.githubusercontent.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}/main/package.json`,
-  `https://raw.githubusercontent.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}/master/package.json`
-];
+
+// Auto-updater configuration
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
 
 let mainWindow = null;
 let currentUser = null;
@@ -549,86 +549,6 @@ function createWindow() {
   });
 }
 
-function parseVersionParts(value) {
-  return String(value || "")
-    .trim()
-    .replace(/^v/i, "")
-    .split(/[\.\-+]/)
-    .map(part => Number.parseInt(part, 10))
-    .filter(part => Number.isFinite(part));
-}
-
-function isNewerVersion(current, latest) {
-  const currentParts = parseVersionParts(current);
-  const latestParts = parseVersionParts(latest);
-  if (!latestParts.length) {
-    return false;
-  }
-  if (!currentParts.length) {
-    return true;
-  }
-  const maxLength = Math.max(currentParts.length, latestParts.length);
-  for (let i = 0; i < maxLength; i += 1) {
-    const currentValue = currentParts[i] || 0;
-    const latestValue = latestParts[i] || 0;
-    if (latestValue > currentValue) {
-      return true;
-    }
-    if (latestValue < currentValue) {
-      return false;
-    }
-  }
-  return false;
-}
-
-function fetchJson(url, redirectCount = 0) {
-  return new Promise((resolve, reject) => {
-    const request = https.get(url, {
-      headers: { "User-Agent": `${APP_NAME}/${APP_VERSION}` }
-    }, res => {
-      const status = res.statusCode || 0;
-      if (status >= 300 && status < 400 && res.headers.location && redirectCount < 5) {
-        res.resume();
-        resolve(fetchJson(res.headers.location, redirectCount + 1));
-        return;
-      }
-      if (status < 200 || status >= 300) {
-        res.resume();
-        reject(new Error(`Update check failed with status ${status}.`));
-        return;
-      }
-      let data = "";
-      res.on("data", chunk => {
-        data += chunk;
-      });
-      res.on("end", () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (err) {
-          reject(err);
-        }
-      });
-    });
-    request.on("error", reject);
-    request.setTimeout(10000, () => {
-      request.destroy(new Error("Update check timed out."));
-    });
-  });
-}
-
-async function fetchLatestVersion() {
-  for (const url of UPDATE_CHECK_URLS) {
-    try {
-      const data = await fetchJson(url);
-      if (data?.version) {
-        return String(data.version);
-      }
-    } catch (err) {
-      // Try the next URL.
-    }
-  }
-  return null;
-}
 
 function buildEventTimes({ selectedDateIso, manualDate, manualTime, timezone, durationMinutes }) {
   let start;
@@ -879,11 +799,12 @@ ipcMain.handle("app:info", () => ({
 
 ipcMain.handle("app:checkUpdate", async () => {
   try {
-    const latestVersion = await fetchLatestVersion();
+    const result = await autoUpdater.checkForUpdates();
+    const latestVersion = result?.updateInfo?.version || null;
     return {
-      updateAvailable: latestVersion ? isNewerVersion(APP_VERSION, latestVersion) : false,
+      updateAvailable: result?.updateInfo ? true : false,
       currentVersion: APP_VERSION,
-      latestVersion: latestVersion || null,
+      latestVersion,
       repoUrl: UPDATE_REPO_URL
     };
   } catch (err) {
@@ -894,6 +815,19 @@ ipcMain.handle("app:checkUpdate", async () => {
       repoUrl: UPDATE_REPO_URL
     };
   }
+});
+
+ipcMain.handle("app:downloadUpdate", async () => {
+  try {
+    await autoUpdater.downloadUpdate();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err?.message || "Download failed" };
+  }
+});
+
+ipcMain.handle("app:installUpdate", () => {
+  autoUpdater.quitAndInstall(false, true);
 });
 
 ipcMain.handle("app:openExternal", (_, url) => {
