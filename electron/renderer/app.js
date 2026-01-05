@@ -2,7 +2,7 @@
 
 import { CATEGORIES, ACCESS_TYPES, LANGUAGES, PLATFORMS, DATE_MODES, PATTERN_TYPES, WEEKDAYS, TAG_LIMIT } from "./config.js";
 import { dom, state, setEventWizard, setProfileWizard, getProfileEditConfirmed } from "./state.js";
-import { setStatus, setFootMeta, showToast, setAuthState, setUpdateAvailable, showView, renderSelect, renderChecklist, setupWizard, bindWindowControls, initThemeControls, loadTheme, handleThemeChange, handleThemeReset, handleThemePresetSave, handleThemePresetDelete } from "./ui.js";
+import { setStatus, setFootMeta, showToast, setAuthState, setUpdateAvailable, showView, renderSelect, renderChecklist, setupWizard, bindWindowControls, initThemeControls, loadTheme, handleThemeChange, handleThemeReset, handleThemePresetSave, handleThemePresetDelete, handleThemePresetImport, handleThemePresetExport } from "./ui.js";
 import { initI18n, setLanguage, getCurrentLanguage, getLanguageOptions, applyTranslations, t, getLanguageDisplayName } from "./i18n/index.js";
 import { createTagInput, loadSettings, requireContactEmail, handleOpenDataDir, handleChangeDataDir, buildTimezones, normalizeDurationInput, sanitizeDurationInputValue, enforceGroupAccess, getTodayDateString, getMaxEventDateString } from "./utils.js";
 import { checkSession, handleLogin, handleLoginClose, handleLogout, handleContactSave, handleSettingsSave } from "./auth.js";
@@ -559,6 +559,12 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     dom.themeReset.addEventListener("click", handleThemeReset);
     dom.themePresetSave.addEventListener("click", handleThemePresetSave);
     dom.themePresetDelete.addEventListener("click", handleThemePresetDelete);
+    if (dom.themePresetImport) {
+      dom.themePresetImport.addEventListener("click", handleThemePresetImport);
+    }
+    if (dom.themePresetExport) {
+      dom.themePresetExport.addEventListener("click", handleThemePresetExport);
+    }
     if (dom.githubLink && api.openExternal) {
       dom.githubLink.addEventListener("click", event => {
         event.preventDefault();

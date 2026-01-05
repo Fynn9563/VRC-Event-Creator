@@ -39,6 +39,8 @@ export const dom = {
   themePresetName: document.getElementById("theme-preset-name"),
   themePresetSave: document.getElementById("theme-preset-save"),
   themePresetDelete: document.getElementById("theme-preset-delete"),
+  themePresetImport: document.getElementById("theme-preset-import"),
+  themePresetExport: document.getElementById("theme-preset-export"),
   themeReset: document.getElementById("theme-reset"),
   themeOpen: document.getElementById("theme-open"),
   themeOverlay: document.getElementById("theme-overlay"),

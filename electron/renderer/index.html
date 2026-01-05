@@ -411,14 +411,10 @@
               <div class="theme-controls">
                 <div class="theme-preset-grid">
                   <div class="field">
-                    <label for="settings-theme" data-i18n="settings.theme.presetLabel">Preset</label>
+                    <label for="settings-theme" data-i18n="settings.theme.presetLabel">Current Theme</label>
                     <select id="settings-theme">
                       <option value="wired">『ᵂᶤʳᵉᵈ ᶠʳᵃᵐᵉ』</option>
                       <option value="default">VRChat Teal</option>
-                      <option value="teal">Foggy Sea</option>
-                      <option value="purple">Purple Haze</option>
-                      <option value="amber">Altimit Amber</option>
-                      <option value="red">Crimson Knights</option>
                       <option value="custom">Custom</option>
                     </select>
                   </div>
@@ -428,9 +424,25 @@
                   </div>
                 </div>
                 <div class="theme-preset-actions">
-                  <button id="theme-preset-save" class="ghost" type="button" data-i18n="settings.theme.saveButton">Save Theme</button>
-                  <button id="theme-preset-delete" class="ghost" type="button" data-i18n="settings.theme.deleteButton">Delete Theme</button>
-                  <button type="button" id="theme-reset" class="reset-button" data-i18n="settings.theme.resetButton">Reset to Preset</button>
+                  <div class="theme-preset-actions-main">
+                    <button id="theme-preset-save" class="ghost" type="button" data-i18n="settings.theme.saveButton">Save Theme</button>
+                    <button id="theme-preset-delete" class="ghost" type="button" data-i18n="settings.theme.deleteButton">Delete Theme</button>
+                    <button type="button" id="theme-reset" class="reset-button" data-i18n="settings.theme.resetButton">Reset to Default</button>
+                  </div>
+                  <div class="theme-preset-actions-icons">
+                    <button id="theme-preset-import" class="ghost theme-icon-button" type="button">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 3a1 1 0 0 1 1 1v9.6l2.3-2.3a1 1 0 1 1 1.4 1.4l-4.1 4.1a1 1 0 0 1-1.4 0l-4.1-4.1a1 1 0 1 1 1.4-1.4L11 13.6V4a1 1 0 0 1 1-1zM5 19a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1z" />
+                      </svg>
+                      <span class="sr-only" data-i18n="settings.theme.importButton">Import Theme</span>
+                    </button>
+                    <button id="theme-preset-export" class="ghost theme-icon-button" type="button">
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 21a1 1 0 0 1-1-1v-9.6l-2.3 2.3a1 1 0 1 1-1.4-1.4l4.1-4.1a1 1 0 0 1 1.4 0l4.1 4.1a1 1 0 1 1-1.4 1.4L13 10.4V20a1 1 0 0 1-1 1zM5 5a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1z" />
+                      </svg>
+                      <span class="sr-only" data-i18n="settings.theme.exportButton">Export Theme</span>
+                    </button>
+                  </div>
                 </div>
                 <button id="theme-open" class="primary" type="button" data-i18n="settings.theme.openStudio">Open Theme Studio</button>
               </div>

@@ -281,19 +281,16 @@ export function bindWindowControls(windowControls) {
 const THEME_KEYS = THEME_FIELDS.map(field => field.key);
 const BUILTIN_PRESETS = [
   "wired",
-  "default",
-  "teal",
-  "purple",
-  "amber",
-  "red"
+  "default"
 ].filter(name => Object.prototype.hasOwnProperty.call(THEMES, name));
-const RESERVED_PRESET_NAMES = new Set([
+const RESERVED_PRESET_KEYS = new Set([
   "custom",
   "blue",
   ...BUILTIN_PRESETS.map(name => name.toLowerCase())
 ]);
 
-let themeStore = { selectedPreset: "default", customColors: null, presets: {} };
+let themeStore = { selectedPreset: "default", customColors: null };
+let themeFilePresets = {};
 let themeControls = new Map();
 let themeApi = null;
 
@@ -414,6 +411,8 @@ export async function loadTheme(api) {
   if (migrated) {
     await saveThemeStore();
   }
+  const presets = await fetchThemePresets();
+  setThemeFilePresets(presets);
 
   const presetKey = resolvePresetKey(themeStore.selectedPreset);
   themeStore.selectedPreset = presetKey;
@@ -459,20 +458,22 @@ export function handleThemeReset() {
   void saveThemeStore();
 }
 
-export function handleThemePresetSave() {
+export async function handleThemePresetSave() {
   const selectedKey = resolvePresetKey(dom.settingsTheme.value);
   const inputName = (dom.themePresetName?.value || "").trim();
-  const isSelectedCustom = isCustomPreset(selectedKey);
+  const isSelectedFile = isFilePreset(selectedKey);
   const isSelectedBuiltin = BUILTIN_PRESETS.includes(selectedKey);
-  const selectedLabel = THEME_PRESET_LABELS[selectedKey] || selectedKey;
+  const selectedLabel = getPresetLabel(selectedKey) || selectedKey;
   const inputLower = inputName.toLowerCase();
   const matchesSelectedLabel = inputLower && inputLower === selectedLabel.toLowerCase();
   const matchesSelectedKey = inputLower && inputLower === selectedKey.toLowerCase();
   const colors = getThemeFromControls();
 
   let targetName = inputName;
-  if (isSelectedCustom && (!targetName || targetName.toLowerCase() === selectedKey.toLowerCase())) {
-    targetName = selectedKey;
+  let targetKey = null;
+  if (isSelectedFile && (!targetName || matchesSelectedLabel || matchesSelectedKey)) {
+    targetName = selectedLabel;
+    targetKey = selectedKey;
   } else {
     if (!targetName || (isSelectedBuiltin && (matchesSelectedLabel || matchesSelectedKey))) {
       if (isSelectedBuiltin) {
@@ -480,33 +481,48 @@ export function handleThemePresetSave() {
       } else {
         targetName = buildEditName("Custom");
       }
-    } else if (RESERVED_PRESET_NAMES.has(targetName.toLowerCase())) {
+    } else if (RESERVED_PRESET_KEYS.has(targetName.toLowerCase())) {
       targetName = buildEditName(isSelectedBuiltin ? selectedLabel : targetName);
     } else if (isNameTaken(targetName, selectedKey)) {
       targetName = buildEditName(targetName);
     }
   }
 
-  themeStore.presets[targetName] = colors;
-  themeStore.selectedPreset = targetName;
-  refreshThemePresetOptions(targetName);
+  const result = await saveThemePreset({ key: targetKey, name: targetName, colors });
+  if (!result || !Array.isArray(result.presets)) {
+    showToast("Could not save theme.", true);
+    return;
+  }
+  setThemeFilePresets(result.presets);
+  const selected = result.selectedKey
+    || findFilePresetKeyByName(targetName)
+    || targetKey
+    || "default";
+  themeStore.selectedPreset = selected;
+  refreshThemePresetOptions(selected);
   applyTheme(colors);
-  updatePresetActions(targetName);
+  updatePresetActions(selected);
   void saveThemeStore();
   showToast(`Theme saved: ${targetName}`);
 }
 
-export function handleThemePresetDelete() {
-  const selected = dom.settingsTheme.value;
-  if (!isCustomPreset(selected)) {
-    showToast("Select a custom theme to delete.", true);
+export async function handleThemePresetDelete() {
+  const selected = resolvePresetKey(dom.settingsTheme.value);
+  if (!isFilePreset(selected)) {
+    showToast("Select a saved theme to delete.", true);
     return;
   }
-  const confirmed = window.confirm(`Delete the "${selected}" theme?`);
+  const label = getPresetLabel(selected) || selected;
+  const confirmed = window.confirm(`Delete the "${label}" theme?`);
   if (!confirmed) {
     return;
   }
-  delete themeStore.presets[selected];
+  const result = await deleteThemePreset(selected);
+  if (!result || !Array.isArray(result.presets)) {
+    showToast("Could not delete theme.", true);
+    return;
+  }
+  setThemeFilePresets(result.presets);
   themeStore.selectedPreset = "default";
   const colors = getPresetColors("default");
   refreshThemePresetOptions("default");
@@ -515,6 +531,52 @@ export function handleThemePresetDelete() {
   updatePresetActions("default");
   void saveThemeStore();
   showToast("Theme deleted.");
+}
+
+export async function handleThemePresetImport() {
+  if (!themeApi?.importThemePreset) {
+    showToast("Theme import not available.", true);
+    return;
+  }
+  const result = await themeApi.importThemePreset();
+  if (!result || result.cancelled) {
+    return;
+  }
+  if (!result.ok || !Array.isArray(result.presets)) {
+    showToast("Could not import theme.", true);
+    return;
+  }
+  setThemeFilePresets(result.presets);
+  const selected = result.selectedKey || "default";
+  themeStore.selectedPreset = selected;
+  const colors = getPresetColors(selected);
+  refreshThemePresetOptions(selected);
+  syncThemeControls(colors);
+  applyTheme(colors);
+  updatePresetActions(selected);
+  void saveThemeStore();
+  showToast(`Theme imported: ${getPresetLabel(selected)}`);
+}
+
+export async function handleThemePresetExport() {
+  if (!themeApi?.exportThemePreset) {
+    showToast("Theme export not available.", true);
+    return;
+  }
+  const selected = resolvePresetKey(dom.settingsTheme.value);
+  const label = selected === "custom"
+    ? (dom.themePresetName?.value || "").trim() || "Custom Theme"
+    : getPresetLabel(selected);
+  const colors = selected === "custom" ? getThemeFromControls() : getPresetColors(selected);
+  const result = await themeApi.exportThemePreset({ name: label, colors });
+  if (!result || result.cancelled) {
+    return;
+  }
+  if (!result.ok) {
+    showToast("Could not export theme.", true);
+    return;
+  }
+  showToast("Theme exported.");
 }
 
 function isValidHex(value) {
@@ -585,17 +647,56 @@ function normalizeThemeStore(raw) {
   if (selectedPreset === "blue") {
     selectedPreset = "default";
   }
-  const presets = {};
-  if (raw?.presets && typeof raw.presets === "object") {
-    Object.entries(raw.presets).forEach(([name, colors]) => {
-      if (!name || RESERVED_PRESET_NAMES.has(name.toLowerCase())) {
-        return;
-      }
-      presets[name] = normalizeThemeColors(colors);
-    });
-  }
   const customColors = raw?.customColors ? normalizeThemeColors(raw.customColors) : null;
-  return { selectedPreset, customColors, presets };
+  return { selectedPreset, customColors };
+}
+
+function setThemeFilePresets(presets) {
+  themeFilePresets = {};
+  if (!Array.isArray(presets)) {
+    return;
+  }
+  presets.forEach(preset => {
+    if (!preset || typeof preset.key !== "string") {
+      return;
+    }
+    if (RESERVED_PRESET_KEYS.has(preset.key.toLowerCase())) {
+      return;
+    }
+    const name = typeof preset.name === "string" && preset.name.trim()
+      ? preset.name.trim()
+      : preset.key;
+    themeFilePresets[preset.key] = {
+      name,
+      colors: preset.colors || {}
+    };
+  });
+}
+
+function getPresetLabel(key) {
+  if (!key) {
+    return "";
+  }
+  if (BUILTIN_PRESETS.includes(key)) {
+    return THEME_PRESET_LABELS[key] || key;
+  }
+  const preset = themeFilePresets[key];
+  if (preset?.name) {
+    return preset.name;
+  }
+  return key;
+}
+
+function findFilePresetKeyByName(name) {
+  const target = (name || "").toLowerCase();
+  return Object.keys(themeFilePresets || {}).find(key => {
+    const presetName = themeFilePresets[key]?.name || key;
+    return presetName.toLowerCase() === target;
+  });
+}
+
+function isFilePreset(key) {
+  return Boolean(themeFilePresets && Object.prototype.hasOwnProperty.call(themeFilePresets, key));
 }
 
 function resolvePresetKey(candidate) {
@@ -608,7 +709,7 @@ function resolvePresetKey(candidate) {
   if (BUILTIN_PRESETS.includes(candidate)) {
     return candidate;
   }
-  if (themeStore.presets && Object.prototype.hasOwnProperty.call(themeStore.presets, candidate)) {
+  if (isFilePreset(candidate)) {
     return candidate;
   }
   return "default";
@@ -621,14 +722,10 @@ function getPresetColors(key) {
   if (BUILTIN_PRESETS.includes(key)) {
     return normalizeThemeColors(THEMES[key]);
   }
-  if (themeStore.presets && themeStore.presets[key]) {
-    return normalizeThemeColors(themeStore.presets[key]);
+  if (isFilePreset(key)) {
+    return normalizeThemeColors(themeFilePresets[key].colors);
   }
   return normalizeThemeColors(THEMES.default);
-}
-
-function isCustomPreset(key) {
-  return Boolean(themeStore.presets && Object.prototype.hasOwnProperty.call(themeStore.presets, key));
 }
 
 function refreshThemePresetOptions(selected) {
@@ -638,27 +735,29 @@ function refreshThemePresetOptions(selected) {
   dom.settingsTheme.innerHTML = "";
 
   const presetGroup = document.createElement("optgroup");
-  presetGroup.label = "Presets";
+  presetGroup.label = t("settings.theme.savedLabel");
   BUILTIN_PRESETS.forEach(name => {
     const option = document.createElement("option");
     option.value = name;
-    option.textContent = THEME_PRESET_LABELS[name] || name;
+    option.textContent = getPresetLabel(name);
     presetGroup.appendChild(option);
   });
+  Object.keys(themeFilePresets || {})
+    .sort((a, b) => getPresetLabel(a).localeCompare(getPresetLabel(b)))
+    .forEach(name => {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = getPresetLabel(name);
+      presetGroup.appendChild(option);
+    });
   dom.settingsTheme.appendChild(presetGroup);
 
   const customGroup = document.createElement("optgroup");
-  customGroup.label = "Custom";
+  customGroup.label = t("settings.theme.customGroupLabel");
   const customOption = document.createElement("option");
   customOption.value = "custom";
-  customOption.textContent = "Custom (unsaved)";
+  customOption.textContent = t("settings.theme.customUnsaved");
   customGroup.appendChild(customOption);
-  Object.keys(themeStore.presets || {}).sort((a, b) => a.localeCompare(b)).forEach(name => {
-    const option = document.createElement("option");
-    option.value = name;
-    option.textContent = name;
-    customGroup.appendChild(option);
-  });
   dom.settingsTheme.appendChild(customGroup);
 
   dom.settingsTheme.value = resolvePresetKey(selected);
@@ -685,24 +784,26 @@ function getThemeFromControls() {
 
 function updatePresetActions(selected) {
   if (dom.themePresetDelete) {
-    dom.themePresetDelete.disabled = !isCustomPreset(selected);
+    dom.themePresetDelete.disabled = !isFilePreset(selected);
   }
   if (dom.themePresetName) {
-    dom.themePresetName.value = isCustomPreset(selected) ? selected : "";
+    dom.themePresetName.value = isFilePreset(selected) ? getPresetLabel(selected) : "";
   }
-}
-
-function findCustomPresetKey(name) {
-  const target = name.toLowerCase();
-  return Object.keys(themeStore.presets || {}).find(key => key.toLowerCase() === target);
 }
 
 function isNameTaken(name, selectedKey) {
   const target = name.toLowerCase();
-  if (BUILTIN_PRESETS.some(key => key.toLowerCase() === target)) {
+  if (RESERVED_PRESET_KEYS.has(target)) {
     return true;
   }
-  const existing = findCustomPresetKey(name);
+  if (BUILTIN_PRESETS.some(key => getPresetLabel(key).toLowerCase() === target)) {
+    return true;
+  }
+  const keyMatch = Object.keys(themeFilePresets || {}).find(key => key.toLowerCase() === target);
+  if (keyMatch && (!selectedKey || keyMatch.toLowerCase() !== selectedKey.toLowerCase())) {
+    return true;
+  }
+  const existing = findFilePresetKeyByName(name);
   if (!existing) {
     return false;
   }
@@ -716,7 +817,7 @@ function buildEditName(baseName) {
   const base = (baseName || "Custom").trim() || "Custom";
   let index = 1;
   let candidate = `${base} - Edit ${index}`;
-  while (RESERVED_PRESET_NAMES.has(candidate.toLowerCase()) || isNameTaken(candidate)) {
+  while (RESERVED_PRESET_KEYS.has(candidate.toLowerCase()) || isNameTaken(candidate)) {
     index += 1;
     candidate = `${base} - Edit ${index}`;
   }
@@ -726,7 +827,7 @@ function buildEditName(baseName) {
 function migrateLegacyTheme(store) {
   const legacyColors = localStorage.getItem("themeColors");
   const legacyPreset = localStorage.getItem("themePreset");
-  const hasCustom = store.customColors || (store.presets && Object.keys(store.presets).length);
+  const hasCustom = Boolean(store.customColors);
   if (!legacyColors || hasCustom) {
     return false;
   }
@@ -754,6 +855,18 @@ async function fetchThemeStore() {
   }
 }
 
+async function fetchThemePresets() {
+  if (!themeApi?.getThemePresets) {
+    return [];
+  }
+  try {
+    const stored = await themeApi.getThemePresets();
+    return Array.isArray(stored?.presets) ? stored.presets : Array.isArray(stored) ? stored : [];
+  } catch (err) {
+    return [];
+  }
+}
+
 async function saveThemeStore() {
   if (!themeApi?.saveThemeStore) {
     return;
@@ -763,6 +876,36 @@ async function saveThemeStore() {
     themeStore = normalizeThemeStore(stored);
   } catch (err) {
     // Ignore save errors.
+  }
+}
+
+async function saveThemePreset(payload) {
+  if (!themeApi?.saveThemePreset) {
+    return null;
+  }
+  try {
+    const stored = await themeApi.saveThemePreset(payload);
+    if (stored && typeof stored === "object") {
+      return stored;
+    }
+    return null;
+  } catch (err) {
+    return null;
+  }
+}
+
+async function deleteThemePreset(key) {
+  if (!themeApi?.deleteThemePreset) {
+    return null;
+  }
+  try {
+    const stored = await themeApi.deleteThemePreset(key);
+    if (stored && typeof stored === "object") {
+      return stored;
+    }
+    return null;
+  } catch (err) {
+    return null;
   }
 }
 

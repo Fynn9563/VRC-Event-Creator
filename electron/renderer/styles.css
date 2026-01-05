@@ -1090,11 +1090,48 @@ textarea::-webkit-scrollbar {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  align-items: center;
 }
 
 .theme-preset-actions button {
   padding: var(--space-1) var(--space-3);
   font-size: var(--text-11);
+}
+
+.theme-preset-actions-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.theme-preset-actions-icons {
+  display: flex;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.theme-icon-button {
+  padding: 6px 8px;
+  line-height: 1;
+}
+
+.theme-icon-button svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: currentColor;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  white-space: nowrap;
 }
 
 .theme-grid {

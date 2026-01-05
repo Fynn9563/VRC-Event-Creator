@@ -149,11 +149,7 @@ export const THEME_FIELDS = [
 
 export const THEME_PRESET_LABELS = {
   wired: "『ᵂᶤʳᵉᵈ ᶠʳᵃᵐᵉ』",
-  default: "VRChat Teal",
-  teal: "Foggy Sea",
-  purple: "Purple Haze",
-  amber: "Altimit Amber",
-  red: "Crimson Knights"
+  default: "VRChat Teal"
 };
 
 const BASE_THEME = {
@@ -212,69 +208,6 @@ export const THEMES = {
     backdropOverlay: "#12181A",
     backdropGrid: "#1E2A31AA",
     scanline: "#000000"
-  },
-  teal: {
-    ...BASE_THEME
-  },
-  purple: {
-    ...BASE_THEME,
-    accent: "#b47bf7",
-    bg: "#e0d5f0",
-    bgDeep: "#b5a3ca",
-    backdrop: "#b5a3ca",
-    panel: "#1e1824",
-    panelAlt: "#241e2a",
-    text: "#e8f0ec",
-    link: "#b47bf7",
-    linkHover: "#f74fd3ff",
-    button: "#5e1368ff",
-    button2: "#b47bf7",
-    buttonText: "#1e1824",
-    selectOptionHighlight: "#b47bf7"
-  },
-  amber: {
-    ...BASE_THEME,
-    accent: "#ff9f38",
-    bg: "#1c1c1c",
-    bgDeep: "#4f4f4f",
-    backdrop: "#171717",
-    panel: "#212121",
-    panelAlt: "#725d40",
-    headerBg: "#0c1012",
-    overlay: "#080c0e",
-    text: "#f1efe9",
-    textMuted: "#c3c6b8",
-    link: "#ffae57",
-    linkHover: "#d1d1d1",
-    button: "#f7a74f",
-    button2: "#363636",
-    buttonText: "#000000",
-    border: "#ffffff",
-    shadow: "#402d17",
-    inputBg: "#060a0b",
-    inputBgStrong: "#060a0b",
-    inputText: "#fdfaf7",
-    selectOptionBg: "#171717",
-    selectOptionHighlight: "#f7a74f",
-    backdropOverlay: "#000000",
-    backdropGrid: "#000000",
-    scanline: "#000000"
-  },
-  red: {
-    ...BASE_THEME,
-    accent: "#f74f6b",
-    bg: "#f0d5db",
-    bgDeep: "#c9a3ad",
-    backdrop: "#c9a3ad",
-    panel: "#24181a",
-    panelAlt: "#2a1e20",
-    text: "#e8f0ec",
-    link: "#f74f6b",
-    linkHover: "#f2b24f",
-    button: "#f2b24f",
-    button2: "#f74f6b",
-    buttonText: "#24181a",
-    selectOptionHighlight: "#f74f6b"
   },
   wired: {
     ...BASE_THEME,
