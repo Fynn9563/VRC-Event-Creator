@@ -4,8 +4,8 @@ import { CATEGORIES, ACCESS_TYPES, LANGUAGES, PLATFORMS, DATE_MODES, PATTERN_TYP
 import { dom, state, setEventWizard, setProfileWizard, getProfileEditConfirmed } from "./state.js";
 import { setStatus, setFootMeta, showToast, setAuthState, setUpdateAvailable, showView, renderSelect, renderChecklist, setupWizard, bindWindowControls, initThemeControls, loadTheme, handleThemeChange, handleThemeReset, handleThemePresetSave, handleThemePresetDelete, handleThemePresetImport, handleThemePresetExport } from "./ui.js";
 import { initI18n, setLanguage, getCurrentLanguage, getLanguageOptions, applyTranslations, t, getLanguageDisplayName } from "./i18n/index.js";
-import { createTagInput, loadSettings, requireContactEmail, handleOpenDataDir, handleChangeDataDir, buildTimezones, normalizeDurationInput, sanitizeDurationInputValue, enforceGroupAccess, getTodayDateString, getMaxEventDateString } from "./utils.js";
-import { checkSession, handleLogin, handleLoginClose, handleLogout, handleContactSave, handleSettingsSave } from "./auth.js";
+import { createTagInput, handleOpenDataDir, handleChangeDataDir, buildTimezones, normalizeDurationInput, sanitizeDurationInputValue, enforceGroupAccess, getTodayDateString, getMaxEventDateString } from "./utils.js";
+import { checkSession, handleLogin, handleLoginClose, handleLogout, handleSettingsSave } from "./auth.js";
 import { resetProfileForm, applyProfileToForm, renderProfileList, updateProfileActionButtons, handleProfileNew, handleProfileEdit, handleProfileDelete, handleProfileSelection, handleProfileGroupChange, handleProfileSave, updateProfileDurationPreview, handleProfileAccessChange, renderProfileRoleRestrictions } from "./profiles.js";
 import { syncDateInputs, applyManualEventDefaults, handleEventGroupChange, handleEventProfileChange, handleEventCreate, handleEventAccessChange, renderEventRoleRestrictions, renderEventLanguageList, renderEventProfileOptions, renderEventPlatformList, updateDateOptions, refreshUpcomingEventCount, renderUpcomingEventCountLabel, updateEventDurationPreview } from "./events.js";
 import { initGalleryPicker, openGalleryPicker } from "./gallery.js";
@@ -17,7 +17,7 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
   if (!api) return;
 
   let languageOptions = [];
-  let pendingSettings = null;
+  let pendingAuthStart = false;
   const UPDATE_REPO_URL = "https://github.com/Cynacedia/VRC-Event-Creator";
   const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000;
   let updateInfo = { available: false, url: UPDATE_REPO_URL };
@@ -178,9 +178,6 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     if (dom.loginOverlay) {
       dom.loginOverlay.classList.add("is-hidden");
     }
-    if (dom.contactOverlay) {
-      dom.contactOverlay.classList.add("is-hidden");
-    }
     if (dom.twoFactorOverlay) {
       dom.twoFactorOverlay.classList.add("is-hidden");
     }
@@ -194,23 +191,20 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     dom.languageOverlay.classList.add("is-hidden");
   }
 
-  async function startAuthFlow(settings) {
-    if (requireContactEmail(settings)) {
-      // Check session in background without blocking UI
-      checkSession(api, refreshData).catch(() => {
-        // Session check failed, user needs to login
-      });
-      return;
-    }
-    setStatus(t("contact.required"));
+  async function startAuthFlow() {
+    // Check session in background without blocking UI
+    checkSession(api, refreshData).catch(() => {
+      // Session check failed, user needs to login
+    });
   }
 
   function completeLanguageSetup() {
     localStorage.setItem("languageConfirmed", "true");
     hideLanguageSetup();
     setAuthState(Boolean(state.user));
-    if (pendingSettings) {
-      void startAuthFlow(pendingSettings);
+    if (pendingAuthStart) {
+      pendingAuthStart = false;
+      void startAuthFlow();
     }
   }
 
@@ -559,9 +553,8 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     }));
     dom.loginForm.addEventListener("submit", e => handleLogin(e, api, refreshData));
     dom.loginClose.addEventListener("click", () => handleLoginClose(api));
-    dom.contactForm.addEventListener("submit", e => handleContactSave(e, api));
     dom.logoutBtn.addEventListener("click", () => handleLogout(api));
-    dom.settingsSave.addEventListener("click", () => handleSettingsSave(api));
+    dom.settingsSave.addEventListener("click", handleSettingsSave);
     dom.settingsTheme.addEventListener("change", handleThemeChange);
     dom.themeReset.addEventListener("click", handleThemeReset);
     dom.themePresetSave.addEventListener("click", handleThemePresetSave);
@@ -813,17 +806,16 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     if (info) {
       dom.aboutVersion.textContent = info.version || "-";
       dom.aboutDataDir.textContent = info.dataDir || "-";
-      dom.settingsDataDir.value = info.dataDir || "-";
     }
     await checkForUpdates();
     window.setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL);
-    const settings = await loadSettings(api);
-    pendingSettings = settings;
+    pendingAuthStart = true;
     showView("create");
     if (shouldShowLanguageSetup()) {
       showLanguageSetup();
     } else {
-      await startAuthFlow(settings);
+      pendingAuthStart = false;
+      await startAuthFlow();
     }
   }
 

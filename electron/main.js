@@ -80,8 +80,10 @@ function initializePaths() {
 }
 
 function normalizeSettings(raw) {
-  const contactEmail = typeof raw?.contactEmail === "string" ? raw.contactEmail.trim() : "";
-  return { contactEmail };
+  if (!raw || typeof raw !== "object") {
+    return {};
+  }
+  return { ...raw };
 }
 
 function loadSettings() {
@@ -357,13 +359,6 @@ function saveSettings(nextSettings) {
   return settings;
 }
 
-function requireContactEmail() {
-  if (!settings?.contactEmail) {
-    throw new Error("Contact email required. Set it in Settings.");
-  }
-  return settings.contactEmail;
-}
-
 function maybeImportProfiles() {
   if (fs.existsSync(PROFILES_PATH)) {
     return;
@@ -410,12 +405,11 @@ function saveProfiles(nextProfiles) {
 }
 
 function createClient() {
-  const contactEmail = settings?.contactEmail || "contact@invalid.local";
   return new VRChat({
     application: {
       name: "VRCEventHelper",
       version: "0.2.0",
-      contact: contactEmail
+      contact: UPDATE_REPO_URL
     },
     keyv: new KeyvFile({ filename: CACHE_PATH })
   });
@@ -474,7 +468,6 @@ function requestTwoFactorCode() {
 }
 
 async function login(credentials) {
-  requireContactEmail();
   const { username, password } = credentials || {};
   if (!username || !password) {
     throw new Error("Missing username or password.");
@@ -895,11 +888,8 @@ ipcMain.handle("window:isMaximized", () => {
 ipcMain.handle("settings:get", () => settings);
 
 ipcMain.handle("settings:set", (_, payload) => {
-  const email = typeof payload?.contactEmail === "string" ? payload.contactEmail.trim() : "";
-  if (!email || !/.+@.+\..+/.test(email)) {
-    throw new Error("Invalid contact email.");
-  }
-  return saveSettings({ ...settings, contactEmail: email });
+  const next = payload && typeof payload === "object" ? payload : {};
+  return saveSettings({ ...settings, ...next });
 });
 
 ipcMain.handle("theme:get", () => themeStore);
@@ -951,7 +941,6 @@ ipcMain.handle("auth:twofactor:submit", async (_, code) => {
 });
 
 ipcMain.handle("groups:list", async () => {
-  requireContactEmail();
   const user = await ensureUser();
   const groupsResponse = await vrchat.getUserGroups({ path: { userId: user.id } });
   const limitedGroups = groupsResponse.data || [];
@@ -989,7 +978,6 @@ ipcMain.handle("groups:list", async () => {
 });
 
 ipcMain.handle("groups:roles", async (_, payload) => {
-  requireContactEmail();
   const { groupId } = payload || {};
   if (!groupId) {
     throw new Error("Missing group.");
@@ -1059,7 +1047,6 @@ ipcMain.handle("dates:options", async (_, payload) => {
 });
 
 ipcMain.handle("events:prepare", async (_, payload) => {
-  requireContactEmail();
   const { groupId } = payload || {};
   if (!groupId) {
     throw new Error("Missing group.");
@@ -1076,7 +1063,6 @@ ipcMain.handle("events:prepare", async (_, payload) => {
 
 ipcMain.handle("events:create", async (_, payload) => {
   try {
-    requireContactEmail();
     const { groupId, startsAtUtc, endsAtUtc, eventData } = payload || {};
     if (!groupId || !startsAtUtc || !endsAtUtc || !eventData) {
       throw new Error("Missing event data.");
@@ -1118,7 +1104,6 @@ ipcMain.handle("events:create", async (_, payload) => {
 });
 
 ipcMain.handle("events:countUpcoming", async (_, payload) => {
-  requireContactEmail();
   const { groupId } = payload || {};
   if (!groupId) {
     throw new Error("Missing group.");
@@ -1129,7 +1114,6 @@ ipcMain.handle("events:countUpcoming", async (_, payload) => {
 });
 
 ipcMain.handle("events:listGroup", async (_, payload) => {
-  requireContactEmail();
   const { groupId, upcomingOnly = true } = payload || {};
   if (!groupId) {
     throw new Error("Missing group.");
@@ -1202,7 +1186,6 @@ ipcMain.handle("events:listGroup", async (_, payload) => {
 
 ipcMain.handle("events:update", async (_, payload) => {
   try {
-    requireContactEmail();
     const { groupId, eventId, eventData, timezone, durationMinutes, manualDate, manualTime } = payload || {};
     if (!groupId || !eventId || !eventData) {
       throw new Error("Missing event data.");
@@ -1250,7 +1233,6 @@ ipcMain.handle("events:update", async (_, payload) => {
 
 ipcMain.handle("events:delete", async (_, payload) => {
   try {
-    requireContactEmail();
     const { groupId, eventId } = payload || {};
     if (!groupId || !eventId) {
       throw new Error("Missing event data.");
@@ -1274,7 +1256,6 @@ ipcMain.handle("events:delete", async (_, payload) => {
 });
 
 ipcMain.handle("files:listGallery", async (_, payload) => {
-  requireContactEmail();
   await ensureUser();
   const limit = Math.max(1, Math.min(100, Number(payload?.limit) || 40));
   const offset = Math.max(0, Number(payload?.offset) || 0);
@@ -1302,7 +1283,6 @@ ipcMain.handle("files:listGallery", async (_, payload) => {
 
 ipcMain.handle("files:uploadGallery", async () => {
   try {
-    requireContactEmail();
     await ensureUser();
 
     const limitCheck = await vrchat.getFiles({
@@ -1396,3 +1376,4 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
+

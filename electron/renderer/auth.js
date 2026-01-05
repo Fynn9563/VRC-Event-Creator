@@ -1,9 +1,9 @@
 // Authentication and session management for VRChat Event Creator
 
 import { dom, state } from "./state.js";
-import { setStatus, setFootMeta, showToast, setAuthState } from "./ui.js";
+import { setStatus, showToast, setAuthState } from "./ui.js";
 import { t } from "./i18n/index.js";
-import { loadSettings, saveSettings, requireContactEmail, sanitizeEmail, sanitizePassword, sanitizeUsername } from "./utils.js";
+import { sanitizePassword, sanitizeUsername } from "./utils.js";
 
 // ============================================================================
 // Session Management
@@ -38,10 +38,6 @@ async function onLoginSuccess(api, user, refreshDataFn) {
 
 export async function handleLogin(event, api, refreshDataFn) {
   event.preventDefault();
-  if (!dom.contactOverlay.classList.contains("is-hidden")) {
-    showToast("Set contact email before logging in.", true);
-    return;
-  }
   const username = sanitizeUsername(dom.loginUsername.value);
   const password = sanitizePassword(dom.loginPassword.value);
   dom.loginUsername.value = username;
@@ -79,34 +75,9 @@ export async function handleLogout(api) {
 }
 
 // ============================================================================
-// Contact Email / Settings Handlers
+// Settings Handlers
 // ============================================================================
 
-export async function handleContactSave(event, api) {
-  if (event) {
-    event.preventDefault();
-  }
-  const email = sanitizeEmail(dom.contactEmail.value || dom.settingsContactEmail.value || "");
-  dom.contactEmail.value = email;
-  dom.settingsContactEmail.value = email;
-  if (!email || !/.+@.+\..+/.test(email)) {
-    showToast("Enter a valid contact email.", true);
-    return;
-  }
-  try {
-    const settings = await saveSettings(api, email);
-    if (requireContactEmail(settings)) {
-      await checkSession(api, async () => {});
-    }
-    setStatus(t("contact.saved"));
-    showToast("Contact email saved.");
-  } catch (err) {
-    showToast(err?.message || "Could not save settings.", true);
-  }
-}
-
-export async function handleSettingsSave(api) {
-  dom.contactEmail.value = dom.settingsContactEmail.value;
-  await handleContactSave(null, api);
-  showToast("Settings saved.");
+export function handleSettingsSave() {
+  showToast(t("settings.saved"));
 }

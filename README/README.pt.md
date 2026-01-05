@@ -37,7 +37,7 @@ Crie e salve modelos de eventos por grupo, gere datas futuras a partir de padrõ
 
 ## Download
 - Lançamentos: https://github.com/Cynacedia/VRC-Event-Creator/releases
-- O `.exe` portátil do Windows funciona de forma independente (não é necessário Node.js para executá-lo).
+- O `.exe` portátil do Windows funciona de forma independente.
 
 ## Privacidade e armazenamento de dados
 Sua senha não é armazenada. Apenas tokens de sessão ficam em cache.
@@ -45,7 +45,7 @@ O app armazena seus arquivos no diretório de dados do Electron (mostrado na se�
 
 - `profiles.json` (modelos de perfil)
 - `cache.json` (tokens de sessão)
-- `settings.json` (e-mail de contato)
+- `settings.json` (configura��es do aplicativo)
 - `themes.json` (predefinições de tema e cores personalizadas)
 
 Você pode substituir o diretório de dados com a variável de ambiente `VRC_EVENT_DATA_DIR`.
@@ -76,6 +76,7 @@ __**Não compartilhe arquivos de cache nem pastas de dados do aplicativo.**__
 - Node.js 20+ (22.21.1 recomendado)
 - npm
 - Uma conta VRChat com permissão para criar eventos para pelo menos um grupo
+
 
 
 

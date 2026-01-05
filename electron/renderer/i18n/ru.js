@@ -24,17 +24,6 @@ export const ru = {
     logoutFailed: "Не удалось выйти.",
     loggedOut: "Вы вышли."
   },
-  contact: {
-    title: "Требуется контактный email",
-    subtitle: "VRChat требует его, чтобы связаться с вами по вопросам API.",
-    emailLabel: "Контактный email",
-    emailPlaceholder: "primer@example.com",
-    saveButton: "Продолжить",
-    hint: "VRChat требует контактный email для использования API и связи по вопросам поддержки.",
-    saved: "Контактный email сохранен.",
-    invalid: "Введите корректный контактный email.",
-    required: "Укажите контактный email перед входом."
-  },
   twoFactor: {
     title: "Двухфакторный код",
     subtitle: "Введите код аутентификации",
@@ -142,17 +131,15 @@ export const ru = {
       }
     },
     account: {
-      title: "Аккаунт и API",
-      description: "VRChat требует контактный email для использования API и поддержки.",
-      sessionHint: "Сессии входа кэшируются локально, чтобы снизить количество входов. Не делитесь файлом кэша.",
-      contactEmail: "Контактный email"
+      title: "??????? ? API",
+      sessionHint: "Сессия кэшируется локально. Храните файл кэша в безопасности."
     },
     dataStorage: {
       title: "Хранилище данных",
       description: "Настройте, где приложение хранит файлы данных",
       dataDirectory: "Папка данных",
       changeButton: "Изменить",
-      openButton: "Открыть папку",
+      openButton: "Открыть",
       restartHint: "Требуется перезапуск для применения"
     },
     appInfo: {
@@ -476,4 +463,7 @@ export const ru = {
     next: "Далее"
   }
 };
+
+
+
 
