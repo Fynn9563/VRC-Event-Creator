@@ -153,8 +153,8 @@ const THEMES = {
     panelAlt: "#2a1e20",
     text: "#e8f0ec",
     link: "#f74f6b",
-    linkHover: "#f2b24f",
-    button: "#f2b24f",
+    linkHover: "#adadad",
+    button: "#949494",
     button2: "#f74f6b",
     buttonText: "#24181a",
     selectOptionHighlight: "#f74f6b"
