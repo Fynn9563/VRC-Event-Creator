@@ -1,36 +1,8 @@
 // Utility functions for VRChat Event Creator
 
 import { TAG_LIMIT, TAG_TEXT_LIMIT } from "./config.js";
-import { dom, state } from "./state.js";
+import { state } from "./state.js";
 import { showToast } from "./ui.js";
-
-// ============================================================================
-// Settings Management
-// ============================================================================
-
-export function applySettings(settings) {
-  const email = settings?.contactEmail || "";
-  dom.settingsContactEmail.value = email;
-  dom.contactEmail.value = email;
-}
-
-export function requireContactEmail(settings) {
-  const missing = !settings?.contactEmail;
-  dom.contactOverlay.classList.toggle("is-hidden", !missing);
-  return !missing;
-}
-
-export async function loadSettings(api) {
-  const settings = await api.getSettings();
-  applySettings(settings);
-  return settings;
-}
-
-export async function saveSettings(api, email) {
-  const settings = await api.updateSettings({ contactEmail: email });
-  applySettings(settings);
-  return settings;
-}
 
 export async function handleOpenDataDir(api) {
   await api.openDataDir();
@@ -148,10 +120,6 @@ export function sanitizeText(value, options = {}) {
 
 export function sanitizeSingleLine(value, maxLength, trim = true) {
   return sanitizeText(value, { maxLength, allowNewlines: false, trim });
-}
-
-export function sanitizeEmail(value) {
-  return sanitizeSingleLine(value, 254, true);
 }
 
 export function sanitizeUsername(value) {

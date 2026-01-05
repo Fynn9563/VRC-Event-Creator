@@ -24,17 +24,6 @@ export const fr = {
     logoutFailed: "Échec de la déconnexion.",
     loggedOut: "Déconnecté."
   },
-  contact: {
-    title: "Adresse e-mail requise",
-    subtitle: "VRChat l'exige pour pouvoir vous joindre au sujet de l'utilisation de l'API ou des problèmes.",
-    emailLabel: "Adresse e-mail",
-    emailPlaceholder: "vous@exemple.com",
-    saveButton: "Continuer",
-    hint: "VRChat exige une adresse e-mail de contact pour l'utilisation de l'API afin de pouvoir vous joindre en cas d'utilisation ou de problèmes.",
-    saved: "Adresse e-mail enregistrée.",
-    invalid: "Saisissez une adresse e-mail valide.",
-    required: "Définissez une adresse e-mail avant de vous connecter."
-  },
   twoFactor: {
     title: "Code d'authentification à deux facteurs",
     subtitle: "Entrez votre code d'authentification",
@@ -146,16 +135,14 @@ export const fr = {
     },
     account: {
       title: "Compte et API",
-      description: "VRChat exige une adresse e-mail de contact pour l'utilisation de l'API afin de pouvoir vous joindre en cas d'utilisation ou de problèmes.",
-      sessionHint: "Les sessions de connexion sont mises en cache localement pour réduire les connexions. Ne partagez pas votre fichier de cache.",
-      contactEmail: "Adresse e-mail"
+      sessionHint: "La session est mise en cache localement. Gardez votre fichier de cache privé."
     },
     dataStorage: {
       title: "Stockage des données",
       description: "Configurez où l'application stocke ses fichiers de données",
       dataDirectory: "Répertoire des données",
       changeButton: "Changer",
-      openButton: "Ouvrir le dossier",
+      openButton: "Ouvrir",
       restartHint: "Redémarrage requis pour prendre effet"
     },
     appInfo: {
@@ -479,4 +466,7 @@ export const fr = {
     next: "Suivant"
   }
 };
+
+
+
 

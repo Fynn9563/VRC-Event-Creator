@@ -469,32 +469,6 @@
             </div>
 
             <div class="card">
-              <h3 data-i18n="settings.account.title">Account & API</h3>
-              <p data-i18n="settings.account.description">VRChat requires a contact email for API usage so they can reach you about usage or issues.</p>
-              <p data-i18n="settings.account.sessionHint">Login sessions are cached locally to reduce sign-ins. Do not share your cache file.</p>
-              <div class="divider"></div>
-              <div class="field">
-                <label for="settings-contact-email" data-i18n="settings.account.contactEmail">Contact Email</label>
-                <input id="settings-contact-email" type="email" placeholder="you@example.com" data-i18n-placeholder="contact.emailPlaceholder" autocomplete="email" required />
-              </div>
-            </div>
-
-            <div class="card">
-              <h3 data-i18n="settings.dataStorage.title">Data Storage</h3>
-              <p data-i18n="settings.dataStorage.description">Configure where the application stores its data files</p>
-              <div class="divider"></div>
-              <div class="field">
-                <label for="settings-data-dir" data-i18n="settings.dataStorage.dataDirectory">Data Directory</label>
-                <div class="inline-row">
-                  <input id="settings-data-dir" type="text" readonly />
-                  <button id="settings-change-dir" class="ghost" data-i18n="settings.dataStorage.changeButton">Change</button>
-                  <button id="settings-open-dir" class="ghost" data-i18n="settings.dataStorage.openButton">Open Folder</button>
-                </div>
-                <p class="hint" data-i18n="settings.dataStorage.restartHint">Requires restart to take effect</p>
-              </div>
-            </div>
-
-            <div class="card">
               <h3 data-i18n="settings.appInfo.title">Application Info</h3>
                 <div class="meta-grid">
                   <div class="meta-item meta-version">
@@ -503,7 +477,13 @@
                   </div>
                   <div class="meta-item meta-data">
                     <span class="meta-label" data-i18n="settings.appInfo.dataFolder">Current Data Folder</span>
-                    <span id="about-data-dir">-</span>
+                    <div class="meta-data-row">
+                      <span id="about-data-dir">-</span>
+                      <div class="meta-actions">
+                        <button id="settings-change-dir" class="ghost compact-button" type="button" data-i18n="settings.dataStorage.changeButton">Change</button>
+                        <button id="settings-open-dir" class="ghost compact-button" type="button" data-i18n="settings.dataStorage.openButton">Open</button>
+                      </div>
+                    </div>
                   </div>
                   <div class="meta-item meta-session">
                     <span class="meta-label" data-i18n="settings.appInfo.session">Session</span>
@@ -767,22 +747,6 @@
           <button class="ghost" id="modify-cancel" type="button" data-i18n="common.cancel">Cancel</button>
           <button class="primary" id="modify-save" type="button" data-i18n="common.save">Save</button>
         </div>
-      </div>
-    </div>
-
-    <div class="overlay is-hidden" id="contact-overlay">
-      <div class="panel">
-        <div class="panel-header">
-          <span class="panel-title" data-i18n="contact.title">Contact Email Required</span>
-          <span class="panel-sub" data-i18n="contact.subtitle">VRChat requires this so they can reach you about API usage or issues.</span>
-        </div>
-        <form id="contact-form">
-          <div class="field">
-            <label for="contact-email" data-i18n="contact.emailLabel">Contact Email</label>
-            <input id="contact-email" type="email" placeholder="you@example.com" data-i18n-placeholder="contact.emailPlaceholder" autocomplete="email" required />
-          </div>
-          <button class="primary" type="submit" data-i18n="contact.saveButton">Continue</button>
-        </form>
       </div>
     </div>
 

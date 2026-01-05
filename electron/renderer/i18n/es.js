@@ -24,17 +24,6 @@ export const es = {
     logoutFailed: "Error al cerrar sesión.",
     loggedOut: "Sesión cerrada."
   },
-  contact: {
-    title: "Correo electrónico requerido",
-    subtitle: "VRChat requiere esto para poder comunicarse contigo sobre el uso de la API o problemas.",
-    emailLabel: "Correo electrónico",
-    emailPlaceholder: "tu@ejemplo.com",
-    saveButton: "Continuar",
-    hint: "VRChat requiere un correo de contacto para el uso de la API y poder comunicarse en caso de uso o problemas.",
-    saved: "Correo guardado.",
-    invalid: "Introduce un correo válido.",
-    required: "Configura el correo antes de iniciar sesión."
-  },
   twoFactor: {
     title: "Código de doble factor",
     subtitle: "Introduce tu código de autenticación",
@@ -146,16 +135,14 @@ export const es = {
     },
     account: {
       title: "Cuenta y API",
-      description: "VRChat requiere un correo de contacto para el uso de la API y poder comunicarse en caso de uso o problemas.",
-      sessionHint: "Las sesiones de inicio se almacenan en caché localmente para reducir inicios. No compartas tu archivo de caché.",
-      contactEmail: "Correo electrónico"
+      sessionHint: "La sesión se guarda en caché localmente. Mantén tu archivo de caché privado."
     },
     dataStorage: {
       title: "Almacenamiento de datos",
       description: "Configura dónde la aplicación guarda sus archivos de datos",
       dataDirectory: "Directorio de datos",
       changeButton: "Cambiar",
-      openButton: "Abrir carpeta",
+      openButton: "Abrir",
       restartHint: "Requiere reinicio para aplicar"
     },
     appInfo: {
@@ -479,4 +466,7 @@ export const es = {
     next: "Siguiente"
   }
 };
+
+
+
 

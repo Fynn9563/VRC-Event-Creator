@@ -4,8 +4,8 @@ import { CATEGORIES, ACCESS_TYPES, LANGUAGES, PLATFORMS, DATE_MODES, PATTERN_TYP
 import { dom, state, setEventWizard, setProfileWizard, getProfileEditConfirmed } from "./state.js";
 import { setStatus, setFootMeta, showToast, setAuthState, setUpdateAvailable, showView, renderSelect, renderChecklist, setupWizard, bindWindowControls, initThemeControls, loadTheme, handleThemeChange, handleThemeReset, handleThemePresetSave, handleThemePresetDelete, handleThemePresetImport, handleThemePresetExport } from "./ui.js";
 import { initI18n, setLanguage, getCurrentLanguage, getLanguageOptions, applyTranslations, t, getLanguageDisplayName } from "./i18n/index.js";
-import { createTagInput, loadSettings, requireContactEmail, handleOpenDataDir, handleChangeDataDir, buildTimezones, normalizeDurationInput, sanitizeDurationInputValue, enforceGroupAccess, getTodayDateString, getMaxEventDateString } from "./utils.js";
-import { checkSession, handleLogin, handleLoginClose, handleLogout, handleContactSave, handleSettingsSave } from "./auth.js";
+import { createTagInput, handleOpenDataDir, handleChangeDataDir, buildTimezones, normalizeDurationInput, sanitizeDurationInputValue, enforceGroupAccess, getTodayDateString, getMaxEventDateString } from "./utils.js";
+import { checkSession, handleLogin, handleLoginClose, handleLogout, handleSettingsSave } from "./auth.js";
 import { resetProfileForm, applyProfileToForm, renderProfileList, updateProfileActionButtons, handleProfileNew, handleProfileEdit, handleProfileDelete, handleProfileSelection, handleProfileGroupChange, handleProfileSave, updateProfileDurationPreview, handleProfileAccessChange, renderProfileRoleRestrictions } from "./profiles.js";
 import { syncDateInputs, applyManualEventDefaults, handleEventGroupChange, handleEventProfileChange, handleEventCreate, handleEventAccessChange, renderEventRoleRestrictions, renderEventLanguageList, renderEventProfileOptions, renderEventPlatformList, updateDateOptions, refreshUpcomingEventCount, renderUpcomingEventCountLabel, updateEventDurationPreview } from "./events.js";
 import { initGalleryPicker, openGalleryPicker } from "./gallery.js";
@@ -17,10 +17,10 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
   if (!api) return;
 
   let languageOptions = [];
-  let pendingSettings = null;
+  let pendingAuthStart = false;
   const UPDATE_REPO_URL = "https://github.com/Cynacedia/VRC-Event-Creator";
   const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000;
-  let updateInfo = { available: false, url: UPDATE_REPO_URL };
+  let updateInfo = { available: false, url: UPDATE_REPO_URL, currentVersion: null, latestVersion: null };
 
   // Core app functions
   function renderGroupSelects(config = {}) {
@@ -178,9 +178,6 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     if (dom.loginOverlay) {
       dom.loginOverlay.classList.add("is-hidden");
     }
-    if (dom.contactOverlay) {
-      dom.contactOverlay.classList.add("is-hidden");
-    }
     if (dom.twoFactorOverlay) {
       dom.twoFactorOverlay.classList.add("is-hidden");
     }
@@ -194,23 +191,20 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     dom.languageOverlay.classList.add("is-hidden");
   }
 
-  async function startAuthFlow(settings) {
-    if (requireContactEmail(settings)) {
-      // Check session in background without blocking UI
-      checkSession(api, refreshData).catch(() => {
-        // Session check failed, user needs to login
-      });
-      return;
-    }
-    setStatus(t("contact.required"));
+  async function startAuthFlow() {
+    // Check session in background without blocking UI
+    checkSession(api, refreshData).catch(() => {
+      // Session check failed, user needs to login
+    });
   }
 
   function completeLanguageSetup() {
     localStorage.setItem("languageConfirmed", "true");
     hideLanguageSetup();
     setAuthState(Boolean(state.user));
-    if (pendingSettings) {
-      void startAuthFlow(pendingSettings);
+    if (pendingAuthStart) {
+      pendingAuthStart = false;
+      void startAuthFlow();
     }
   }
 
@@ -532,13 +526,59 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
       }
       updateInfo = {
         available: Boolean(result.updateAvailable),
-        url: result.repoUrl || UPDATE_REPO_URL
+        url: result.repoUrl || UPDATE_REPO_URL,
+        currentVersion: result.currentVersion || null,
+        latestVersion: result.latestVersion || null
       };
       state.app.updateAvailable = updateInfo.available;
       setUpdateAvailable(updateInfo.available);
       setAuthState(Boolean(state.user));
+
     } catch (err) {
       // Ignore update check failures.
+    }
+  }
+
+  async function handleUpdatePillClick() {
+    if (!updateInfo.available) {
+      return;
+    }
+
+    // Try to download and install via electron-updater
+    if (api.downloadUpdate) {
+      showToast(t("update.downloading"), false, { duration: 5000 });
+      dom.statusPill.disabled = true;
+
+      try {
+        const result = await api.downloadUpdate();
+        if (result && result.ok) {
+          showToast(t("update.ready"), false, { duration: 3000 });
+          // Auto-install after short delay
+          setTimeout(() => {
+            if (api.installUpdate) {
+              api.installUpdate();
+            }
+          }, 1500);
+        } else {
+          // Download failed - fallback to release page
+          showToast(t("update.downloadFailed"), true);
+          if (api.openExternal) {
+            api.openExternal(updateInfo.url);
+          }
+          dom.statusPill.disabled = false;
+        }
+      } catch (err) {
+        showToast(t("update.downloadFailed"), true);
+        if (api.openExternal) {
+          api.openExternal(updateInfo.url);
+        }
+        dom.statusPill.disabled = false;
+      }
+    } else {
+      // No download API - just open release page
+      if (api.openExternal) {
+        api.openExternal(updateInfo.url);
+      }
     }
   }
 
@@ -559,9 +599,8 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     }));
     dom.loginForm.addEventListener("submit", e => handleLogin(e, api, refreshData));
     dom.loginClose.addEventListener("click", () => handleLoginClose(api));
-    dom.contactForm.addEventListener("submit", e => handleContactSave(e, api));
     dom.logoutBtn.addEventListener("click", () => handleLogout(api));
-    dom.settingsSave.addEventListener("click", () => handleSettingsSave(api));
+    dom.settingsSave.addEventListener("click", handleSettingsSave);
     dom.settingsTheme.addEventListener("change", handleThemeChange);
     dom.themeReset.addEventListener("click", handleThemeReset);
     dom.themePresetSave.addEventListener("click", handleThemePresetSave);
@@ -579,12 +618,7 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
       });
     }
     if (dom.statusPill) {
-      dom.statusPill.addEventListener("click", () => {
-        if (!updateInfo.available || !api.openExternal) {
-          return;
-        }
-        api.openExternal(updateInfo.url);
-      });
+      dom.statusPill.addEventListener("click", handleUpdatePillClick);
     }
     if (dom.languageTrigger && dom.languageMenu) {
       dom.languageTrigger.addEventListener("click", event => {
@@ -813,17 +847,16 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     if (info) {
       dom.aboutVersion.textContent = info.version || "-";
       dom.aboutDataDir.textContent = info.dataDir || "-";
-      dom.settingsDataDir.value = info.dataDir || "-";
     }
     await checkForUpdates();
     window.setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL);
-    const settings = await loadSettings(api);
-    pendingSettings = settings;
+    pendingAuthStart = true;
     showView("create");
     if (shouldShowLanguageSetup()) {
       showLanguageSetup();
     } else {
-      await startAuthFlow(settings);
+      pendingAuthStart = false;
+      await startAuthFlow();
     }
   }
 

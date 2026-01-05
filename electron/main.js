@@ -1,8 +1,8 @@
 const { app, BrowserWindow, ipcMain, shell, dialog, nativeImage } = require("electron");
+const { autoUpdater } = require("electron-updater");
 
 const path = require("path");
 const fs = require("fs");
-const https = require("https");
 const { DateTime } = require("luxon");
 const { VRChat } = require("vrchat");
 const { KeyvFile } = require("keyv-file");
@@ -13,25 +13,23 @@ app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
 
 const APP_NAME = "VRChat Event Creator";
 const IS_DEV = !app.isPackaged;
-const APP_VERSION = (() => {
-  try {
-    const pkgPath = path.join(__dirname, "..", "package.json");
-    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-    if (pkg?.version) {
-      return String(pkg.version);
-    }
-  } catch (err) {
-    // Fall back to a safe default if package.json is unavailable.
-  }
-  return "0.0.0";
+const pkg = (() => {
+  const pkgPath = path.join(__dirname, "..", "package.json");
+  return JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 })();
-const UPDATE_REPO_OWNER = "Cynacedia";
-const UPDATE_REPO_NAME = "VRC-Event-Creator";
+const APP_VERSION = pkg.version;
+const UPDATE_REPO_OWNER = pkg.build?.publish?.owner || "Cynacedia";
+const UPDATE_REPO_NAME = pkg.build?.publish?.repo || "VRC-Event-Creator";
 const UPDATE_REPO_URL = `https://github.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}`;
-const UPDATE_CHECK_URLS = [
-  `https://raw.githubusercontent.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}/main/package.json`,
-  `https://raw.githubusercontent.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}/master/package.json`
-];
+
+// Auto-updater configuration
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
+
+// Force update checks in dev mode for testing
+if (IS_DEV) {
+  autoUpdater.forceDevUpdateConfig = true;
+}
 
 let mainWindow = null;
 let currentUser = null;
@@ -80,8 +78,10 @@ function initializePaths() {
 }
 
 function normalizeSettings(raw) {
-  const contactEmail = typeof raw?.contactEmail === "string" ? raw.contactEmail.trim() : "";
-  return { contactEmail };
+  if (!raw || typeof raw !== "object") {
+    return {};
+  }
+  return { ...raw };
 }
 
 function loadSettings() {
@@ -357,13 +357,6 @@ function saveSettings(nextSettings) {
   return settings;
 }
 
-function requireContactEmail() {
-  if (!settings?.contactEmail) {
-    throw new Error("Contact email required. Set it in Settings.");
-  }
-  return settings.contactEmail;
-}
-
 function maybeImportProfiles() {
   if (fs.existsSync(PROFILES_PATH)) {
     return;
@@ -410,12 +403,11 @@ function saveProfiles(nextProfiles) {
 }
 
 function createClient() {
-  const contactEmail = settings?.contactEmail || "contact@invalid.local";
   return new VRChat({
     application: {
       name: "VRCEventHelper",
       version: "0.2.0",
-      contact: contactEmail
+      contact: UPDATE_REPO_URL
     },
     keyv: new KeyvFile({ filename: CACHE_PATH })
   });
@@ -474,7 +466,6 @@ function requestTwoFactorCode() {
 }
 
 async function login(credentials) {
-  requireContactEmail();
   const { username, password } = credentials || {};
   if (!username || !password) {
     throw new Error("Missing username or password.");
@@ -549,86 +540,6 @@ function createWindow() {
   });
 }
 
-function parseVersionParts(value) {
-  return String(value || "")
-    .trim()
-    .replace(/^v/i, "")
-    .split(/[\.\-+]/)
-    .map(part => Number.parseInt(part, 10))
-    .filter(part => Number.isFinite(part));
-}
-
-function isNewerVersion(current, latest) {
-  const currentParts = parseVersionParts(current);
-  const latestParts = parseVersionParts(latest);
-  if (!latestParts.length) {
-    return false;
-  }
-  if (!currentParts.length) {
-    return true;
-  }
-  const maxLength = Math.max(currentParts.length, latestParts.length);
-  for (let i = 0; i < maxLength; i += 1) {
-    const currentValue = currentParts[i] || 0;
-    const latestValue = latestParts[i] || 0;
-    if (latestValue > currentValue) {
-      return true;
-    }
-    if (latestValue < currentValue) {
-      return false;
-    }
-  }
-  return false;
-}
-
-function fetchJson(url, redirectCount = 0) {
-  return new Promise((resolve, reject) => {
-    const request = https.get(url, {
-      headers: { "User-Agent": `${APP_NAME}/${APP_VERSION}` }
-    }, res => {
-      const status = res.statusCode || 0;
-      if (status >= 300 && status < 400 && res.headers.location && redirectCount < 5) {
-        res.resume();
-        resolve(fetchJson(res.headers.location, redirectCount + 1));
-        return;
-      }
-      if (status < 200 || status >= 300) {
-        res.resume();
-        reject(new Error(`Update check failed with status ${status}.`));
-        return;
-      }
-      let data = "";
-      res.on("data", chunk => {
-        data += chunk;
-      });
-      res.on("end", () => {
-        try {
-          resolve(JSON.parse(data));
-        } catch (err) {
-          reject(err);
-        }
-      });
-    });
-    request.on("error", reject);
-    request.setTimeout(10000, () => {
-      request.destroy(new Error("Update check timed out."));
-    });
-  });
-}
-
-async function fetchLatestVersion() {
-  for (const url of UPDATE_CHECK_URLS) {
-    try {
-      const data = await fetchJson(url);
-      if (data?.version) {
-        return String(data.version);
-      }
-    } catch (err) {
-      // Try the next URL.
-    }
-  }
-  return null;
-}
 
 function buildEventTimes({ selectedDateIso, manualDate, manualTime, timezone, durationMinutes }) {
   let start;
@@ -879,11 +790,14 @@ ipcMain.handle("app:info", () => ({
 
 ipcMain.handle("app:checkUpdate", async () => {
   try {
-    const latestVersion = await fetchLatestVersion();
+    const result = await autoUpdater.checkForUpdates();
+    const latestVersion = result?.updateInfo?.version || null;
+    // Only report update if latest version is actually newer
+    const updateAvailable = latestVersion && latestVersion !== APP_VERSION;
     return {
-      updateAvailable: latestVersion ? isNewerVersion(APP_VERSION, latestVersion) : false,
+      updateAvailable,
       currentVersion: APP_VERSION,
-      latestVersion: latestVersion || null,
+      latestVersion,
       repoUrl: UPDATE_REPO_URL
     };
   } catch (err) {
@@ -894,6 +808,19 @@ ipcMain.handle("app:checkUpdate", async () => {
       repoUrl: UPDATE_REPO_URL
     };
   }
+});
+
+ipcMain.handle("app:downloadUpdate", async () => {
+  try {
+    await autoUpdater.downloadUpdate();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err?.message || "Download failed" };
+  }
+});
+
+ipcMain.handle("app:installUpdate", () => {
+  autoUpdater.quitAndInstall(false, true);
 });
 
 ipcMain.handle("app:openExternal", (_, url) => {
@@ -961,11 +888,8 @@ ipcMain.handle("window:isMaximized", () => {
 ipcMain.handle("settings:get", () => settings);
 
 ipcMain.handle("settings:set", (_, payload) => {
-  const email = typeof payload?.contactEmail === "string" ? payload.contactEmail.trim() : "";
-  if (!email || !/.+@.+\..+/.test(email)) {
-    throw new Error("Invalid contact email.");
-  }
-  return saveSettings({ ...settings, contactEmail: email });
+  const next = payload && typeof payload === "object" ? payload : {};
+  return saveSettings({ ...settings, ...next });
 });
 
 ipcMain.handle("theme:get", () => themeStore);
@@ -1017,7 +941,6 @@ ipcMain.handle("auth:twofactor:submit", async (_, code) => {
 });
 
 ipcMain.handle("groups:list", async () => {
-  requireContactEmail();
   const user = await ensureUser();
   const groupsResponse = await vrchat.getUserGroups({ path: { userId: user.id } });
   const limitedGroups = groupsResponse.data || [];
@@ -1055,7 +978,6 @@ ipcMain.handle("groups:list", async () => {
 });
 
 ipcMain.handle("groups:roles", async (_, payload) => {
-  requireContactEmail();
   const { groupId } = payload || {};
   if (!groupId) {
     throw new Error("Missing group.");
@@ -1125,7 +1047,6 @@ ipcMain.handle("dates:options", async (_, payload) => {
 });
 
 ipcMain.handle("events:prepare", async (_, payload) => {
-  requireContactEmail();
   const { groupId } = payload || {};
   if (!groupId) {
     throw new Error("Missing group.");
@@ -1142,7 +1063,6 @@ ipcMain.handle("events:prepare", async (_, payload) => {
 
 ipcMain.handle("events:create", async (_, payload) => {
   try {
-    requireContactEmail();
     const { groupId, startsAtUtc, endsAtUtc, eventData } = payload || {};
     if (!groupId || !startsAtUtc || !endsAtUtc || !eventData) {
       throw new Error("Missing event data.");
@@ -1184,7 +1104,6 @@ ipcMain.handle("events:create", async (_, payload) => {
 });
 
 ipcMain.handle("events:countUpcoming", async (_, payload) => {
-  requireContactEmail();
   const { groupId } = payload || {};
   if (!groupId) {
     throw new Error("Missing group.");
@@ -1195,7 +1114,6 @@ ipcMain.handle("events:countUpcoming", async (_, payload) => {
 });
 
 ipcMain.handle("events:listGroup", async (_, payload) => {
-  requireContactEmail();
   const { groupId, upcomingOnly = true } = payload || {};
   if (!groupId) {
     throw new Error("Missing group.");
@@ -1268,7 +1186,6 @@ ipcMain.handle("events:listGroup", async (_, payload) => {
 
 ipcMain.handle("events:update", async (_, payload) => {
   try {
-    requireContactEmail();
     const { groupId, eventId, eventData, timezone, durationMinutes, manualDate, manualTime } = payload || {};
     if (!groupId || !eventId || !eventData) {
       throw new Error("Missing event data.");
@@ -1316,7 +1233,6 @@ ipcMain.handle("events:update", async (_, payload) => {
 
 ipcMain.handle("events:delete", async (_, payload) => {
   try {
-    requireContactEmail();
     const { groupId, eventId } = payload || {};
     if (!groupId || !eventId) {
       throw new Error("Missing event data.");
@@ -1340,7 +1256,6 @@ ipcMain.handle("events:delete", async (_, payload) => {
 });
 
 ipcMain.handle("files:listGallery", async (_, payload) => {
-  requireContactEmail();
   await ensureUser();
   const limit = Math.max(1, Math.min(100, Number(payload?.limit) || 40));
   const offset = Math.max(0, Number(payload?.offset) || 0);
@@ -1368,7 +1283,6 @@ ipcMain.handle("files:listGallery", async (_, payload) => {
 
 ipcMain.handle("files:uploadGallery", async () => {
   try {
-    requireContactEmail();
     await ensureUser();
 
     const limitCheck = await vrchat.getFiles({
@@ -1462,3 +1376,4 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
+

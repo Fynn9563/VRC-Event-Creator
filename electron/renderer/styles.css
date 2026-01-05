@@ -1558,6 +1558,25 @@ textarea::-webkit-scrollbar {
   color: var(--text-muted);
 }
 
+.meta-data-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.meta-data-row #about-data-dir {
+  flex: 1 1 220px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.meta-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
 /* Language Selector */
 .language-select {
   display: grid;

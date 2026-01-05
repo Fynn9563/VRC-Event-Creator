@@ -24,17 +24,6 @@ export const ko = {
     logoutFailed: "로그아웃 실패.",
     loggedOut: "로그아웃됨."
   },
-  contact: {
-    title: "연락 이메일 필요",
-    subtitle: "VRChat은 API 사용/문제에 대해 연락할 수 있도록 이를 요구합니다.",
-    emailLabel: "연락 이메일",
-    emailPlaceholder: "예: you@example.com",
-    saveButton: "계속",
-    hint: "VRChat은 API 사용을 위해 연락 이메일을 요구합니다.",
-    saved: "연락 이메일이 저장되었습니다.",
-    invalid: "유효한 연락 이메일을 입력하세요.",
-    required: "로그인 전에 연락 이메일을 설정하세요."
-  },
   twoFactor: {
     title: "2단계 코드",
     subtitle: "인증 코드를 입력하세요",
@@ -142,17 +131,15 @@ export const ko = {
       }
     },
     account: {
-      title: "계정 및 API",
-      description: "VRChat은 API 사용을 위해 연락 이메일을 요구합니다.",
-      sessionHint: "로그인 세션은 로컬에 캐시되어 재로그인을 줄입니다. 캐시 파일을 공유하지 마세요.",
-      contactEmail: "연락 이메일"
+      title: "?? ? API",
+      sessionHint: "세션은 로컬에 캐시됩니다. 캐시 파일을 안전하게 보관하세요."
     },
     dataStorage: {
       title: "데이터 저장소",
       description: "애플리케이션 데이터 파일 위치를 설정합니다",
       dataDirectory: "데이터 디렉터리",
       changeButton: "변경",
-      openButton: "폴더 열기",
+      openButton: "열기",
       restartHint: "적용하려면 재시작 필요"
     },
     appInfo: {
@@ -476,4 +463,7 @@ export const ko = {
     next: "다음"
   }
 };
+
+
+
 
