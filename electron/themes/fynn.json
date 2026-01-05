@@ -1,0 +1,30 @@
+{
+  "name": "Fynn",
+  "colors": {
+    "accent": "#fa501d",
+    "bg": "#1a1008",
+    "bgDeep": "#100a04",
+    "backdrop": "#1f1510",
+    "panel": "#261810",
+    "panelAlt": "#2e1c12",
+    "headerBg": "#140c06",
+    "overlay": "#0c0804",
+    "text": "#f5ebe0",
+    "textMuted": "#c4a890",
+    "link": "#ff7840",
+    "linkHover": "#ffaa70",
+    "button": "#2a1a10",
+    "button2": "#3a2418",
+    "buttonText": "#fa501d",
+    "border": "#4a3020",
+    "shadow": "#0a0604",
+    "inputBg": "#120a06",
+    "inputBgStrong": "#1a1008",
+    "inputText": "#fff8f0",
+    "selectOptionBg": "#1f1510",
+    "selectOptionHighlight": "#3a2418",
+    "backdropOverlay": "#1a0c0460",
+    "backdropGrid": "#fa501d90",
+    "scanline": "#ff6a3040"
+  }
+}
