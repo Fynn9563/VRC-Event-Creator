@@ -24,17 +24,6 @@ export const pt = {
     logoutFailed: "Falha ao sair.",
     loggedOut: "Desconectado."
   },
-  contact: {
-    title: "Email de contato obrigatório",
-    subtitle: "O VRChat exige isso para poder entrar em contato sobre uso da API ou problemas.",
-    emailLabel: "Email de contato",
-    emailPlaceholder: "voce@exemplo.com",
-    saveButton: "Continuar",
-    hint: "O VRChat exige um email de contato para uso da API e suporte.",
-    saved: "Email de contato salvo.",
-    invalid: "Insira um email de contato válido.",
-    required: "Defina um email de contato antes de entrar."
-  },
   twoFactor: {
     title: "Código de dois fatores",
     subtitle: "Digite seu código de autenticação",
@@ -143,16 +132,14 @@ export const pt = {
     },
     account: {
       title: "Conta e API",
-      description: "O VRChat exige um email de contato para uso da API e suporte.",
-      sessionHint: "Sessões de login são armazenadas localmente para reduzir entradas. Não compartilhe seu arquivo de cache.",
-      contactEmail: "Email de contato"
+      sessionHint: "A sessão é armazenada em cache localmente. Mantenha seu arquivo de cache privado."
     },
     dataStorage: {
       title: "Armazenamento de dados",
       description: "Configure onde o aplicativo armazena seus dados",
       dataDirectory: "Diretório de dados",
       changeButton: "Alterar",
-      openButton: "Abrir pasta",
+      openButton: "Abrir",
       restartHint: "Reinicie o APP para funcionar"
     },
     appInfo: {
@@ -476,4 +463,7 @@ export const pt = {
     next: "Próximo"
   }
 };
+
+
+
 

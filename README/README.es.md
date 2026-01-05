@@ -37,7 +37,7 @@ Crea y guarda plantillas de eventos por grupo, genera fechas próximas a partir 
 
 ## Descarga
 - Lanzamientos: https://github.com/Cynacedia/VRC-Event-Creator/releases
-- El `.exe` portátil de Windows funciona de forma independiente (no se requiere Node.js para ejecutarlo).
+- El `.exe` portátil de Windows funciona de forma independiente.
 
 ## Privacidad y almacenamiento de datos
 Tu contraseña no se guarda. Solo se almacenan en caché los tokens de sesión.
@@ -45,7 +45,7 @@ La aplicación almacena sus archivos en el directorio de datos de usuario de Ele
 
 - `profiles.json` (plantillas de perfiles)
 - `cache.json` (tokens de sesión)
-- `settings.json` (correo de contacto)
+- `settings.json` (configuración de la aplicación)
 - `themes.json` (presets de temas y colores personalizados)
 
 Puedes sobrescribir el directorio de datos con la variable de entorno `VRC_EVENT_DATA_DIR`.
@@ -55,7 +55,6 @@ __**No compartas archivos de caché ni carpetas de datos de la aplicación.**__
 
 ## Notas de uso
 - Los perfiles requieren Nombre de perfil, Nombre del evento y Descripción antes de continuar.
-- Se requiere un correo de contacto en el primer inicio para el uso de la API de VRChat.
 - Los grupos privados solo pueden usar Tipo de acceso = Grupo.
 - La duración usa DD:HH:MM y tiene un máximo de 31 días.
 - Las etiquetas están limitadas a 5 y los idiomas a 3.

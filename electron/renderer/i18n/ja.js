@@ -24,17 +24,6 @@ export const ja = {
     logoutFailed: "ログアウトに失敗しました。",
     loggedOut: "ログアウトしました。"
   },
-  contact: {
-    title: "連絡先メールが必要です",
-    subtitle: "VRChat は API 利用や問題について連絡するために必要です。",
-    emailLabel: "連絡先メール",
-    emailPlaceholder: "例: you@example.com",
-    saveButton: "続行",
-    hint: "VRChat は API 利用に連絡先メールが必要です。",
-    saved: "連絡先メールを保存しました。",
-    invalid: "有効な連絡先メールを入力してください。",
-    required: "ログイン前に連絡先メールを設定してください。"
-  },
   twoFactor: {
     title: "2段階認証コード",
     subtitle: "認証コードを入力してください",
@@ -145,17 +134,15 @@ export const ja = {
       }
     },
     account: {
-      title: "アカウントとAPI",
-      description: "VRChat は API 利用のため連絡先メールが必要です。",
-      sessionHint: "ログインセッションはローカルにキャッシュされ、サインイン回数を減らします。キャッシュファイルを共有しないでください。",
-      contactEmail: "連絡先メール"
+      title: "??????API",
+      sessionHint: "セッションはローカルにキャッシュされます。キャッシュファイルは非公開にしてください。"
     },
     dataStorage: {
       title: "データ保存",
       description: "アプリのデータ保存先を設定します",
       dataDirectory: "データフォルダ",
       changeButton: "変更",
-      openButton: "フォルダーを開く",
+      openButton: "開く",
       restartHint: "有効化には再起動が必要"
     },
     appInfo: {
@@ -479,4 +466,7 @@ export const ja = {
     next: "次へ"
   }
 };
+
+
+
 

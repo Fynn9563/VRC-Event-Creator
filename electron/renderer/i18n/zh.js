@@ -24,17 +24,6 @@ export const zh = {
     logoutFailed: "退出登录失败。",
     loggedOut: "已退出登录。"
   },
-  contact: {
-    title: "需要联系人邮箱",
-    subtitle: "VRChat 需要联系人邮箱以便就 API 使用或问题与您联系。",
-    emailLabel: "联系人邮箱",
-    emailPlaceholder: "例如：you@example.com",
-    saveButton: "继续",
-    hint: "VRChat 需要联系人邮箱用于 API 使用，以便就使用或问题联系您。",
-    saved: "联系人邮箱已保存。",
-    invalid: "请输入有效的联系人邮箱。",
-    required: "登录前请设置联系人邮箱。"
-  },
   twoFactor: {
     title: "双重验证代码",
     subtitle: "请输入认证代码",
@@ -145,17 +134,15 @@ export const zh = {
       }
     },
     account: {
-      title: "账户与 API",
-      description: "VRChat 需要联系人邮箱用于 API 使用，以便联系您。",
-      sessionHint: "登录会话缓存在本地以减少登录次数。请勿共享缓存文件。",
-      contactEmail: "联系人邮箱"
+      title: "??? API",
+      sessionHint: "会话会缓存在本地。请妥善保管缓存文件。"
     },
     dataStorage: {
       title: "数据存储",
       description: "配置应用存储数据文件的位置",
       dataDirectory: "数据目录",
       changeButton: "更改",
-      openButton: "打开文件夹",
+      openButton: "打开",
       restartHint: "需要重启生效"
     },
     appInfo: {
@@ -479,4 +466,7 @@ export const zh = {
     next: "下一步"
   }
 };
+
+
+
 

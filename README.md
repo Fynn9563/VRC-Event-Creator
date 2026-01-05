@@ -46,7 +46,7 @@ The app stores its files in the Electron user data directory (shown in the Setti
 
 - `profiles.json` (profile templates)
 - `cache.json` (session tokens)
-- `settings.json` (contact email)
+- `settings.json` (app settings)
 - `themes.json` (theme presets and custom colors)
 
 You can override the data directory with the `VRC_EVENT_DATA_DIR` environment variable.
@@ -56,7 +56,6 @@ __**Do not share cache files or application data folders.**__
 
 ## Usage notes
 - Profiles require a Profile Name, Event Name, and Description before you can continue.
-- Contact email is required on first run for VRChat API usage.
 - Private groups can only use Access Type = Group.
 - Duration uses DD:HH:MM and caps at 31 days.
 - Tags are limited to 5 and languages are limited to 3.

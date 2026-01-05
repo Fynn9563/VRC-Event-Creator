@@ -24,17 +24,6 @@ export const de = {
     logoutFailed: "Abmeldung fehlgeschlagen.",
     loggedOut: "Abgemeldet."
   },
-  contact: {
-    title: "Kontakt-E-Mail erforderlich",
-    subtitle: "VRChat benötigt dies, um Sie bei API-Nutzung oder Problemen zu erreichen.",
-    emailLabel: "Kontakt-E-Mail",
-    emailPlaceholder: "du@beispiel.com",
-    saveButton: "Weiter",
-    hint: "VRChat benötigt eine Kontakt-E-Mail für die API-Nutzung, um Sie bei Nutzung oder Problemen zu erreichen.",
-    saved: "Kontakt-E-Mail gespeichert.",
-    invalid: "Bitte eine gültige Kontakt-E-Mail eingeben.",
-    required: "Kontakt-E-Mail vor dem Anmelden festlegen."
-  },
   twoFactor: {
     title: "Zwei-Faktor-Code",
     subtitle: "Geben Sie Ihren Authentifizierungscode ein",
@@ -145,17 +134,15 @@ export const de = {
       }
     },
     account: {
-      title: "Konto und API",
-      description: "VRChat benötigt eine Kontakt-E-Mail für die API-Nutzung, um Sie bei Nutzung oder Problemen zu erreichen.",
-      sessionHint: "Anmeldesitzungen werden lokal zwischengespeichert, um Anmeldungen zu reduzieren. Teilen Sie Ihre Cache-Datei nicht.",
-      contactEmail: "Kontakt-E-Mail"
+      title: "Konto & API",
+      sessionHint: "Die Sitzung wird lokal zwischengespeichert. Halten Sie Ihre Cache-Datei privat."
     },
     dataStorage: {
       title: "Datenspeicherung",
       description: "Konfigurieren Sie, wo die Anwendung ihre Datendateien speichert",
       dataDirectory: "Datenverzeichnis",
       changeButton: "Ändern",
-      openButton: "Ordner öffnen",
+      openButton: "Öffnen",
       restartHint: "Neustart erforderlich, um wirksam zu werden"
     },
     appInfo: {
@@ -479,4 +466,7 @@ export const de = {
     next: "Weiter"
   }
 };
+
+
+
 

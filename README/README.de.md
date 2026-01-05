@@ -37,7 +37,7 @@ Erstelle und speichere gruppenbezogene Event-Vorlagen, generiere kommende Termin
 
 ## Download
 - Releases: https://github.com/Cynacedia/VRC-Event-Creator/releases
-- Die portable Windows-`.exe` läuft eigenständig (kein Node.js zum Ausführen erforderlich).
+- Die portable Windows-`.exe` läuft eigenständig.
 
 ## Datenschutz und Datenspeicher
 Dein Passwort wird nicht gespeichert. Nur Session-Tokens werden gecacht.
@@ -45,7 +45,7 @@ Die App speichert ihre Dateien im Electron-Benutzerdatenverzeichnis (angezeigt u
 
 - `profiles.json` (Profilvorlagen)
 - `cache.json` (Session-Tokens)
-- `settings.json` (Kontakt-E-Mail)
+- `settings.json` (App-Einstellungen)
 - `themes.json` (Theme-Presets und benutzerdefinierte Farben)
 
 Du kannst das Datenverzeichnis mit der Umgebungsvariable `VRC_EVENT_DATA_DIR` überschreiben.
@@ -55,7 +55,6 @@ __**Teile keine Cache-Dateien oder App-Datenordner.**__
 
 ## Hinweise zur Nutzung
 - Profile benötigen einen Profilnamen, Eventnamen und eine Beschreibung, bevor du fortfahren kannst.
-- Für die VRChat-API ist beim ersten Start eine Kontakt-E-Mail erforderlich.
 - Private Gruppen können nur Zugriffstyp = Gruppe verwenden.
 - Dauer verwendet DD:HH:MM und ist auf 31 Tage begrenzt.
 - Tags sind auf 5 und Sprachen auf 3 begrenzt.
@@ -76,6 +75,7 @@ __**Teile keine Cache-Dateien oder App-Datenordner.**__
 - Node.js 20+ (22.21.1 empfohlen)
 - npm
 - Ein VRChat-Konto mit Berechtigung, Events für mindestens eine Gruppe zu erstellen
+
 
 
 
