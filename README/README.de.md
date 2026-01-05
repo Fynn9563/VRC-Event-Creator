@@ -20,6 +20,11 @@
 Ein All-in-one-Tool zur Event-Erstellung für VRChat, das wiederkehrende Einrichtungsschritte eliminiert.
 Erstelle und speichere gruppenbezogene Event-Vorlagen, generiere kommende Termine aus einfachen Wiederholungsmustern und fülle Details sofort automatisch aus - ideal, um wöchentliche Treffen, Watch-Partys und Community-Events schnell zu planen.
 
+
+<p align="center">
+  <img src=".imgs/1MP-CE_CreationFlow-01-05-26.gif" width="900" alt="Event creation flow (profile to publish)" />
+</p>
+
 ## Screenshots
 <table>
   <tr>
@@ -108,3 +113,5 @@ __**Teile keine Cache-Dateien oder App-Datenordner.**__
 - Node.js 20+ (22.21.1 empfohlen)
 - npm
 - Ein VRChat-Konto mit Berechtigung, Events für mindestens eine Gruppe zu erstellen
+
+

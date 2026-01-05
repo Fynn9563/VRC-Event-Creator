@@ -20,6 +20,11 @@
 一体化的 VRChat 活动创建工具，消除重复的设置流程。
 创建并保存按群组区分的活动模板，从简单的重复模式生成即将到来的日期，并即时自动填充详情 - 非常适合快速安排每周聚会、观影会和社区活动。
 
+
+<p align="center">
+  <img src=".imgs/1MP-CE_CreationFlow-01-05-26.gif" width="900" alt="Event creation flow (profile to publish)" />
+</p>
+
 ## 截图
 <table>
   <tr>
@@ -108,3 +113,5 @@ __**不要分享缓存文件或应用数据文件夹。**__
 - Node.js 20+（推荐 22.21.1）
 - npm
 - 拥有至少一个组的活动创建权限的 VRChat 账号
+
+
