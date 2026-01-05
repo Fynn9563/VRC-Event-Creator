@@ -8,7 +8,7 @@ export const fr = {
     settings: "Paramètres"
   },
   auth: {
-    title: "Nœud d'accès",
+    title: "Connexion",
     subtitle: "Identifiants VRChat requis",
     username: "Nom d'utilisateur",
     password: "Mot de passe",
