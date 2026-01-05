@@ -1,6 +1,6 @@
 {
   "name": "VRCEventCreator",
-  "version": "0.9.12",
+  "version": "0.9.13",
   "main": "electron/main.js",
   "scripts": {
     "start:gui": "electron .",
@@ -38,7 +38,7 @@
     "win": {
       "target": "nsis",
       "icon": "electron/app.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "VRChat-Event-Creator-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,

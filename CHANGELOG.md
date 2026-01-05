@@ -2,6 +2,11 @@
 
 All notable changes to VRChat Event Creator will be documented in this file.
 
+## [0.9.13] - 2025-01-06
+
+### Fixed
+- Fixed artifact naming with hardcoded dashes (productName has spaces)
+
 ## [0.9.12] - 2025-01-06
 
 ### Fixed
