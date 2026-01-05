@@ -18,8 +18,8 @@ const pkg = (() => {
   return JSON.parse(fs.readFileSync(pkgPath, "utf8"));
 })();
 const APP_VERSION = pkg.version;
-const UPDATE_REPO_OWNER = pkg.build.publish.owner;
-const UPDATE_REPO_NAME = pkg.build.publish.repo;
+const UPDATE_REPO_OWNER = pkg.build?.publish?.owner || "Cynacedia";
+const UPDATE_REPO_NAME = pkg.build?.publish?.repo || "VRC-Event-Creator";
 const UPDATE_REPO_URL = `https://github.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}`;
 
 // Auto-updater configuration
