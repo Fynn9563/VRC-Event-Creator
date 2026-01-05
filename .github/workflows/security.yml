@@ -110,11 +110,13 @@ jobs:
         with:
           project: 'VRC-Event-Creator'
           path: '.'
-          format: 'HTML,JSON,SARIF'
+          format: 'SARIF'
           args: >
             --enableExperimental
             --nodeAuditSkipDevDependencies
             --disableAssembly
+            -f HTML
+            -f JSON
 
       - name: Upload Dependency Check results
         uses: actions/upload-artifact@v4
