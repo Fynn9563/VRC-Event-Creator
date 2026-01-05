@@ -20,7 +20,7 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
   let pendingAuthStart = false;
   const UPDATE_REPO_URL = "https://github.com/Cynacedia/VRC-Event-Creator";
   const UPDATE_CHECK_INTERVAL = 60 * 60 * 1000;
-  let updateInfo = { available: false, url: UPDATE_REPO_URL };
+  let updateInfo = { available: false, url: UPDATE_REPO_URL, currentVersion: null, latestVersion: null };
 
   // Core app functions
   function renderGroupSelects(config = {}) {
@@ -526,13 +526,59 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
       }
       updateInfo = {
         available: Boolean(result.updateAvailable),
-        url: result.repoUrl || UPDATE_REPO_URL
+        url: result.repoUrl || UPDATE_REPO_URL,
+        currentVersion: result.currentVersion || null,
+        latestVersion: result.latestVersion || null
       };
       state.app.updateAvailable = updateInfo.available;
       setUpdateAvailable(updateInfo.available);
       setAuthState(Boolean(state.user));
+
     } catch (err) {
       // Ignore update check failures.
+    }
+  }
+
+  async function handleUpdatePillClick() {
+    if (!updateInfo.available) {
+      return;
+    }
+
+    // Try to download and install via electron-updater
+    if (api.downloadUpdate) {
+      showToast(t("update.downloading"), false, { duration: 5000 });
+      dom.statusPill.disabled = true;
+
+      try {
+        const result = await api.downloadUpdate();
+        if (result && result.ok) {
+          showToast(t("update.ready"), false, { duration: 3000 });
+          // Auto-install after short delay
+          setTimeout(() => {
+            if (api.installUpdate) {
+              api.installUpdate();
+            }
+          }, 1500);
+        } else {
+          // Download failed - fallback to release page
+          showToast(t("update.downloadFailed"), true);
+          if (api.openExternal) {
+            api.openExternal(updateInfo.url);
+          }
+          dom.statusPill.disabled = false;
+        }
+      } catch (err) {
+        showToast(t("update.downloadFailed"), true);
+        if (api.openExternal) {
+          api.openExternal(updateInfo.url);
+        }
+        dom.statusPill.disabled = false;
+      }
+    } else {
+      // No download API - just open release page
+      if (api.openExternal) {
+        api.openExternal(updateInfo.url);
+      }
     }
   }
 
@@ -572,12 +618,7 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
       });
     }
     if (dom.statusPill) {
-      dom.statusPill.addEventListener("click", () => {
-        if (!updateInfo.available || !api.openExternal) {
-          return;
-        }
-        api.openExternal(updateInfo.url);
-      });
+      dom.statusPill.addEventListener("click", handleUpdatePillClick);
     }
     if (dom.languageTrigger && dom.languageMenu) {
       dom.languageTrigger.addEventListener("click", event => {

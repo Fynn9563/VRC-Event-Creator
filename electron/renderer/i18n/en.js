@@ -461,6 +461,11 @@ export const en = {
   wizard: {
     back: "Back",
     next: "Next"
+  },
+  update: {
+    downloading: "Downloading update...",
+    ready: "Update ready. Restarting...",
+    downloadFailed: "Download failed. Opening release page."
   }
 };
 
