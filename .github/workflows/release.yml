@@ -115,5 +115,5 @@ jobs:
             artifacts/**/*.AppImage
             artifacts/**/*.yml
             artifacts/**/*.blockmap
-          draft: true
+          draft: false
           prerelease: ${{ contains(steps.release_version.outputs.version, '-') }}
