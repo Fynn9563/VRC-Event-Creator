@@ -26,6 +26,11 @@ const UPDATE_REPO_URL = `https://github.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_N
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
+// Force update checks in dev mode for testing
+if (IS_DEV) {
+  autoUpdater.forceDevUpdateConfig = true;
+}
+
 let mainWindow = null;
 let currentUser = null;
 let profiles = {};
@@ -807,9 +812,12 @@ ipcMain.handle("app:checkUpdate", async () => {
 
 ipcMain.handle("app:downloadUpdate", async () => {
   try {
-    await autoUpdater.downloadUpdate();
+    console.log("[update] Starting download...");
+    const result = await autoUpdater.downloadUpdate();
+    console.log("[update] Download complete:", result);
     return { ok: true };
   } catch (err) {
+    console.error("[update] Download failed:", err);
     return { ok: false, error: err?.message || "Download failed" };
   }
 });
