@@ -1,6 +1,6 @@
 {
   "name": "VRCEventCreator",
-  "version": "0.9.16",
+  "version": "0.9.17",
   "main": "electron/main.js",
   "scripts": {
     "start:gui": "electron .",
@@ -41,10 +41,12 @@
       "artifactName": "VRChat-Event-Creator-Setup-${version}.${ext}"
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "installerLanguages": ["en_US", "de_DE", "fr_FR", "es_ES", "ja_JP", "ko_KR", "pt_BR", "ru_RU", "zh_CN"],
+      "language": "0000"
     },
     "linux": {
       "target": "AppImage",
