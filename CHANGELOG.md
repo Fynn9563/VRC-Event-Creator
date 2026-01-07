@@ -2,6 +2,11 @@
 
 All notable changes to VRChat Event Creator will be documented in this file.
 
+## [0.9.22] - 2026-01-06
+
+### Changed
+- Version bump
+
 ## [0.9.21] - 2026-01-06
 
 ### Changed
