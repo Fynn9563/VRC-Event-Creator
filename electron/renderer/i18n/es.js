@@ -145,8 +145,18 @@ export const es = {
       disclaimerLabel: "Aviso:",
       disclaimerText: "Esta aplicación no es oficial y no está afiliada a VRChat. Úsala bajo tu propio riesgo. Los desarrolladores no son responsables de los problemas derivados del uso de esta herramienta."
     },
+    general: {
+      title: "General",
+      minimizeToTray: "Minimizar a la bandeja del sistema"
+    },
     saveButton: "Guardar configuración",
     saved: "Configuración guardada."
+  },
+  trayPrompt: {
+    title: "¿Minimizar a la bandeja del sistema?",
+    message: "Puedes cambiar esto más tarde en Configuración.",
+    yes: "Sí",
+    no: "No"
   },
   categories: {
     hangout: "Reunión",
@@ -255,6 +265,10 @@ export const es = {
     unknownRateLimit: "Límite de tasa. Inténtalo más tarde.",
     upcomingCountRefresh: "Actualizar",
     createButton: "Crear evento",
+    create: {
+      warnConflicts: "Advertirme sobre eventos en conflicto",
+      alreadyCreating: "Ya se está creando un evento, por favor espera..."
+    },
     created: "Evento creado.",
     failed: "No se pudo crear el evento.",
     selectGroupError: "Selecciona un grupo.",
@@ -464,8 +478,7 @@ export const es = {
   conflict: {
     title: "Conflicto de evento",
     message: "Ya existe un evento \"{title}\" programado en este horario.",
-    skipSession: "No preguntar de nuevo en esta sesión",
-    changeTime: "Elegir otra hora",
+    changeTime: "Reseleccionar hora",
     continue: "Crear de todas formas"
   }
 };

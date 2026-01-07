@@ -2,6 +2,22 @@
 
 All notable changes to VRChat Event Creator will be documented in this file.
 
+## [0.9.23] - 2026-01-07
+
+### Added
+- Optional conflict warning toggle in event creation wizard (default: off)
+- Minimize to system tray feature with first-time confirmation dialog
+- System tray icon with Show/Quit menu options
+
+### Changed
+- Settings file now only stores application preferences
+
+### Fixed
+- Event creation button properly locks during creation to prevent duplicates
+- Local event tracking handles VRChat API delay for conflict detection
+- Tray prompt dialog button layout and spacing improved
+- App quit behavior from tray prompt now works correctly
+
 ## [0.9.22] - 2026-01-06
 
 ### Changed
@@ -110,7 +126,7 @@ All notable changes to VRChat Event Creator will be documented in this file.
 - Windows build now uses NSIS installer instead of portable
 - Dynamic repo configuration for fork support
 
-## [0.9.7] - 2026-01-06
+## [0.9.0] - 2026-01-02
 
 Fully functional release of VRC Event Creator.
 

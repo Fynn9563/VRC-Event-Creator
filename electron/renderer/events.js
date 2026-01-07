@@ -26,30 +26,29 @@ function showConflictModal(eventTitle) {
   return new Promise(resolve => {
     conflictResolve = resolve;
     dom.conflictMessage.textContent = t("conflict.message", { title: eventTitle });
-    dom.conflictSkipSession.checked = false;
     dom.conflictOverlay.classList.remove("is-hidden");
   });
 }
 
 function hideConflictModal() {
   dom.conflictOverlay.classList.add("is-hidden");
-  conflictResolve = null;
 }
 
 function handleConflictContinue() {
-  if (dom.conflictSkipSession.checked) {
-    state.session.skipConflictWarning = true;
-  }
+  const resolve = conflictResolve;
+  conflictResolve = null;
   hideConflictModal();
-  if (conflictResolve) {
-    conflictResolve({ continue: true });
+  if (resolve) {
+    resolve({ continue: true });
   }
 }
 
 function handleConflictChangeTime() {
+  const resolve = conflictResolve;
+  conflictResolve = null;
   hideConflictModal();
-  if (conflictResolve) {
-    conflictResolve({ continue: false, changeTime: true });
+  if (resolve) {
+    resolve({ continue: false, changeTime: true });
   }
 }
 
@@ -777,6 +776,12 @@ export function handleDateSourceChange(event) {
 }
 
 export async function handleEventCreate(api) {
+  // Rate limiting: prevent rapid event creation
+  if (state.event.createInProgress) {
+    showToast(t("events.create.alreadyCreating"), true);
+    return { success: false, message: t("events.create.alreadyCreating"), toastShown: true };
+  }
+
   if (state.app?.updateAvailable) {
     const message = t("events.updateRequired");
     showToast(message, true, { duration: 8000 });
@@ -881,8 +886,15 @@ export async function handleEventCreate(api) {
   if (!eventData.description) {
     return { success: false, message: t("events.requiredSingle", { field: t("events.description") }) };
   }
-  state.event.createInProgress = true;
-  updateEventCreateDisabled();
+
+  // Check if user wants conflict warnings - if so, lock button IMMEDIATELY to prevent race conditions
+  const warnConflicts = dom.eventWarnConflicts?.checked ?? false;
+  if (warnConflicts) {
+    state.event.createInProgress = true;
+    updateEventCreateDisabled();
+  }
+
+  // Prepare the event and check for conflicts
   try {
     const prep = await api.prepareEvent({
       groupId,
@@ -892,12 +904,25 @@ export async function handleEventCreate(api) {
       manualDate,
       manualTime
     });
-    if (prep.conflictEvent && !state.session.skipConflictWarning) {
-      const conflictResult = await showConflictModal(prep.conflictEvent.title);
-      if (!conflictResult.continue) {
+
+    // Show conflict modal if conflict found and warnings enabled
+    if (prep.conflictEvent && warnConflicts) {
+      let conflictResult;
+      try {
+        conflictResult = await showConflictModal(prep.conflictEvent.title);
+      } catch (modalErr) {
+        // Modal failed - unlock button and return
         state.event.createInProgress = false;
         updateEventCreateDisabled();
-        if (conflictResult.changeTime) {
+        console.error("Conflict modal error:", modalErr);
+        return { success: false, message: t("events.failed") };
+      }
+
+      if (!conflictResult || !conflictResult.continue) {
+        // User canceled - unlock button
+        state.event.createInProgress = false;
+        updateEventCreateDisabled();
+        if (conflictResult?.changeTime) {
           // Navigate back to date selection step (step index 1)
           const wizard = getEventWizard();
           if (wizard) {
@@ -906,6 +931,12 @@ export async function handleEventCreate(api) {
         }
         return { success: false, message: t("events.failed") };
       }
+    }
+
+    // If warnings are OFF, lock the button now (after conflict check is complete)
+    if (!warnConflicts) {
+      state.event.createInProgress = true;
+      updateEventCreateDisabled();
     }
     const result = await api.createEvent({
       groupId,

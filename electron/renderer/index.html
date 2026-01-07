@@ -205,6 +205,12 @@
                     </div>
                     <button id="event-create" class="primary" data-i18n="events.createButton">Create Event</button>
                   </div>
+                  <div class="field" style="margin-top: 1rem;">
+                    <label class="toggle">
+                      <input id="event-warn-conflicts" type="checkbox" />
+                      <span data-i18n="events.create.warnConflicts">Warn me about conflicting events</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -422,6 +428,16 @@
           <section class="view is-hidden" id="view-about">
             <div class="view-header">
               <h2 data-i18n="settings.title">Settings</h2>
+            </div>
+
+            <div class="card">
+              <h3 data-i18n="settings.general.title">General</h3>
+              <div class="field">
+                <label class="toggle">
+                  <input id="settings-minimize-tray" type="checkbox" />
+                  <span data-i18n="settings.general.minimizeToTray">Minimize to system tray</span>
+                </label>
+              </div>
             </div>
 
             <div class="card">
@@ -645,15 +661,22 @@
           <span class="panel-title" data-i18n="conflict.title">Event Conflict</span>
           <span class="panel-sub" id="conflict-message"></span>
         </div>
-        <div class="conflict-body">
-          <label class="checkbox-label">
-            <input type="checkbox" id="conflict-skip-session">
-            <span data-i18n="conflict.skipSession">Don't ask again this session</span>
-          </label>
-        </div>
         <div class="conflict-footer">
           <button class="ghost" id="conflict-change-time" type="button" data-i18n="conflict.changeTime">Choose Different Time</button>
           <button class="primary" id="conflict-continue" type="button" data-i18n="conflict.continue">Create Anyway</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay is-hidden" id="tray-prompt-overlay">
+      <div class="panel conflict-panel">
+        <div class="panel-header">
+          <span class="panel-title" data-i18n="trayPrompt.title">Minimize to System Tray?</span>
+          <span class="panel-sub" data-i18n="trayPrompt.message">You can change this later in Settings.</span>
+        </div>
+        <div class="conflict-footer">
+          <button class="primary" id="tray-prompt-yes" type="button" data-i18n="trayPrompt.yes">Yes</button>
+          <button class="ghost" id="tray-prompt-no" type="button" data-i18n="trayPrompt.no">No</button>
         </div>
       </div>
     </div>

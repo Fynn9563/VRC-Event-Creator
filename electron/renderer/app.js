@@ -766,6 +766,24 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
     if (dom.eventCountRefresh) {
       dom.eventCountRefresh.addEventListener("click", () => { void refreshUpcomingEventCount(api); });
     }
+    if (dom.eventWarnConflicts) {
+      dom.eventWarnConflicts.addEventListener("change", async () => {
+        try {
+          await api.updateSettings({ warnConflicts: dom.eventWarnConflicts.checked });
+        } catch (err) {
+          console.error("Failed to save conflict warning setting:", err);
+        }
+      });
+    }
+    if (dom.settingsMinimizeTray) {
+      dom.settingsMinimizeTray.addEventListener("change", async () => {
+        try {
+          await api.updateSettings({ minimizeToTray: dom.settingsMinimizeTray.checked });
+        } catch (err) {
+          console.error("Failed to save minimize to tray setting:", err);
+        }
+      });
+    }
     if (dom.eventImagePicker) {
       dom.eventImagePicker.addEventListener("click", () => openGalleryPicker(dom.eventImageId));
     }
@@ -879,6 +897,39 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
         setUpdateAvailable(updateInfo.available, true);
       });
     }
+
+    // Listen for tray prompt event from main process
+    if (windowControls.onShowTrayPrompt) {
+      windowControls.onShowTrayPrompt(() => {
+        dom.trayPromptOverlay.classList.remove("is-hidden");
+      });
+    }
+
+    // Handle tray prompt responses
+    if (dom.trayPromptYes) {
+      dom.trayPromptYes.addEventListener("click", async () => {
+        dom.trayPromptOverlay.classList.add("is-hidden");
+        // Enable minimizeToTray and mark prompt as shown
+        await api.updateSettings({ minimizeToTray: true, trayPromptShown: true });
+        // Update the UI checkbox to reflect the new setting
+        if (dom.settingsMinimizeTray) {
+          dom.settingsMinimizeTray.checked = true;
+        }
+        // Hide to tray immediately
+        windowControls.close();
+      });
+    }
+
+    if (dom.trayPromptNo) {
+      dom.trayPromptNo.addEventListener("click", async () => {
+        dom.trayPromptOverlay.classList.add("is-hidden");
+        // Mark prompt as shown but don't enable tray
+        await api.updateSettings({ trayPromptShown: true });
+        // Quit the app
+        api.quitApp();
+      });
+    }
+
     pendingAuthStart = true;
     showView("create");
     if (shouldShowLanguageSetup()) {

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, dialog, nativeImage } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, dialog, nativeImage, Tray, Menu } = require("electron");
 const { autoUpdater } = require("electron-updater");
 
 const path = require("path");
@@ -207,6 +207,8 @@ if (IS_DEV) {
 }
 
 let mainWindow = null;
+let appTray = null;
+let isQuitting = false;
 let currentUser = null;
 let profiles = {};
 let twoFactorRequest = null;
@@ -257,10 +259,19 @@ function initializePaths() {
 }
 
 function normalizeSettings(raw) {
+  // Only preserve the specific settings fields we define - ignore any other fields
   if (!raw || typeof raw !== "object") {
-    return {};
+    return {
+      warnConflicts: false,
+      minimizeToTray: false,
+      trayPromptShown: false
+    };
   }
-  return { ...raw };
+  return {
+    warnConflicts: typeof raw.warnConflicts === "boolean" ? raw.warnConflicts : false,
+    minimizeToTray: typeof raw.minimizeToTray === "boolean" ? raw.minimizeToTray : false,
+    trayPromptShown: typeof raw.trayPromptShown === "boolean" ? raw.trayPromptShown : false
+  };
 }
 
 function loadSettings() {
@@ -542,8 +553,17 @@ function migrateThemeStorePresets(rawStore) {
 }
 
 function saveSettings(nextSettings) {
+  const previousSettings = settings;
   settings = normalizeSettings(nextSettings);
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
+
+  // Manage tray based on minimizeToTray setting
+  if (settings.minimizeToTray && !appTray) {
+    createTray();
+  } else if (!settings.minimizeToTray && appTray) {
+    destroyTray();
+  }
+
   resetClient();
   return settings;
 }
@@ -694,6 +714,50 @@ async function login(credentials) {
   }
 }
 
+function createTray() {
+  if (appTray) return; // Already created
+
+  const iconPath = path.join(__dirname, "app.ico");
+  appTray = new Tray(iconPath);
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "Show",
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      }
+    },
+    {
+      label: "Quit",
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      }
+    }
+  ]);
+
+  appTray.setToolTip(APP_NAME);
+  appTray.setContextMenu(contextMenu);
+
+  // Double-click tray icon to show window
+  appTray.on("double-click", () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
+function destroyTray() {
+  if (appTray) {
+    appTray.destroy();
+    appTray = null;
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1220,
@@ -748,6 +812,30 @@ function createWindow() {
   mainWindow.on("unmaximize", () => {
     mainWindow.webContents.send("window:maximized", false);
   });
+
+  // Handle window close - show prompt or minimize to tray
+  mainWindow.on("close", (event) => {
+    if (isQuitting) {
+      return; // Allow quit
+    }
+
+    // If tray is enabled, hide to tray
+    if (settings?.minimizeToTray) {
+      event.preventDefault();
+      mainWindow.hide();
+      if (!appTray) {
+        createTray();
+      }
+      return;
+    }
+
+    // If prompt hasn't been shown yet, show it
+    if (!settings?.trayPromptShown) {
+      event.preventDefault();
+      mainWindow.webContents.send("window:show-tray-prompt");
+    }
+    // Otherwise, allow normal close
+  });
 }
 
 
@@ -775,9 +863,85 @@ function buildEventTimes({ selectedDateIso, manualDate, manualTime, timezone, du
   };
 }
 
-async function findConflictingEvent(groupId, startsAtUtc) {
-  // Disabled - assume user intent if creating multiple events at same time
+// Track recently created events locally (VRChat API has ~10-15s delay)
+const recentlyCreatedEvents = new Map(); // key: "groupId::startsAtUtc", value: { title, createdAt }
+const RECENT_EVENT_TTL = 60 * 60 * 1000; // 1 hour TTL
+
+function trackCreatedEvent(groupId, startsAtUtc, title) {
+  const key = `${groupId}::${startsAtUtc}`;
+  recentlyCreatedEvents.set(key, { title, createdAt: Date.now() });
+  debugLog("trackCreatedEvent", `Tracked event: ${key} - ${title}`);
+  // Clean up old entries
+  const now = Date.now();
+  for (const [k, v] of recentlyCreatedEvents) {
+    if (now - v.createdAt > RECENT_EVENT_TTL) {
+      recentlyCreatedEvents.delete(k);
+    }
+  }
+}
+
+function findLocalConflict(groupId, startsAtUtc) {
+  debugLog("findLocalConflict", `Checking for local conflict: ${groupId} at ${startsAtUtc}, tracked events: ${recentlyCreatedEvents.size}`);
+  const targetTime = DateTime.fromISO(startsAtUtc);
+  for (const [key, value] of recentlyCreatedEvents) {
+    if (!key.startsWith(groupId + "::")) continue;
+    const eventTimeStr = key.split("::")[1];
+    const eventTime = DateTime.fromISO(eventTimeStr);
+    if (eventTime && eventTime.isValid) {
+      const diffMinutes = Math.abs(eventTime.diff(targetTime, "minutes").minutes);
+      debugLog("findLocalConflict", `Comparing: target=${startsAtUtc} vs stored=${eventTimeStr}, diff=${diffMinutes} minutes`);
+      if (diffMinutes < 1) {
+        debugLog("findLocalConflict", `Found local conflict: ${value.title}`);
+        return { title: value.title, startsAt: eventTimeStr, isLocal: true };
+      }
+    }
+  }
+  debugLog("findLocalConflict", "No local conflict found");
   return null;
+}
+
+async function findConflictingEvent(groupId, startsAtUtc) {
+  // First check local tracking (handles VRChat API delay)
+  const localConflict = findLocalConflict(groupId, startsAtUtc);
+  if (localConflict) {
+    return localConflict;
+  }
+
+  try {
+    debugApiCall("getGroupCalendarEvents (findConflict)", { groupId, n: 100 });
+    const currentEvents = await requestGet(
+      "getGroupCalendarEvents",
+      { path: { groupId }, query: { n: 100 } },
+      () => vrchat.getGroupCalendarEvents({
+        path: { groupId },
+        query: { n: 100 }
+      })
+    );
+    debugApiResponse("getGroupCalendarEvents (findConflict)", currentEvents);
+
+    const results = getCalendarEventList(currentEvents.data);
+    const targetTime = DateTime.fromISO(startsAtUtc);
+
+    // Find event at same start time
+    for (const event of results) {
+      const eventStart = parseEventDateValue(getEventStartValue(event));
+      if (eventStart && eventStart.isValid) {
+        const diffMinutes = Math.abs(eventStart.diff(targetTime, "minutes").minutes);
+        if (diffMinutes < 1) {
+          return {
+            id: getEventId(event),
+            title: getEventField(event, "title") || "Untitled Event",
+            startsAt: eventStart.toISO()
+          };
+        }
+      }
+    }
+
+    return null;
+  } catch (err) {
+    debugLog("findConflictingEvent", "Error checking for conflicts:", err.message);
+    return null;
+  }
 }
 
 async function getUpcomingEventCount(groupId) {
@@ -1410,6 +1574,8 @@ ipcMain.handle("events:create", async (_, payload) => {
     });
     debugApiResponse("createGroupCalendarEvent", response);
     const eventId = getEventId(response.data);
+    // Track locally created event for conflict detection (VRChat API has delay)
+    trackCreatedEvent(groupId, startsAtUtc, eventData.title);
     return { ok: true, eventId };
   } catch (err) {
     debugApiResponse("createGroupCalendarEvent", null, err);
@@ -1751,6 +1917,7 @@ app.on("window-all-closed", () => {
 });
 
 app.on("will-quit", () => {
+  destroyTray();
   finalizeDebugLog();
 });
 

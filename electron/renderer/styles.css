@@ -1959,6 +1959,24 @@ button:disabled {
   position: relative;
 }
 
+/* Tray prompt modal specific styling */
+#tray-prompt-overlay .panel-header {
+  gap: var(--space-3);
+}
+
+.conflict-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.conflict-footer button {
+  flex: 1;
+  max-width: 45%;
+}
+
 .panel-close {
   position: absolute;
   top: 0;

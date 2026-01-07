@@ -145,8 +145,18 @@ export const ja = {
       disclaimerLabel: "免責事項:",
       disclaimerText: "このアプリは非公式で VRChat と提携していません。自己責任で使用してください。開発者は本ツールの使用による問題について責任を負いません。"
     },
+    general: {
+      title: "一般",
+      minimizeToTray: "システムトレイに最小化"
+    },
     saveButton: "設定を保存",
     saved: "設定を保存しました。"
+  },
+  trayPrompt: {
+    title: "システムトレイに最小化しますか？",
+    message: "これは後で設定で変更できます。",
+    yes: "はい",
+    no: "いいえ"
   },
   categories: {
     hangout: "交流",
@@ -255,6 +265,10 @@ export const ja = {
     unknownRateLimit: "レート制限。後でもう一度お試しください。",
     upcomingCountRefresh: "更新",
     createButton: "イベントを作成",
+    create: {
+      warnConflicts: "競合するイベントを警告する",
+      alreadyCreating: "イベントを作成中です。お待ちください..."
+    },
     created: "イベントを作成しました。",
     failed: "イベントを作成できませんでした。",
     selectGroupError: "グループを選択してください。",
@@ -464,8 +478,7 @@ export const ja = {
   conflict: {
     title: "イベントの競合",
     message: "イベント「{title}」はすでにこの時間に予定されています。",
-    skipSession: "このセッションでは再度表示しない",
-    changeTime: "別の時間を選択",
+    changeTime: "時間を再選択",
     continue: "そのまま作成"
   }
 };

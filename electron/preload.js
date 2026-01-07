@@ -55,5 +55,8 @@ contextBridge.exposeInMainWorld("windowControls", {
   isMaximized: () => ipcRenderer.invoke("window:isMaximized"),
   onMaximizeChange: callback => {
     ipcRenderer.on("window:maximized", (_, isMaximized) => callback(isMaximized));
+  },
+  onShowTrayPrompt: callback => {
+    ipcRenderer.on("window:show-tray-prompt", () => callback());
   }
 });

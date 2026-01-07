@@ -29,6 +29,20 @@ async function onLoginSuccess(api, user, refreshDataFn) {
   setAuthState(true);
   dom.aboutSession.textContent = user.displayName || "Authenticated";
   setStatus(t("auth.loggedInAs", { name: user.displayName || "user" }));
+
+  // Load settings and initialize toggles
+  try {
+    const settings = await api.getSettings();
+    if (dom.eventWarnConflicts) {
+      dom.eventWarnConflicts.checked = Boolean(settings.warnConflicts);
+    }
+    if (dom.settingsMinimizeTray) {
+      dom.settingsMinimizeTray.checked = Boolean(settings.minimizeToTray);
+    }
+  } catch (err) {
+    console.error("Failed to load settings:", err);
+  }
+
   await refreshDataFn();
 }
 

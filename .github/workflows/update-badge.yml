@@ -2,8 +2,8 @@ name: Update Download Badge
 
 on:
   schedule:
-    - cron: '0 0 * * *'  # Daily at midnight UTC
-  workflow_dispatch:      # Allow manual trigger
+    - cron: '0 */8 * * *'  # Every 8 hours
+  workflow_dispatch:       # Allow manual trigger
 
 jobs:
   update-badge:

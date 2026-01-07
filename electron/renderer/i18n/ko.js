@@ -142,8 +142,18 @@ export const ko = {
       disclaimerLabel: "면책 조항:",
       disclaimerText: "이 애플리케이션은 비공식이며 VRChat과 관련이 없습니다. 사용에 따른 책임은 사용자에게 있습니다. 이 도구 사용으로 발생하는 문제에 대해 개발자는 책임지지 않습니다."
     },
+    general: {
+      title: "일반",
+      minimizeToTray: "시스템 트레이로 최소화"
+    },
     saveButton: "설정 저장",
     saved: "설정이 저장되었습니다."
+  },
+  trayPrompt: {
+    title: "시스템 트레이로 최소화하시겠습니까?",
+    message: "나중에 설정에서 변경할 수 있습니다.",
+    yes: "예",
+    no: "아니요"
   },
   categories: {
     hangout: "모임",
@@ -252,6 +262,10 @@ export const ko = {
     unknownRateLimit: "속도 제한. 나중에 다시 시도하세요.",
     upcomingCountRefresh: "새로고침",
     createButton: "이벤트 생성",
+    create: {
+      warnConflicts: "충돌하는 이벤트에 대해 경고",
+      alreadyCreating: "이벤트를 생성 중입니다. 잠시 기다려 주세요..."
+    },
     created: "이벤트가 생성되었습니다.",
     failed: "이벤트를 만들 수 없습니다.",
     selectGroupError: "그룹을 선택하세요.",
@@ -460,10 +474,9 @@ export const ko = {
   },
   conflict: {
     title: "이벤트 충돌",
-    message: "이벤트 \"{title}\"이(가) 이미 이 시간에 예약되어 있습니다.",
-    skipSession: "이 세션에서 다시 묻지 않기",
-    changeTime: "다른 시간 선택",
-    continue: "그래도 생성"
+    message: "이벤트 \"{title}\"이(가) 이미 이 시간에 예정되어 있습니다.",
+    changeTime: "시간 다시 선택",
+    continue: "그대로 생성"
   }
 };
 

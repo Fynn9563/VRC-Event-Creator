@@ -145,8 +145,18 @@ export const fr = {
       disclaimerLabel: "Avertissement :",
       disclaimerText: "Cette application est non officielle et n'est pas affiliée à VRChat. Utilisez-la à vos risques et périls. Les développeurs ne sont pas responsables des problèmes découlant de l'utilisation de cet outil."
     },
+    general: {
+      title: "Général",
+      minimizeToTray: "Réduire dans la barre d'état système"
+    },
     saveButton: "Enregistrer les paramètres",
     saved: "Paramètres enregistrés."
+  },
+  trayPrompt: {
+    title: "Réduire dans la barre d'état système ?",
+    message: "Vous pouvez modifier cela plus tard dans les paramètres.",
+    yes: "Oui",
+    no: "Non"
   },
   categories: {
     hangout: "Détente",
@@ -255,6 +265,10 @@ export const fr = {
     unknownRateLimit: "Limite de débit. Réessayez plus tard.",
     upcomingCountRefresh: "Rafraîchir",
     createButton: "Créer l'événement",
+    create: {
+      warnConflicts: "M'avertir des événements en conflit",
+      alreadyCreating: "Création d'un événement en cours, veuillez patienter..."
+    },
     created: "Événement créé.",
     failed: "Impossible de créer l'événement.",
     selectGroupError: "Sélectionnez un groupe.",
@@ -464,8 +478,7 @@ export const fr = {
   conflict: {
     title: "Conflit d'événement",
     message: "Un événement \"{title}\" est déjà programmé à cette heure.",
-    skipSession: "Ne plus demander pour cette session",
-    changeTime: "Choisir une autre heure",
+    changeTime: "Resélectionner l'heure",
     continue: "Créer quand même"
   }
 };

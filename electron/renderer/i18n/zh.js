@@ -145,8 +145,18 @@ export const zh = {
       disclaimerLabel: "免责声明：",
       disclaimerText: "本应用为非官方工具，与 VRChat 无关。使用风险自负。开发者不对使用本工具引发的问题负责。"
     },
+    general: {
+      title: "常规",
+      minimizeToTray: "最小化到系统托盘"
+    },
     saveButton: "保存设置",
     saved: "设置已保存。"
+  },
+  trayPrompt: {
+    title: "最小化到系统托盘？",
+    message: "您可以稍后在设置中更改此选项。",
+    yes: "是",
+    no: "否"
   },
   categories: {
     hangout: "闲聊",
@@ -255,6 +265,10 @@ export const zh = {
     unknownRateLimit: "速率限制。请稍后重试。",
     upcomingCountRefresh: "刷新",
     createButton: "创建活动",
+    create: {
+      warnConflicts: "警告冲突的活动",
+      alreadyCreating: "正在创建活动，请稍候..."
+    },
     created: "活动已创建。",
     failed: "无法创建活动。",
     selectGroupError: "请选择群组。",
@@ -463,9 +477,8 @@ export const zh = {
   },
   conflict: {
     title: "活动冲突",
-    message: "活动「{title}」已在此时间安排。",
-    skipSession: "在此会话中不再询问",
-    changeTime: "选择其他时间",
+    message: "活动"{title}"已在此时间安排。",
+    changeTime: "重新选择时间",
     continue: "仍然创建"
   }
 };

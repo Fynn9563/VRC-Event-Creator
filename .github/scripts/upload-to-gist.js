@@ -4,8 +4,39 @@ const fs = require('fs');
 const GIST_ID = process.env.GIST_ID || null; // Set after first run
 const GIST_TOKEN = process.env.GIST_TOKEN;
 
+// Validates that the content is a safe SVG badge before uploading
+function validateBadgeContent(content) {
+  if (typeof content !== 'string') {
+    throw new Error('Badge content must be a string');
+  }
+
+  // Ensure it's an SVG file
+  if (!content.trim().startsWith('<svg')) {
+    throw new Error('Content must be a valid SVG file');
+  }
+
+  // Ensure it contains download count data (expected format)
+  if (!content.includes('Downloads') && !content.includes('downloads')) {
+    throw new Error('Content must be a downloads badge SVG');
+  }
+
+  // Size check - badge should be small (< 10KB)
+  if (content.length > 10000) {
+    throw new Error('Badge content exceeds safe size limit');
+  }
+
+  return true;
+}
+
 function updateGist(gistId, content) {
   return new Promise((resolve, reject) => {
+    // Validate content before sending to remote server
+    try {
+      validateBadgeContent(content);
+    } catch (err) {
+      return reject(new Error(`Badge validation failed: ${err.message}`));
+    }
+
     const data = JSON.stringify({
       files: {
         'downloads-badge.svg': {
