@@ -624,13 +624,13 @@ import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLoc
         if (updateInfo.downloaded && api.installUpdate) {
           // Update is downloaded, restart to install
           api.installUpdate();
+        } else if (updateInfo.downloading) {
+          // Already downloading, just show status
+          showToast(t("common.updateDownloading") || "Downloading update...");
         } else {
-          // Update is still downloading, check again and show status
-          await checkForUpdates();
-          if (updateInfo.downloaded && api.installUpdate) {
-            api.installUpdate();
-          } else {
-            showToast(t("common.updateDownloading") || "Downloading update...");
+          // Start download when user clicks update pill
+          if (api.downloadUpdate) {
+            await api.downloadUpdate();
           }
         }
       });

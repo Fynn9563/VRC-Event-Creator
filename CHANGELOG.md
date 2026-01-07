@@ -2,6 +2,12 @@
 
 All notable changes to VRChat Event Creator will be documented in this file.
 
+## [0.9.21] - 2026-01-06
+
+### Changed
+- Installer now shows setup wizard with directory selection instead of silent auto-install
+- Auto-updates no longer download automatically; user must click update pill to start download
+
 ## [0.9.20] - 2026-01-06
 
 ### Fixed

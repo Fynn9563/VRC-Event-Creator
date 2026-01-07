@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld("vrcEvent", {
   uploadGalleryImage: () => ipcRenderer.invoke("files:uploadGallery"),
   getAppInfo: () => ipcRenderer.invoke("app:info"),
   checkForUpdate: () => ipcRenderer.invoke("app:checkUpdate"),
+  downloadUpdate: () => ipcRenderer.invoke("app:downloadUpdate"),
   installUpdate: () => ipcRenderer.invoke("app:installUpdate"),
   onUpdateReady: callback => {
     ipcRenderer.on("update-ready", (_, data) => callback(data));

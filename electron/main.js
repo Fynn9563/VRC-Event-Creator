@@ -174,7 +174,7 @@ const UPDATE_REPO_NAME = pkg.build?.publish?.repo || "VRC-Event-Creator";
 const UPDATE_REPO_URL = `https://github.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}`;
 
 // Auto-updater configuration
-autoUpdater.autoDownload = true;
+autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
 // Track update state
@@ -1105,6 +1105,15 @@ ipcMain.handle("app:checkUpdate", async () => {
       latestVersion: null,
       repoUrl: UPDATE_REPO_URL
     };
+  }
+});
+
+ipcMain.handle("app:downloadUpdate", async () => {
+  try {
+    await autoUpdater.downloadUpdate();
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
   }
 });
 
