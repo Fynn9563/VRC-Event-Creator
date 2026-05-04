@@ -18,6 +18,8 @@ const galleryCacheModule = require("./core/gallery-cache");
 const themeStoreModule = require("./core/theme-store");
 const eckit = require("./core/eckit");
 const { normalizeSettings } = require("./core/normalize-settings");
+const { sanitizeFilename, pathIsWithin } = require("./core/filename-sanitizer");
+const { validateEventImport, validateProfileImport } = require("./core/import-validator");
 
 const STABLE_USERDATA_NAME = "VRCEventCreator";
 const STABLE_USERDATA_PATH = path.join(app.getPath("appData"), STABLE_USERDATA_NAME);
@@ -399,9 +401,9 @@ function generateIcsForEvent(groupId, profileKey, eventData, startsAtUtc, endsAt
   });
 
   // Build filename: "Event Name - [YYYY-MM-DD].ics"
-  const safeTitle = (eventData.title || "event").replace(/[^a-zA-Z0-9_ -]/g, "").trim().slice(0, 50);
+  const safeTitle = sanitizeFilename(eventData.title || "event", { fallback: "event", maxLength: 50 });
   const dateTag = new Date(startsAtUtc).toISOString().slice(0, 10);
-  const filename = `${safeTitle} - ${dateTag}.ics`;
+  const filename = sanitizeFilename(`${safeTitle} - ${dateTag}`, { extension: ".ics", maxLength: 80 });
 
   return { icsContent, filename };
 }
@@ -593,10 +595,15 @@ function tryIcsAutoSave(groupId, profileKey, eventData, startsAtUtc, endsAtUtc) 
   }
   try {
     // Save into group subfolder: {saveDir}/{GroupName}/{filename}
-    const safeGroupName = (groupData.groupName || "Unknown Group").replace(/[^a-zA-Z0-9_ -]/g, "").trim() || "Group";
+    const safeGroupName = sanitizeFilename(groupData.groupName || "Unknown Group", { fallback: "Group", maxLength: 80 });
     const groupDir = path.join(settings.calendarSaveDir, safeGroupName);
     fs.mkdirSync(groupDir, { recursive: true });
     const savePath = path.join(groupDir, filename);
+    // Belt-and-suspenders: refuse to write outside the configured save dir
+    if (!pathIsWithin(settings.calendarSaveDir, savePath)) {
+      debugLog("calendar", "ICS auto-save blocked: path escape attempt", savePath);
+      return;
+    }
     fs.writeFileSync(savePath, icsContent, "utf8");
     debugLog("calendar", "ICS auto-saved:", savePath);
     if (mainWindow) {
@@ -723,8 +730,8 @@ function trySeriesAnnouncements(groupId, seriesData, startsAtUtc, endsAtUtc, ann
       reminders: [],
       rrule
     });
-    const safeTitle = (tpl.title || label).replace(/[^a-zA-Z0-9_ -]/g, "").trim().slice(0, 50);
-    icsFilename = `${safeTitle} - Series.ics`;
+    const safeTitle = sanitizeFilename(tpl.title || label, { fallback: "Series", maxLength: 50 });
+    icsFilename = sanitizeFilename(`${safeTitle} - Series`, { extension: ".ics", maxLength: 80 });
 
     // Auto-save the .ics to disk
     try {
@@ -733,10 +740,15 @@ function trySeriesAnnouncements(groupId, seriesData, startsAtUtc, endsAtUtc, ann
         settings.calendarSaveDir = path.join(docsDir, "VRC Event Creator .ics");
         saveSettings(settings);
       }
-      const safeGroupName = (groupData.groupName || "Unknown Group").replace(/[^a-zA-Z0-9_ -]/g, "").trim() || "Group";
+      const safeGroupName = sanitizeFilename(groupData.groupName || "Unknown Group", { fallback: "Group", maxLength: 80 });
       const groupDir = path.join(settings.calendarSaveDir, safeGroupName);
       fs.mkdirSync(groupDir, { recursive: true });
       const savePath = path.join(groupDir, icsFilename);
+      // Belt-and-suspenders: refuse to write outside the configured save dir
+      if (!pathIsWithin(settings.calendarSaveDir, savePath)) {
+        debugLog("series", "Series ICS save blocked: path escape attempt", savePath);
+        return;
+      }
       fs.writeFileSync(savePath, icsContent, "utf8");
       debugLog("series", "Series ICS saved:", savePath);
       if (mainWindow) {
@@ -1278,6 +1290,13 @@ function createWindow(options = {}) {
       nodeIntegration: false,
       devTools: IS_DEV
     }
+  });
+
+  // Defense in depth: refuse any window-open requests from the renderer.
+  // The app doesn't open new windows; if a future change needs to, this
+  // hook is the right place to allow-list specific URLs.
+  mainWindow.webContents.setWindowOpenHandler(() => {
+    return { action: "deny" };
   });
 
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
@@ -1870,11 +1889,30 @@ ipcMain.handle("app:installUpdate", () => {
   autoUpdater.quitAndInstall(true, true);
 });
 
-ipcMain.handle("app:openExternal", (_, url) => {
-  if (!url || typeof url !== "string") {
+// Allowed URL schemes for shell.openExternal. Anything else (especially
+// file:, javascript:, data:, plus arbitrary custom schemes that could
+// trigger OS handlers) is refused. File-path inputs (calendar save dir
+// "Open" button) get routed to shell.openPath instead, which is the
+// proper API for that and doesn't honor URL schemes at all.
+const ALLOWED_OPEN_EXTERNAL_SCHEMES = /^(https?|mailto):/i;
+
+ipcMain.handle("app:openExternal", (_, target) => {
+  if (!target || typeof target !== "string") {
     return false;
   }
-  shell.openExternal(url);
+  // If it parses as a URL with an explicit scheme, the scheme must be allow-listed
+  if (/^[a-z][a-z0-9+.-]*:/i.test(target)) {
+    if (!ALLOWED_OPEN_EXTERNAL_SCHEMES.test(target)) {
+      const scheme = target.slice(0, target.indexOf(":")).toLowerCase();
+      debugLog("security", "Blocked openExternal with scheme:", scheme);
+      return false;
+    }
+    shell.openExternal(target);
+    return true;
+  }
+  // No scheme → treat as a local path and route to the appropriate API.
+  // shell.openPath returns "" on success, error string on failure.
+  shell.openPath(target);
   return true;
 });
 
@@ -2014,7 +2052,7 @@ ipcMain.handle("calendar:generateAndSave", async (_, { eventData, startsAtUtc, e
     sequence: 0,
     reminders: (eventData.calendarRemindersEnabled && Array.isArray(eventData.calendarReminders)) ? eventData.calendarReminders : []
   });
-  const safeTitle = (eventData.title || "event").replace(/[^a-zA-Z0-9_ -]/g, "").trim().slice(0, 50);
+  const safeTitle = sanitizeFilename(eventData.title || "event", { fallback: "event", maxLength: 50 });
   const dateTag = new Date(startsAtUtc).toISOString().slice(0, 10);
   if (!mainWindow) return { ok: false, error: "No window." };
   const result = await dialog.showSaveDialog(mainWindow, {
@@ -2146,10 +2184,14 @@ ipcMain.handle("events:importJson", async () => {
   } catch (err) {
     return { ok: false, error: { code: "FILE_INVALID", message: "Could not parse JSON file." } };
   }
-  if (!raw || typeof raw !== "object") {
-    return { ok: false, error: { code: "FILE_INVALID", message: "Invalid JSON structure." } };
+  // Schema-validate the imported event: drops unknown fields, type-coerces
+  // each known field, rejects __proto__/constructor/prototype attacks.
+  const validated = validateEventImport(raw);
+  if (!validated.ok) {
+    debugLog("import", "Event import rejected:", validated.error);
+    return { ok: false, error: { code: "FILE_INVALID", message: validated.error } };
   }
-  return { ok: true, data: raw };
+  return { ok: true, data: validated.data };
 });
 
 ipcMain.handle("events:exportJson", async (_, data) => {
@@ -2191,10 +2233,15 @@ ipcMain.handle("profiles:importJson", async () => {
   } catch (err) {
     return { ok: false, error: { code: "FILE_INVALID", message: "Could not parse JSON file." } };
   }
-  if (!raw || typeof raw !== "object") {
-    return { ok: false, error: { code: "FILE_INVALID", message: "Invalid JSON structure." } };
+  // Schema-validate the imported profile: drops unknown fields, type-coerces
+  // each known field, rejects __proto__/constructor/prototype attacks,
+  // and strips dangerous keys nested inside automation.
+  const validated = validateProfileImport(raw);
+  if (!validated.ok) {
+    debugLog("import", "Profile import rejected:", validated.error);
+    return { ok: false, error: { code: "FILE_INVALID", message: validated.error } };
   }
-  return { ok: true, data: raw };
+  return { ok: true, data: validated.data };
 });
 
 ipcMain.handle("profiles:exportJson", async (_, data) => {
