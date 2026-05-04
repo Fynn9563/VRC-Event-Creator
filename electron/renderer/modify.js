@@ -545,7 +545,7 @@ function getMergedEvents() {
     return !slotKey || !realSlots.has(slotKey);
   });
 
-  const pendingEvents = state.modify.showPending
+  const pendingEvents = state.modify.filters?.pending
     ? state.modify.pendingEvents
       .filter(p => !state.modify.optimisticEvents.has(p.id))
       .map(p => ({
@@ -556,6 +556,78 @@ function getMergedEvents() {
     : [];
 
   return [...realEvents, ...filteredOptimistic, ...pendingEvents].sort((a, b) => a.sortTime - b.sortTime);
+}
+
+/** Reset all session-scoped Modify Events filters to their default (everything visible).
+ *  Called on group change and tab navigation. Time range is NOT reset (it's persisted). */
+export function resetModifyFilters() {
+  state.modify.filters = {
+    pending: true,
+    standalone: true,
+    modified: true,
+    series: {}
+  };
+  // Sync UI checkboxes
+  if (dom.modifyFilterPending) dom.modifyFilterPending.checked = true;
+  if (dom.modifyFilterStandalone) dom.modifyFilterStandalone.checked = true;
+  if (dom.modifyFilterModified) dom.modifyFilterModified.checked = true;
+  // Hide the panel (collapsed state on reset)
+  if (dom.modifyFiltersPanel) dom.modifyFiltersPanel.classList.add("is-hidden");
+  // Clear and hide the per-series checkbox group
+  if (dom.modifyFilterSeriesGroup) dom.modifyFilterSeriesGroup.classList.add("is-hidden");
+  if (dom.modifyFilterSeriesList) dom.modifyFilterSeriesList.innerHTML = "";
+  // Keep state.modify.showPending in sync for legacy code paths
+  state.modify.showPending = true;
+}
+
+function populateSeriesFilterOptions(groupId, events) {
+  if (!dom.modifyFilterSeriesGroup || !dom.modifyFilterSeriesList) return;
+  // Collect unique seriesIds present in current events
+  const seriesIds = new Set();
+  (events || []).forEach(event => {
+    if (event.seriesId) seriesIds.add(event.seriesId);
+  });
+  // Hide the series filter group entirely if there are no series occurrences
+  if (seriesIds.size === 0) {
+    dom.modifyFilterSeriesGroup.classList.add("is-hidden");
+    return;
+  }
+  dom.modifyFilterSeriesGroup.classList.remove("is-hidden");
+
+  const seriesMap = state.series?.[groupId] || {};
+  // Initialize filter state for any new seriesIds (default visible)
+  if (!state.modify.filters.series) state.modify.filters.series = {};
+  seriesIds.forEach(sid => {
+    if (state.modify.filters.series[sid] === undefined) {
+      state.modify.filters.series[sid] = true;
+    }
+  });
+  // Drop entries for series no longer present
+  Object.keys(state.modify.filters.series).forEach(sid => {
+    if (!seriesIds.has(sid)) delete state.modify.filters.series[sid];
+  });
+
+  // Rebuild the checkbox list
+  dom.modifyFilterSeriesList.innerHTML = "";
+  Array.from(seriesIds).sort().forEach(seriesId => {
+    const label = seriesMap[seriesId]?.label
+      || `${t("common.labels.series") || "Series"} (${seriesId.slice(0, 8)})`;
+    const wrapper = document.createElement("label");
+    wrapper.className = "toggle";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.seriesId = seriesId;
+    input.checked = state.modify.filters.series[seriesId] !== false;
+    input.addEventListener("change", () => {
+      state.modify.filters.series[seriesId] = input.checked;
+      renderModifyEventGrid();
+    });
+    const span = document.createElement("span");
+    span.textContent = label;
+    wrapper.appendChild(input);
+    wrapper.appendChild(span);
+    dom.modifyFilterSeriesList.appendChild(wrapper);
+  });
 }
 
 function renderModifyEventGrid() {
@@ -571,7 +643,36 @@ function renderModifyEventGrid() {
     return;
   }
 
-  const mergedEvents = getMergedEvents();
+  const allMergedEvents = getMergedEvents();
+  const filters = state.modify.filters || {};
+  const seriesFilter = filters.series || {};
+  // Time range cutoff: only events starting within timeRangeDays from now
+  const rangeDays = Number.isFinite(state.modify.timeRangeDays) ? state.modify.timeRangeDays : 30;
+  const cutoffMs = Date.now() + rangeDays * 24 * 60 * 60 * 1000;
+
+  let hiddenByRange = 0;
+  const mergedEvents = allMergedEvents.filter(event => {
+    // Time range
+    const startMs = event.sortTime || (event.startsAtUtc ? Date.parse(event.startsAtUtc) : null);
+    if (startMs && startMs > cutoffMs) {
+      hiddenByRange++;
+      return false;
+    }
+    // Pending toggle (also captured by getMergedEvents but kept here for clarity)
+    if (event.isPending && filters.pending === false) return false;
+    // Series occurrence: hide if its series is unchecked
+    if (event.seriesId) {
+      if (seriesFilter[event.seriesId] === false) return false;
+      // Modified occurrences: filter only if filter is unchecked
+      if (event.occurrenceModified && filters.modified === false) return false;
+      return true;
+    }
+    // Standalone (non-pending, non-series)
+    if (!event.isPending && filters.standalone === false) return false;
+    return true;
+  });
+  // Stash the count of events hidden by the range filter so the count line can mention it
+  state.modify._hiddenByRange = hiddenByRange;
 
   if (!mergedEvents.length) {
     const empty = document.createElement("div");
@@ -632,6 +733,25 @@ function renderPublishedCard(event) {
   title.className = "event-title";
   title.textContent = event.title || t("modify.untitled");
 
+  // Series and modified badges
+  const badgeRow = document.createElement("div");
+  badgeRow.className = "event-badge-row";
+  if (event.seriesId) {
+    const seriesData = state.series?.[event.groupId]?.[event.seriesId];
+    const label = seriesData?.label || t("common.labels.series") || "Series";
+    const seriesBadge = document.createElement("span");
+    seriesBadge.className = "event-series-badge";
+    seriesBadge.textContent = `↻ ${label}`;
+    seriesBadge.title = label;
+    badgeRow.appendChild(seriesBadge);
+  }
+  if (event.occurrenceModified) {
+    const modBadge = document.createElement("span");
+    modBadge.className = "event-modified-badge";
+    modBadge.textContent = t("modify.badge.modified") || "Modified";
+    badgeRow.appendChild(modBadge);
+  }
+
   const date = document.createElement("div");
   date.className = "event-date";
   // Published events: show local time, on hover show with timezone code
@@ -663,6 +783,9 @@ function renderPublishedCard(event) {
   card.appendChild(deleteBtn);
   card.appendChild(thumb);
   card.appendChild(title);
+  if (badgeRow.children.length > 0) {
+    card.appendChild(badgeRow);
+  }
   card.appendChild(date);
   card.addEventListener("click", () => openModifyModal(event));
   card.addEventListener("keydown", evt => {
@@ -982,11 +1105,11 @@ async function handlePendingSave() {
   });
 
   if (!title) {
-    showToast(t("modify.requiredSingle", { field: t("common.fields.eventName") }), true);
+    showToast(t("common.errors.requiredSingle", { field: t("common.fields.eventName") }), true);
     return;
   }
   if (!description) {
-    showToast(t("modify.requiredSingle", { field: t("common.fields.description") }), true);
+    showToast(t("common.errors.requiredSingle", { field: t("common.fields.description") }), true);
     return;
   }
 
@@ -995,7 +1118,7 @@ async function handlePendingSave() {
     durationMinutes = normalizeDurationInput(dom.modifyEventDuration, 120);
   }
   if (!durationMinutes || durationMinutes < 1) {
-    showToast(t("modify.durationError"), true);
+    showToast(t("common.errors.durationError"), true);
     return;
   }
 
@@ -1069,7 +1192,7 @@ function renderModifyProfileOptions(groupId) {
   const profiles = state.profiles[groupId]?.profiles || {};
   const profileKeys = Object.keys(profiles);
   const options = [
-    { label: t("modify.profileSelect"), value: "" },
+    { label: t("common.selectTemplate"), value: "" },
     ...profileKeys.map(key => ({
       label: getProfileLabel(key, profiles[key]),
       value: `${groupId}::${key}`
@@ -1506,11 +1629,11 @@ async function handleModifySave() {
   });
   dom.modifyEventDescription.value = description;
   if (!title) {
-    showToast(t("modify.requiredSingle", { field: t("common.fields.eventName") }), true);
+    showToast(t("common.errors.requiredSingle", { field: t("common.fields.eventName") }), true);
     return;
   }
   if (!description) {
-    showToast(t("modify.requiredSingle", { field: t("common.fields.description") }), true);
+    showToast(t("common.errors.requiredSingle", { field: t("common.fields.description") }), true);
     return;
   }
   const manualDate = dom.modifyEventDate.value;
@@ -1534,11 +1657,11 @@ async function handleModifySave() {
     durationMinutes = normalizeDurationInput(dom.modifyEventDuration, 120);
   }
   if (!durationMinutes || durationMinutes < 1) {
-    showToast(t("modify.durationError"), true);
+    showToast(t("common.errors.durationError"), true);
     return;
   }
   if (state.modify.languages.length > 3) {
-    showToast(t("modify.maxLanguages"), true);
+    showToast(t("common.errors.maxLanguages"), true);
     return;
   }
   state.modify.saving = true;
@@ -1721,6 +1844,9 @@ async function performRefresh(api, options = {}) {
 
     state.modify.events = filteredEvents;
 
+    // Populate the series filter dropdown based on series visible in current events
+    populateSeriesFilterOptions(groupId, filteredEvents);
+
     // Process pending events with resolved details
     const pendingEvents = pendingResult?.events || [];
 
@@ -1799,17 +1925,58 @@ export function initModifyEvents(api) {
   }
 
   dom.modifyRefresh.addEventListener("click", () => { void handleRefreshClick(); });
-  dom.modifyGroup.addEventListener("change", () => {
+  dom.modifyGroup.addEventListener("change", async () => {
     // Clear backoff and tombstones when switching groups
     clearRefreshBackoff();
     state.modify.deletedTombstones.clear();
     state.modify.lastRefreshTime = 0;
     state.modify.optimisticEvents.clear();
+    // Reset filters when changing groups (filters are scoped per session per group)
+    resetModifyFilters();
+    // Load series metadata for the new group so badge labels appear correctly
+    const newGroupId = dom.modifyGroup.value;
+    if (newGroupId && modifyApi?.seriesList) {
+      try {
+        state.series[newGroupId] = await modifyApi.seriesList({ groupId: newGroupId });
+      } catch (err) { /* ignore */ }
+    }
     void refreshModifyEvents(modifyApi);
   });
-  if (dom.modifyShowPending) {
-    dom.modifyShowPending.addEventListener("change", () => {
-      state.modify.showPending = dom.modifyShowPending.checked;
+  // Time range dropdown — persists across restarts via settings
+  if (dom.modifyTimeRange) {
+    dom.modifyTimeRange.addEventListener("change", () => {
+      const days = parseInt(dom.modifyTimeRange.value, 10);
+      state.modify.timeRangeDays = Number.isFinite(days) ? days : 90;
+      // Persist to settings so the choice survives restart
+      if (modifyApi?.updateSettings) {
+        modifyApi.updateSettings({ modifyTimeRangeDays: state.modify.timeRangeDays }).catch(() => {});
+      }
+      renderModifyEventGrid();
+    });
+  }
+  // Filters button toggles the panel
+  if (dom.modifyFiltersBtn && dom.modifyFiltersPanel) {
+    dom.modifyFiltersBtn.addEventListener("click", () => {
+      dom.modifyFiltersPanel.classList.toggle("is-hidden");
+    });
+  }
+  // Filter checkboxes
+  if (dom.modifyFilterPending) {
+    dom.modifyFilterPending.addEventListener("change", () => {
+      state.modify.filters.pending = dom.modifyFilterPending.checked;
+      state.modify.showPending = dom.modifyFilterPending.checked; // keep legacy in sync
+      renderModifyEventGrid();
+    });
+  }
+  if (dom.modifyFilterStandalone) {
+    dom.modifyFilterStandalone.addEventListener("change", () => {
+      state.modify.filters.standalone = dom.modifyFilterStandalone.checked;
+      renderModifyEventGrid();
+    });
+  }
+  if (dom.modifyFilterModified) {
+    dom.modifyFilterModified.addEventListener("change", () => {
+      state.modify.filters.modified = dom.modifyFilterModified.checked;
       renderModifyEventGrid();
     });
   }

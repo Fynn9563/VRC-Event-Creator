@@ -2934,3 +2934,380 @@ input[type="color"]::-moz-color-swatch {
 :lang(ja) *, :lang(zh) *, :lang(ko) * {
   text-transform: none !important;
 }
+
+/* --- Schedules tab additions (templates + native series) --- */
+
+.schedule-filter-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.schedule-filter-chips .chip {
+  padding: 4px 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: var(--text-12);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.schedule-filter-chips .chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.schedule-filter-chips .chip.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 24px;
+  max-width: 540px;
+  width: 100%;
+  color: var(--text);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.modal h3 {
+  margin: 0 0 8px 0;
+  font-size: var(--text-16);
+  color: var(--text);
+}
+
+.modal .hint {
+  margin-bottom: 16px;
+  color: var(--text-muted);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* Step 3 Schedule header card with type toggle */
+.schedule-header-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.schedule-header-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.schedule-header-row > div:first-child {
+  min-width: 0; /* allow text to wrap inside the first column */
+}
+
+.schedule-header-row h3 {
+  margin: 0;
+}
+
+.schedule-header-row .hint {
+  margin-top: 4px;
+}
+
+@media (max-width: 600px) {
+  .schedule-header-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.schedule-type-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 3px;
+  background: var(--bg-deep);
+  flex-shrink: 0;
+  position: relative;
+  justify-self: start;
+  width: max-content;
+}
+
+.schedule-toggle-btn {
+  padding: 6px 18px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--text-12);
+  letter-spacing: 1px;
+  transition: all 0.18s ease;
+  font-weight: 500;
+}
+
+.schedule-toggle-btn:hover:not(.is-active):not(:disabled) {
+  color: var(--text);
+}
+
+.schedule-toggle-btn.is-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  font-weight: 700;
+}
+
+.schedule-toggle-btn.is-locked {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.schedule-toggle-btn.is-locked:not(.is-active) {
+  display: none;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.link-button:hover {
+  color: var(--text);
+}
+
+.schedule-mode-info {
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: var(--font-ui);
+}
+
+.schedule-mode-info h4 {
+  margin: 8px 0 4px;
+  font-size: var(--text-13);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.schedule-mode-info h4:first-child {
+  margin-top: 0;
+}
+
+.schedule-mode-info ul {
+  margin: 0;
+  padding-left: 20px;
+  font-size: var(--text-12);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.schedule-mode-info li {
+  margin-bottom: 4px;
+}
+
+.hint.info {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+/* Series editor layout */
+.series-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.series-dow-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.series-end-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.series-end-select {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.series-end-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Discord field overrides (CSP-compliant — replaces inline styles) */
+.discord-field-fixed {
+  flex: 0 0 auto;
+}
+.eckit-embed-color-hex {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Locked recurrence fields (after series start) — visible but read-only */
+#schedule-mode-series input:disabled,
+#schedule-mode-series select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.hint.warning {
+  background: rgba(255, 190, 70, 0.10);
+  border-left: 3px solid rgb(255, 190, 70);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.series-locked-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.series-locked-hint > p {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.series-locked-actions {
+  flex: 0 0 auto;
+}
+
+.rasterize-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+.rasterize-status > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.series-end-row input[type="number"],
+.series-end-row input[type="date"] {
+  width: 140px;
+}
+
+.series-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* Modify Events filters panel */
+.modify-filters-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.modify-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+
+.modify-filter-group h4 {
+  margin: 0 0 4px;
+  font-size: var(--text-12);
+  letter-spacing: 1px;
+  color: var(--text-muted);
+}
+
+.modify-filter-group .toggle {
+  font-size: var(--text-13);
+}
+
+#modify-filter-series-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Series occurrence badges in Modify Events */
+.event-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.event-series-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-size: var(--text-11);
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+}
+
+.event-modified-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  font-size: var(--text-11);
+  background: var(--bg-deep);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}

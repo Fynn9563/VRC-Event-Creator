@@ -4,8 +4,8 @@ export const de = {
   nav: {
     create: "Event erstellen",
     modify: "Events bearbeiten",
-    profiles: "Vorlagen verwalten",
-    settings: "Einstellungen"
+    settings: "Einstellungen",
+    schedules: "Zeitpläne verwalten"
   },
   auth: {
     title: "Anmelden",
@@ -18,10 +18,8 @@ export const de = {
     loggingIn: "Anmeldung...",
     loginFailed: "Anmeldung fehlgeschlagen.",
     sessionChecking: "Sitzung wird überprüft...",
-    sessionCheckFailed: "Sitzungsprüfung fehlgeschlagen.",
     loginRequired: "Anmeldung erforderlich.",
     loggedInAs: "Angemeldet als {name}.",
-    logoutFailed: "Abmeldung fehlgeschlagen.",
     loggedOut: "Abgemeldet."
   },
   twoFactor: {
@@ -55,19 +53,9 @@ export const de = {
     loadFailed: "Galerie konnte nicht geladen werden."
   },
   settings: {
-    title: "Einstellungen",
     theme: {
       title: "Thema",
       description: "Passen Sie das Erscheinungsbild der Anwendung an. Wählen Sie ein Preset oder passen Sie manuell an.",
-      label: "Farbthema",
-      default: "Standard (Türkis/Grün)",
-      blue: "Ozeanblau",
-      purple: "Violetter Dunst",
-      amber: "Altimit-Amber",
-      red: "Karmesinrot",
-      custom: "Benutzerdefinierte Farben",
-      accentColor: "Akzentfarbe",
-      bgColor: "Hintergrundfarbe",
       presetLabel: "Aktuelles Theme",
       nameLabel: "Theme-Name",
       namePlaceholder: "Neuer Theme-Name",
@@ -149,10 +137,8 @@ export const de = {
       autoUploadImages: "Galeriebilder aus importierten Events/Vorlagen automatisch hochladen"
     },
     discord: {
-      title: "Discord-Integration",
       enable: "Discord-Integration aktivieren",
       description: "Erstellt automatisch Discord-Events, wenn VRChat-Events erstellt werden.",
-      profileHint: "Events aus dieser Vorlage werden auch auf Discord gepostet.",
       tokenLabel: "Bot-Token",
       tokenPlaceholder: "Bot-Token einfügen",
       guildLabel: "Server-ID",
@@ -161,11 +147,9 @@ export const de = {
       testSuccess: "Verbunden als {botName}",
       testFailed: "Verbindung fehlgeschlagen. Überprüfe den Bot-Token.",
       tokenMissing: "Bitte zuerst einen Bot-Token eingeben.",
-      groupLabel: "Gruppe",
       selectGroup: "Gruppe auswählen...",
       saveButton: "Speichern",
       saved: "Discord-Einstellungen gespeichert.",
-      syncLabel: "An Discord senden",
       eventLabel: "Discord-Event erstellen",
       syncSuccess: "Discord-Event erstellt für \"{title}\"",
       syncFailed: "Discord-Synchronisierung fehlgeschlagen für \"{title}\": {error}"
@@ -177,23 +161,15 @@ export const de = {
       syncFailed: "Webhook-Zustellung fehlgeschlagen für \"{title}\": {error}"
     },
     calendar: {
-      title: "Kalender-Integration",
-      description: "Erstellt .ics-Kalenderdateien mit Erinnerungen, lokal gespeichert oder an Webhook-Posts angehängt.",
       enable: "Kalenderdatei-Erstellung aktivieren",
       createInvite: ".ics-Kalendereinladung erstellen",
-      remindersTitle: ".ics-Kalendererinnerungen",
       enableReminders: ".ics-Kalendererinnerungen aktivieren",
-      remindersDescription: "Konfiguriere Standard-Erinnerungen in .ics-Dateien.",
       addReminder: "Erinnerung hinzufügen",
-      postToDiscord: ".ics an Discord senden",
       unit: {
         minutes: "Minuten",
         hours: "Stunden",
         days: "Tage"
       },
-      syncLabel: ".ics-Datei anhängen",
-      syncSuccess: "Kalenderdatei gesendet für \"{title}\"",
-      syncFailed: "Kalenderdatei-Zustellung fehlgeschlagen für \"{title}\": {error}",
       webhookLabel: "Webhook URL",
       webhookPlaceholder: "https://discord.com/api/webhooks/...",
       webhookTestButton: "Webhook testen",
@@ -202,7 +178,8 @@ export const de = {
       webhookMissing: "Gib zuerst eine Webhook-URL ein.",
       remindersHint: "Einige Kalender-Apps verwenden möglicherweise nur die erste Erinnerung.",
       saveDirLabel: "Kalender-Speicherverzeichnis",
-      autoSaved: "Kalenderdatei gespeichert: {filePath}"
+      autoSaved: "Kalenderdatei gespeichert: {filePath}",
+      inviteTitle: "Kalendereinladung"
     },
     eckit: {
       importButton: "Kit importieren",
@@ -219,7 +196,10 @@ export const de = {
       selectImage: "Auswählen"
     },
     saveButton: "Einstellungen speichern",
-    saved: "Einstellungen gespeichert."
+    saved: "Einstellungen gespeichert.",
+    featuredVerification: {
+      permissionDenied: "Diese Gruppe ist nicht berechtigt, hervorgehobene Events zu erstellen."
+    }
   },
   demo: {
     controls: {
@@ -255,7 +235,6 @@ export const de = {
     ios: "iOS"
   },
   events: {
-    title: "Event erstellen",
     steps: {
       group: "Gruppe",
       date: "Datum",
@@ -273,17 +252,15 @@ export const de = {
       groupRequired: "Gruppe (erforderlich)",
       profileOptional: "Vorlage (optional)",
       advanced: "Erweitert",
-      importJson: "Aus JSON importieren",
-      dateSource: "Verwenden",
-      dateSourcePattern: "Muster",
-      dateSourceManual: "Manuell",
       patternDates: "Musterdaten",
       manualDate: "Manuelles Datum",
-      manualTime: "Manuelle Uhrzeit"
+      manualTime: "Manuelle Uhrzeit",
+      dateSourceManual: "Manuell",
+      dateSource: "Verwenden",
+      dateSourcePattern: "Muster"
     },
     hints: {
       profileDefaults: "Wähle eine Vorlage für Standardwerte oder lass es leer, um manuell zu erstellen.",
-      importJson: "Eventdetails aus einer JSON-Datei importieren."
     },
     dateHints: {
       default: "Der manuelle Modus ist bereit. Vorlagen mit Mustern schalten Datumsoptionen frei.",
@@ -295,19 +272,12 @@ export const de = {
     },
     profileHint: "Vorlagen sind optional. Verwenden Sie eine für Standardwerte oder erstellen Sie alles manuell.",
     loadProfile: "Vorlage laden (optional)",
-    loadProfilePlaceholder: "Vorlage auswählen",
     clearProfile: "Vorlage leeren",
-    importJsonButton: "JSON importieren",
     importSuccess: "Eventdaten aus JSON importiert.",
     importWrongType: "Dies scheint ein Vorlagen-JSON zu sein. Bitte stattdessen Vorlage importieren verwenden.",
-    exportJsonButton: "JSON exportieren",
     exportSuccess: "Eventdaten nach JSON exportiert.",
-    dateSource: "Datum und Uhrzeit",
-    dateSourceManual: "Manuell",
-    dateSourcePattern: "Aus Vorlagenmuster",
     dateOption: "Datum auswählen",
     patternDateLabel: "{label} - {date}",
-    access: "Zugriff",
     roleRestrictions: {
       title: "Rollenbeschränkungen",
       hint: "Optional - Wenn aktiviert, dürfen nur die ausgewählten Gruppenrollen beitreten.",
@@ -337,20 +307,13 @@ export const de = {
     },
     created: "Event erstellt.",
     failed: "Event konnte nicht erstellt werden.",
-    selectGroupError: "Gruppe auswählen.",
     selectDateError: "Datum auswählen.",
     updateRequired: "Update verfügbar. Bitte aktualisieren, bevor du Events erstellst.",
-    requiredSingle: "{field} ist erforderlich.",
-    requiredMultiple: "{fields} sind erforderlich.",
-    noDateOptionsError: "Keine Datumsoptionen aus der Vorlage verfügbar.",
     featuredPermissionRevoked: "Diese Gruppe hat keine Berechtigung mehr, hervorgehobene Events zu erstellen.",
     groupFairPermissionRevoked: "Diese Gruppe hat keine Berechtigung mehr, Events in die Gruppenmesse aufzunehmen."
   },
   modify: {
-    title: "Events bearbeiten",
     subtitle: "Bevorstehende Gruppenevents bearbeiten oder löschen.",
-    groupLabel: "Gruppe",
-    showPending: "Ausstehende anzeigen",
     countEmpty: "Kommende Events nicht verfügbar.",
     countGroupFallback: "Diese Gruppe",
     countStatus: "Kommende Events für {group}: {count}.",
@@ -359,8 +322,6 @@ export const de = {
     eventImage: "Eventbild",
     noImage: "Kein Bild",
     untitled: "Unbenanntes Event",
-    profileLabel: "Vorlage laden (optional)",
-    profileSelect: "Vorlage auswählen",
     profileLoad: "Laden",
     profileSelectError: "Vorlage zum Laden auswählen.",
     profileLoadFailed: "Vorlagen-Standardwerte konnten nicht geladen werden.",
@@ -373,10 +334,7 @@ export const de = {
     },
     updateRequired: "Update verfügbar. Bitte aktualisieren, bevor du Events bearbeitest.",
     selectEventError: "Event zum Bearbeiten auswählen.",
-    requiredSingle: "{field} ist erforderlich.",
     selectDateError: "Datum und Uhrzeit auswählen.",
-    durationError: "Dauer muss eine positive Zahl sein.",
-    maxLanguages: "Maximal 3 Sprachen erlaubt.",
     saveFailed: "Event konnte nicht aktualisiert werden.",
     saved: "Event aktualisiert.",
     deleteFailed: "Event konnte nicht gelöscht werden.",
@@ -401,11 +359,28 @@ export const de = {
       editSaved: "Geplantes Event aktualisiert.",
       editFailed: "Geplantes Event konnte nicht aktualisiert werden."
     },
-    postingOptions: "Veröffentlichungsoptionen"
+    postingOptions: "Veröffentlichungsoptionen",
+    badge: {
+      modified: "Geändert"
+    },
+    filters: {
+      heading: "Anzeigen",
+      modified: "Geänderte Vorkommen",
+      pending: "Ausstehende Events",
+      standalone: "Eigenständige Events"
+    },
+    filtersButton: "Filter",
+    timeRange: {
+      "1month": "1 Monat",
+      "1week": "1 Woche",
+      "1year": "1 Jahr",
+      "2weeks": "2 Wochen",
+      "3months": "3 Monate",
+      "6months": "6 Monate",
+      label: "Zeitraum"
+    }
   },
   profiles: {
-    title: "Vorlagen verwalten",
-    subtitle: "Erstellen Sie wiederverwendbare Vorlagen pro Gruppe.",
     steps: {
       select: "Auswahl",
       basics: "Grundlagen",
@@ -413,35 +388,24 @@ export const de = {
       audience: "Publikum"
     },
     section: {
-      selection: "Vorlagen-Auswahl",
       basics: "Vorlagen-Grundlagen",
-      schedule: "Zeitplan",
       audience: "Publikum"
     },
     labels: {
-      group: "Gruppe",
-      profile: "Vorlage"
     },
     buttons: {
       new: "Neu"
     },
-    importJsonButton: "JSON importieren",
     importSuccess: "Vorlagendaten aus JSON importiert.",
     importWrongType: "Dies scheint ein Event-JSON zu sein. Bitte stattdessen Event importieren verwenden.",
-    exportJsonButton: "JSON exportieren",
     exportSuccess: "Vorlagendaten nach JSON exportiert.",
     hints: {
       groupAccess: "Wähle eine Gruppe mit Kalenderzugriff.",
       patternsInfo: "Muster werden verwendet, um kommende Termine vorab zu erzeugen."
     },
-    existingProfile: "Vorhandene Vorlage",
     existingProfilePlaceholder: "Vorlage auswählen",
-    noProfiles: "Keine Vorlagen für diese Gruppe",
-    newButton: "Neue Vorlage",
-    saveButton: "Vorlage speichern",
     displayName: "Vorlagenname",
     displayNamePlaceholder: "Community-Hangout-Vorlage",
-    access: "Zugriff",
     durationDefault: "Standarddauer (DD:HH:MM)",
     dateMode: "Datumsmodus",
     dateModePattern: "Musterbasiert",
@@ -449,7 +413,6 @@ export const de = {
     dateModeBoth: "Muster + manuell",
     sendNotificationDefault: "Benachrichtigung standardmäßig senden",
     patterns: {
-      title: "Wiederkehrende Muster",
       addButton: "Muster hinzufügen",
       clearButton: "Muster löschen",
       noPatterns: "Noch keine Muster.",
@@ -496,13 +459,7 @@ export const de = {
         after: "Nach Ende des vorherigen Ereignisses",
         monthly: "Monatlich an einem bestimmten Tag"
       },
-      offsetHint: "Wie lange vor/nach dem Ereignis veröffentlichen:",
-      days: "Tage",
-      hours: "Stunden",
-      minutes: "Minuten",
-      monthlyHint: "Ereignisse an diesem Tag jeden Monat veröffentlichen:",
       monthlyDay: "Tag des Monats",
-      monthlyDayHint: "Tage 29-31 nutzen den letzten Tag kürzerer Monate",
       monthlyTime: "Uhrzeit",
       repeatMode: "Wiederholen",
       repeatModes: {
@@ -510,7 +467,6 @@ export const de = {
         count: "Feste Anzahl"
       },
       repeatCount: "Ereignisse erstellen",
-      disclaimer: "Die Automatisierung erfordert, dass die App läuft. Verpasste Automatisierungen können auf der Registerkarte \"Ereignisse ändern\" verwaltet werden.",
       patternsRequired: "Mindestens ein Muster ist für die Automatisierung erforderlich",
       confirmTitle: "Automatisierung aktivieren?",
       confirmEnable: "Die Automatisierung erfordert, dass die App läuft, um Ereignisse zu veröffentlichen. Verpasste Automatisierungen können auf der Registerkarte \"Ereignisse ändern\" verwaltet werden.",
@@ -530,11 +486,6 @@ export const de = {
         monthly: "Jeden Monat am {day}. um {time}"
       },
       helpers: {
-        offsetDays: "Legen Sie fest, wie viele Tage vor/nach dem Ereignis veröffentlicht wird",
-        offsetHours: "Legen Sie fest, wie viele Stunden vor/nach dem Ereignis veröffentlicht wird",
-        offsetMinutes: "Legen Sie fest, wie viele Minuten vor/nach dem Ereignis veröffentlicht wird",
-        monthlyDay: "Tage 29-31 nutzen den letzten Tag kürzerer Monate",
-        monthlyTime: "Legen Sie fest, zu welcher Uhrzeit Ereignisse jeden Monat veröffentlicht werden"
       },
       offsetProse: "Das nächste Ereignis 7 Tage vor seinem Beginn veröffentlichen.",
       monthlyProse: "Jeden Monat am 1. um 18:00 Uhr",
@@ -549,14 +500,6 @@ export const de = {
     updated: "Vorlage aktualisiert.",
     deleted: "Vorlage gelöscht.",
     confirmDelete: "Vorlage \"{name}\" löschen?",
-    selectGroupError: "Gruppe auswählen.",
-    selectGroupFirst: "Wählen Sie zuerst eine Gruppe aus.",
-    selectProfileError: "Vorlage zum Bearbeiten auswählen.",
-    maxLanguages: "Maximal 3 Sprachen erlaubt.",
-    durationError: "Die Dauer muss eine positive Zahl sein.",
-    required: "{fields} {verb} erforderlich.",
-    requiredSingle: "{field} ist erforderlich.",
-    requiredMultiple: "{fields} sind erforderlich."
   },
   common: {
     syncing: "Daten werden synchronisiert...",
@@ -581,7 +524,6 @@ export const de = {
     groupFairEvent: "In Gruppenmesse einbeziehen",
     noMatches: "Keine Treffer.",
     noGroupsAccess: "Keine Gruppen mit Kalenderzugriff",
-    selectGroup: "Gruppe auswählen",
     selectGroupPlaceholder: "Eine Gruppe auswählen",
     accessTypes: {
       public: "Öffentlich",
@@ -630,9 +572,26 @@ export const de = {
       languagesHint: "{count} ausgewählt",
       filterLanguages: "Sprachen filtern...",
       platforms: "Plattformen",
-      manualDate: "Datum",
-      manualTime: "Uhrzeit"
-    }
+    },
+    errors: {
+      durationError: "Dauer muss eine positive Zahl sein.",
+      maxLanguages: "Maximal 3 Sprachen erlaubt.",
+      noGroup: "Gruppe auswählen.",
+      requiredMultiple: "{fields} sind erforderlich.",
+      requiredSingle: "{field} ist erforderlich."
+    },
+    exportJson: "JSON exportieren",
+    importJson: "JSON importieren",
+    labels: {
+      group: "Gruppe",
+      schedule: "Zeitplan",
+      series: "Serie",
+      templates: "Vorlagen"
+    },
+    section: {
+      scheduleSelection: "Zeitplan-Auswahl"
+    },
+    selectTemplate: "Vorlage auswählen"
   },
   wizard: {
     back: "Zurück",
@@ -643,5 +602,133 @@ export const de = {
     message: "Ein Ereignis \"{title}\" ist bereits zu dieser Zeit geplant.",
     changeTime: "Zeit erneut wählen",
     continue: "Trotzdem erstellen"
+  },
+  schedules: {
+    announcements: {
+      hint: "Wähle die Aktionen aus, die bei der Veröffentlichung eines Events durch diese Vorlage ausgeführt werden.",
+      hintSeries: "Wähle die Aktionen aus, die beim Erstellen oder Ändern dieser Serie ausgeführt werden.",
+      title: "Ankündigungen"
+    },
+    empty: {
+      all: "Keine Zeitpläne für diese Gruppe.",
+      series: "Keine Serien für diese Gruppe.",
+      templates: "Keine Vorlagen für diese Gruppe."
+    },
+    filter: {
+      all: "Alle",
+      label: "Anzeigen"
+    },
+    info: {
+      series: {
+        bullet1: "VRChat generiert alle Wiederholungen serverseitig aus einer Wiederholungsregel.",
+        bullet2: "Einrichten und vergessen — nach der Erstellung wird die App nicht mehr benötigt.",
+        bullet3: "Einschränkungen: Keine Ankündigungen pro Event; die Wiederholungsregel kann nicht geändert werden, ohne alle Wiederholungen neu zu generieren (Änderungen gehen verloren).",
+        bullet4: "Ideal für stabile, wiederkehrende Events, die keine Ankündigungen benötigen.",
+        title: "Serien"
+      },
+      template: {
+        bullet1: "Jedes Event wird als eigenständiger Kalendereintrag veröffentlicht — pro Wiederholung anpassbar.",
+        bullet2: "Optional kannst du jedes Event über geplante Discord-Events, Webhooks und .ics-Kalendereinladungen ankündigen.",
+        bullet3: "Kombiniere mit der Automatisierung und musterbasierten Planung für unbeaufsichtigte Veröffentlichung.",
+        bullet4: "Setzt voraus, dass die App für die automatische Veröffentlichung läuft.",
+        title: "Vorlagen"
+      }
+    },
+    modeBlurb: {
+      moreInfo: "(mehr Infos)",
+      series: "Eine Serie ist VRChats nativer Wiederholungsplaner. Der Server generiert alle Wiederholungen vorab. Keine Ankündigungen.",
+      template: "Vorlagen füllen wiederkehrende Events automatisch aus und veröffentlichen jede Wiederholung einzeln mit optionalen Ankündigungen."
+    },
+    saveButton: {
+      seriesCreate: "Serie erstellen",
+      template: "Vorlage speichern"
+    },
+    subtitle: "Vorlagen für ankündigungsgesteuerte Planung und native VRChat-Serien.",
+    types: {
+      templateButton: "Vorlage"
+    }
+  },
+  series: {
+    confirmDelete: "„{label}\" löschen? Dadurch werden die Serie und alle ihre Wiederholungen aus VRChat entfernt.",
+    confirmDeleteTitle: "Serie löschen?",
+    created: "Serie „{label}\" erstellt.",
+    days: {
+      fr: "Fr",
+      mo: "Mo",
+      sa: "Sa",
+      su: "So",
+      th: "Do",
+      tu: "Di",
+      we: "Mi"
+    },
+    deleted: "Serie „{label}\" gelöscht.",
+    disclaimer: "Eine Serie kann nur vor Beginn ihrer ersten Wiederholung umgeplant werden. Nach dem Start musst du sie löschen, um Datum oder Uhrzeit zu ändern. Events können bis zu einem Jahr im Voraus geplant werden. Die maximale Eventdauer beträgt 31 Tage.",
+    end: {
+      afterDateLabel: "An einem bestimmten Datum",
+      afterOccurrencesLabel: "Nach N Wiederholungen",
+      never: "Nie",
+      occurrencesLabel: "Wiederholungen"
+    },
+    errors: {
+      createFailed: "Serie konnte nicht erstellt werden.",
+      deleteFailed: "Serie konnte nicht gelöscht werden.",
+      noDaysOfWeek: "Wähle mindestens einen Wochentag.",
+      noEndDate: "Lege ein Enddatum fest.",
+      noLabel: "Serien-Bezeichnung ist erforderlich.",
+      noSeries: "Keine Serie ausgewählt.",
+      noStartDate: "Datum und Uhrzeit der ersten Wiederholung sind erforderlich.",
+      noTitle: "Eventname ist erforderlich.",
+      notFound: "Serie nicht gefunden.",
+      regenFailed: "Serie konnte nicht neu generiert werden.",
+      startInPast: "Die erste Wiederholung muss in der Zukunft liegen. Aktualisiere das Datum vor dem Speichern.",
+      updateFailed: "Serie konnte nicht aktualisiert werden."
+    },
+    frequency: {
+      custom: "Benutzerdefiniert",
+      daily: "Täglich",
+      monthly: "Monatlich",
+      weekdays: "Wochentags",
+      weekends: "Wochenenden",
+      weekly: "Wöchentlich",
+      yearly: "Jährlich"
+    },
+    labels: {
+      daysOfWeek: "Wiederholt am",
+      endCondition: "Endet",
+      frequency: "Häufigkeit",
+      interval: "Wiederholen alle",
+      startDate: "Datum der ersten Wiederholung",
+      startTime: "Startzeit"
+    },
+    lockedHint: "Diese Serie hat bereits begonnen. Datum, Uhrzeit und Wiederholungsregel sind gesperrt — du kannst aber noch festlegen, wann sie endet. Zum Umplanen auf Entsperren klicken — beim Speichern wird die Serie durch eine neue ersetzt.",
+    rasterize: {
+      retryIn: "Nächster Versuch in {wait}.",
+      retryNow: "Jetzt erneut versuchen",
+      statusText: "{count} ausstehende(s) Event(s) wartet auf Erstellung.{wait}"
+    },
+    regen: {
+      choiceMessage: "Diese Serie hat {count} geänderte Event(s). Die aktuelle Serie wird durch eine neue ersetzt.\n\n• Änderungen behalten: Überschneidungen am selben Tag aktualisieren die neue Serie; Events ohne Überschneidung werden eigenständig.\n• Änderungen verwerfen: Änderungen an diesen Wiederholungen gehen verloren.",
+      choiceTitle: "Serie ersetzen?",
+      confirmAction: "Serie ersetzen",
+      confirmMessage: "Dadurch wird die aktuelle Serie durch eine neue ersetzt. Fortfahren?",
+      discard: "Änderungen verwerfen",
+      keep: "Änderungen behalten",
+      success: "Serie „{label}\" ersetzt.",
+      successWithMods: "Serie „{label}\" ersetzt. {count} Änderung(en) in der Warteschlange."
+    },
+    regenWarning: "Die Wiederholung ist entsperrt. Wenn du die Wiederholung änderst, wird die aktuelle Serie durch eine neue ersetzt.",
+    regenWarningWithMods: "Die Wiederholung ist entsperrt. Wenn du die Wiederholung änderst, wird die aktuelle Serie durch eine neue ersetzt und du wirst gefragt, wie mit ihren {count} geänderten Events umgegangen werden soll.",
+    unit: {
+      days: "Tage",
+      months: "Monate",
+      weeks: "Wochen",
+      years: "Jahre"
+    },
+    unlockButton: "Entsperren",
+    updateRequired: "Update verfügbar. Bitte vor dem Ändern von Serien aktualisieren.",
+    updated: "Serie „{label}\" aktualisiert.",
+    warnings: {
+      confirmUpdate: "Serie aktualisieren"
+    }
   }
 };

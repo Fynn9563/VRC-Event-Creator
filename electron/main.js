@@ -12,6 +12,7 @@ const automationEngine = require("./core/automation-engine");
 const discord = require("./core/discord");
 const ics = require("./core/ics");
 const webhook = require("./core/webhook");
+const { recurrenceToRRule } = require("./core/rrule");
 const debugModule = require("./core/debug-log");
 const galleryCacheModule = require("./core/gallery-cache");
 const themeStoreModule = require("./core/theme-store");
@@ -116,6 +117,8 @@ const AUTOSTART_ARG = "--autostart";
 // These will be initialized after app is ready
 let DATA_DIR;
 let PROFILES_PATH;
+let SERIES_PATH;
+let RASTERIZE_PATH;
 let CACHE_PATH;
 let SETTINGS_PATH;
 let PENDING_EVENTS_PATH;
@@ -146,6 +149,8 @@ function resolveDataDir() {
 function initializePaths() {
   DATA_DIR = resolveDataDir();
   PROFILES_PATH = path.join(DATA_DIR, "profiles.json");
+  SERIES_PATH = path.join(DATA_DIR, "series.json");
+  RASTERIZE_PATH = path.join(DATA_DIR, "pending-rasterize.json");
   CACHE_PATH = path.join(DATA_DIR, "cache.json");
   SETTINGS_PATH = path.join(DATA_DIR, "settings.json");
   PENDING_EVENTS_PATH = path.join(DATA_DIR, "pending-events.json");
@@ -193,6 +198,7 @@ function normalizeCalendarReminders(raw) {
 
 function normalizeSettings(raw) {
   // Only preserve the specific settings fields we define - ignore any other fields
+  const validRanges = [7, 14, 30, 90, 180, 365];
   if (!raw || typeof raw !== "object") {
     return {
       warnConflicts: false,
@@ -205,7 +211,8 @@ function normalizeSettings(raw) {
       discordEnabled: false,
       calendarEnabled: false,
       calendarSaveDir: "",
-      calendarReminders: [{ value: 30, unit: "minutes" }]
+      calendarReminders: [{ value: 30, unit: "minutes" }],
+      modifyTimeRangeDays: 90
     };
   }
   return {
@@ -219,7 +226,8 @@ function normalizeSettings(raw) {
     discordEnabled: typeof raw.discordEnabled === "boolean" ? raw.discordEnabled : false,
     calendarEnabled: typeof raw.calendarEnabled === "boolean" ? raw.calendarEnabled : false,
     calendarSaveDir: typeof raw.calendarSaveDir === "string" ? raw.calendarSaveDir : "",
-    calendarReminders: normalizeCalendarReminders(raw.calendarReminders)
+    calendarReminders: normalizeCalendarReminders(raw.calendarReminders),
+    modifyTimeRangeDays: validRanges.includes(raw.modifyTimeRangeDays) ? raw.modifyTimeRangeDays : 90
   };
 }
 
@@ -650,6 +658,218 @@ function tryIcsAutoSave(groupId, profileKey, eventData, startsAtUtc, endsAtUtc) 
   }
 }
 
+/**
+ * Format a recurrence object as a human-readable string for announcement messages.
+ * E.g. "Weekly on Wednesdays, ends after 10 occurrences"
+ */
+function recurrenceToHumanString(recurrence) {
+  if (!recurrence) return "";
+  const dayNames = { MO: "Mon", TU: "Tue", WE: "Wed", TH: "Thu", FR: "Fri", SA: "Sat", SU: "Sun" };
+  const interval = recurrence.interval || 1;
+  const freq = recurrence.frequency || "weekly";
+  const freqLabel = {
+    daily: interval === 1 ? "Daily" : `Every ${interval} days`,
+    weekly: interval === 1 ? "Weekly" : `Every ${interval} weeks`,
+    monthly: interval === 1 ? "Monthly" : `Every ${interval} months`,
+    yearly: interval === 1 ? "Yearly" : `Every ${interval} years`
+  }[freq] || freq;
+  const parts = [freqLabel];
+  if (Array.isArray(recurrence.daysOfWeek) && recurrence.daysOfWeek.length) {
+    const days = recurrence.daysOfWeek.map(d => dayNames[d] || d).join(", ");
+    parts.push(`on ${days}`);
+  }
+  if (recurrence.end) {
+    if (recurrence.end.type === "afterOccurrences") {
+      parts.push(`for ${recurrence.end.count} occurrences`);
+    } else if (recurrence.end.type === "afterDate") {
+      parts.push(`until ${(recurrence.end.date || "").slice(0, 10)}`);
+    }
+  }
+  return parts.join(" ");
+}
+
+/**
+ * Run announcement actions for a series creation/update.
+ * - Generates a single .ics with RRULE if calendarCreate is enabled
+ * - Posts a webhook announcement (with optional .ics attachment) if webhookPost is enabled
+ * Discord recurring event creation is deferred (more complex API surface).
+ *
+ * @param {string} groupId
+ * @param {object} seriesData - { seriesId, label, recurrence, eventTemplate, ... }
+ * @param {string} startsAtUtc - first occurrence start
+ * @param {string} endsAtUtc - first occurrence end
+ * @param {object} announcementFlags - { calendarCreate, webhookPost, customMessage }
+ * @param {string} verb - "created" | "updated"
+ */
+function trySeriesAnnouncements(groupId, seriesData, startsAtUtc, endsAtUtc, announcementFlags, verb) {
+  const groupData = profiles[groupId];
+  if (!groupData) return;
+  const { calendarCreate, discordSync, webhookPost, customMessage } = announcementFlags || {};
+
+  const tpl = seriesData.eventTemplate || {};
+  const label = seriesData.label || tpl.title || "Series";
+  const humanRule = recurrenceToHumanString(seriesData.recurrence);
+
+  // Create a recurring Discord scheduled event mirroring the VRChat recurrence
+  if (discordSync && settings.discordEnabled && verb === "created") {
+    const botToken = decryptToken(groupData.discordBotToken);
+    const guildId = groupData.discordGuildId;
+    if (botToken && guildId) {
+      (async () => {
+        try {
+          const imageBase64 = tpl.imageId
+            ? await getImageBase64ForDiscord(tpl.imageId).catch(() => null)
+            : null;
+          const result = await discord.createDiscordScheduledEvent({
+            botToken,
+            guildId,
+            name: tpl.title || label,
+            description: tpl.description || "",
+            startTime: startsAtUtc,
+            endTime: endsAtUtc,
+            imageBase64,
+            recurrence: seriesData.recurrence
+          });
+          if (!result.ok) {
+            debugLog("series", "Discord recurring event failed:", result.error);
+            if (mainWindow) {
+              mainWindow.webContents.send("discord:syncFailed", {
+                eventTitle: label,
+                error: result.error
+              });
+            }
+          } else {
+            debugLog("series", "Discord recurring event created:", result.eventId);
+            if (mainWindow) {
+              mainWindow.webContents.send("discord:syncSuccess", {
+                eventTitle: label
+              });
+            }
+          }
+        } catch (err) {
+          debugLog("series", "Discord recurring event error:", err.message);
+        }
+      })();
+    }
+  }
+
+  // Generate ICS with RRULE if calendar is enabled
+  let icsContent = null;
+  let icsFilename = null;
+  if (calendarCreate && settings.calendarEnabled) {
+    const rrule = recurrenceToRRule(seriesData.recurrence);
+    const startMs = new Date(startsAtUtc).getTime();
+    const uid = `${groupId}-series-${seriesData.seriesId}-${startMs}@vrceventcreator`;
+    icsContent = ics.generateIcsString({
+      title: tpl.title || label,
+      description: tpl.description || "",
+      startTime: startsAtUtc,
+      endTime: endsAtUtc,
+      location: "VRChat",
+      uid,
+      sequence: 0,
+      reminders: [],
+      rrule
+    });
+    const safeTitle = (tpl.title || label).replace(/[^a-zA-Z0-9_ -]/g, "").trim().slice(0, 50);
+    icsFilename = `${safeTitle} - Series.ics`;
+
+    // Auto-save the .ics to disk
+    try {
+      if (!settings.calendarSaveDir) {
+        const docsDir = app.getPath("documents");
+        settings.calendarSaveDir = path.join(docsDir, "VRC Event Creator .ics");
+        saveSettings(settings);
+      }
+      const safeGroupName = (groupData.groupName || "Unknown Group").replace(/[^a-zA-Z0-9_ -]/g, "").trim() || "Group";
+      const groupDir = path.join(settings.calendarSaveDir, safeGroupName);
+      fs.mkdirSync(groupDir, { recursive: true });
+      const savePath = path.join(groupDir, icsFilename);
+      fs.writeFileSync(savePath, icsContent, "utf8");
+      debugLog("series", "Series ICS saved:", savePath);
+      if (mainWindow) {
+        mainWindow.webContents.send("calendar:autoSaved", {
+          eventTitle: `${label} (series)`,
+          filePath: savePath
+        });
+      }
+    } catch (err) {
+      debugLog("series", "Series ICS save failed:", err.message);
+    }
+  }
+
+  // Post webhook announcement if enabled
+  if (webhookPost) {
+    const webhookUrl = decryptToken(groupData.webhookUrl);
+    if (!webhookUrl) return;
+
+    const defaultAvatarUrl = `https://raw.githubusercontent.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}/main/electron/app.png`;
+    const hasGroupKit = eckit.hasKit(groupId);
+    const kitAvatarUrl = hasGroupKit && groupData.webhookAvatarUrl ? groupData.webhookAvatarUrl : defaultAvatarUrl;
+    const kitWebhookName = hasGroupKit && groupData.webhookDisplayName ? groupData.webhookDisplayName : undefined;
+
+    const startUnix = Math.floor(new Date(startsAtUtc).getTime() / 1000);
+    const endUnix = Math.floor(new Date(endsAtUtc).getTime() / 1000);
+    const embedColor = hasGroupKit && groupData.webhookEmbedColor
+      ? parseInt(groupData.webhookEmbedColor.replace("#", ""), 16) || 0x1FC3AD
+      : 0x1FC3AD;
+
+    const titlePrefix = verb === "updated" ? "Updated:" : "New:";
+    const embed = {
+      title: `${titlePrefix} ${tpl.title || label}`,
+      description: truncateText(tpl.description || "", 300),
+      color: embedColor,
+      fields: [
+        { name: "🔁", value: humanRule || "Recurring", inline: false },
+        { name: "📆", value: `<t:${startUnix}:D>`, inline: true },
+        { name: "🕐", value: `<t:${startUnix}:t> — <t:${endUnix}:t>`, inline: true },
+        { name: "👥", value: groupData.groupName || "VRChat Group", inline: true }
+      ]
+    };
+
+    // Resolve event image + group icon
+    const customImagePath = hasGroupKit && customMessage?.imagePath ? customMessage.imagePath : "";
+    const customImagePromise = customImagePath
+      ? fs.promises.readFile(customImagePath).catch(() => null)
+      : Promise.resolve(null);
+    const imagePromise = customImagePath
+      ? customImagePromise
+      : (tpl.imageId ? getImageBufferForWebhook(tpl.imageId).catch(() => null) : Promise.resolve(null));
+    const iconId = groupData.groupIconId || groupIconCache.get(groupId) || "";
+    const iconPromise = iconId
+      ? getImageBufferForWebhook(iconId).catch(() => null)
+      : Promise.resolve(null);
+
+    const userMessage = hasGroupKit && customMessage?.text ? customMessage.text : "";
+
+    Promise.all([imagePromise, iconPromise]).then(([imageBuffer, iconBuffer]) => {
+      if (imageBuffer) embed.image = { url: "attachment://banner.png" };
+      if (iconBuffer) embed.thumbnail = { url: "attachment://icon.png" };
+      return webhook.sendWebhook({
+        webhookUrl,
+        icsContent,
+        filename: icsFilename,
+        content: userMessage || undefined,
+        embed,
+        imageBuffer,
+        imageFilename: imageBuffer ? "banner.png" : null,
+        iconBuffer,
+        iconFilename: iconBuffer ? "icon.png" : null,
+        avatarUrl: kitAvatarUrl,
+        webhookName: kitWebhookName
+      });
+    }).then(result => {
+      if (!result?.ok) {
+        debugLog("series", "Series webhook failed:", result?.error);
+      } else {
+        debugLog("series", `Series webhook sent (${verb}):`, label);
+      }
+    }).catch(err => {
+      debugLog("series", "Series webhook error:", err.message);
+    });
+  }
+}
+
 function maybeImportProfiles() {
   if (fs.existsSync(PROFILES_PATH)) {
     return;
@@ -751,6 +971,190 @@ function loadProfiles() {
 function saveProfiles(nextProfiles) {
   profiles = normalizeProfiles(nextProfiles);
   fs.writeFileSync(PROFILES_PATH, JSON.stringify(profiles, null, 2));
+}
+
+// Series storage — local metadata for VRChat native recurring series
+let series = {};
+
+function normalizeRecurrence(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const validFreq = ["daily", "weekly", "monthly", "yearly"];
+  const frequency = validFreq.includes(raw.frequency) ? raw.frequency : "weekly";
+  const interval = Number.isFinite(raw.interval) && raw.interval >= 1 ? Math.floor(raw.interval) : 1;
+  const timezone = typeof raw.timezone === "string" && raw.timezone ? raw.timezone : "UTC";
+  const validDays = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+  const daysOfWeek = Array.isArray(raw.daysOfWeek)
+    ? raw.daysOfWeek.filter(d => validDays.includes(d))
+    : [];
+  let end = null;
+  if (raw.end && typeof raw.end === "object") {
+    if (raw.end.type === "afterOccurrences" && Number.isFinite(raw.end.count) && raw.end.count >= 1) {
+      end = { type: "afterOccurrences", count: Math.floor(raw.end.count) };
+    } else if (raw.end.type === "afterDate" && typeof raw.end.date === "string") {
+      end = { type: "afterDate", date: raw.end.date };
+    }
+  }
+  const out = { frequency, interval, timezone };
+  if (daysOfWeek.length) out.daysOfWeek = daysOfWeek;
+  if (end) out.end = end;
+  return out;
+}
+
+function normalizeSeriesEventTemplate(raw) {
+  if (!raw || typeof raw !== "object") raw = {};
+  return {
+    title: typeof raw.title === "string" ? raw.title : "",
+    description: typeof raw.description === "string" ? raw.description : "",
+    category: typeof raw.category === "string" ? raw.category : "hangout",
+    duration: Number.isFinite(raw.duration) && raw.duration > 0 ? Math.floor(raw.duration) : 120,
+    accessType: ["public", "group"].includes(raw.accessType) ? raw.accessType : "public",
+    languages: Array.isArray(raw.languages) ? raw.languages.filter(s => typeof s === "string") : [],
+    platforms: Array.isArray(raw.platforms) ? raw.platforms.filter(s => typeof s === "string") : [],
+    tags: Array.isArray(raw.tags) ? raw.tags.filter(s => typeof s === "string") : [],
+    imageId: typeof raw.imageId === "string" ? raw.imageId : null,
+    roleIds: Array.isArray(raw.roleIds) ? raw.roleIds.filter(s => typeof s === "string") : [],
+    sendCreationNotification: Boolean(raw.sendCreationNotification)
+  };
+}
+
+function normalizeSeries(raw) {
+  if (!raw || typeof raw !== "object") return {};
+  const output = {};
+  Object.entries(raw).forEach(([groupId, groupSeries]) => {
+    if (!groupId || typeof groupSeries !== "object") return;
+    output[groupId] = {};
+    Object.entries(groupSeries).forEach(([seriesId, entry]) => {
+      if (!seriesId || !entry || typeof entry !== "object") return;
+      const recurrence = normalizeRecurrence(entry.recurrence);
+      if (!recurrence) return;
+      output[groupId][seriesId] = {
+        label: typeof entry.label === "string" ? entry.label : "Untitled Series",
+        groupId,
+        seriesId,
+        createdAt: typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString(),
+        lastSyncedAt: typeof entry.lastSyncedAt === "string" ? entry.lastSyncedAt : null,
+        firstOccurrenceUtc: typeof entry.firstOccurrenceUtc === "string" ? entry.firstOccurrenceUtc : null,
+        firstOccurrenceEndUtc: typeof entry.firstOccurrenceEndUtc === "string" ? entry.firstOccurrenceEndUtc : null,
+        recurrence,
+        eventTemplate: normalizeSeriesEventTemplate(entry.eventTemplate)
+      };
+    });
+  });
+  return output;
+}
+
+function loadSeries() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(SERIES_PATH, "utf8"));
+    return normalizeSeries(raw);
+  } catch (err) {
+    return {};
+  }
+}
+
+function saveSeries(nextSeries) {
+  series = normalizeSeries(nextSeries);
+  fs.writeFileSync(SERIES_PATH, JSON.stringify(series, null, 2));
+}
+
+// ----------------------------------------------------------------------------
+// Rasterize queue — persistent queue of post-regeneration work that needs to
+// happen against VRChat's API. Modifications captured before deleting an old
+// series are saved here so they survive crashes and rate-limit cooldowns.
+// Entries are drained on app start and again every hour by drainRasterizeQueue.
+// ----------------------------------------------------------------------------
+let rasterizeQueue = [];
+let rasterizeDraining = false;
+
+// Strip series-only fields from a standalone create body and ensure the
+// fields createGroupCalendarEvent expects are present. Pre-fix entries
+// queued before we knew the right shape get repaired on load.
+// Returns { cleaned, migrated } so the caller can reset retry state when the
+// shape was actually wrong (so the user doesn't keep waiting on a dead backoff).
+function normalizeStandaloneBody(payload) {
+  if (!payload || typeof payload !== "object") return { cleaned: payload, migrated: false };
+  const hadStaleFields = ("seriesId" in payload) || ("parentId" in payload)
+    || ("occurrenceKind" in payload) || ("recurrence" in payload)
+    || payload.isDraft === undefined || payload.sendCreationNotification === undefined;
+  const cleaned = { ...payload };
+  delete cleaned.seriesId;
+  delete cleaned.parentId;
+  delete cleaned.occurrenceKind;
+  delete cleaned.recurrence;
+  if (cleaned.isDraft === undefined) cleaned.isDraft = false;
+  if (cleaned.sendCreationNotification === undefined) cleaned.sendCreationNotification = false;
+  if (cleaned.featured === undefined) cleaned.featured = false;
+  return { cleaned, migrated: hadStaleFields };
+}
+
+function normalizeRasterizeEntry(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  if (!raw.groupId || typeof raw.groupId !== "string") return null;
+  const validTypes = ["standalone", "occurrenceUpdate"];
+  if (!validTypes.includes(raw.type)) return null;
+  if (!raw.payload || typeof raw.payload !== "object") return null;
+  const id = typeof raw.id === "string" && raw.id ? raw.id : `rast_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  let payload = raw.payload;
+  let bodyMigrated = false;
+  if (raw.type === "standalone") {
+    const result = normalizeStandaloneBody(raw.payload);
+    payload = result.cleaned;
+    bodyMigrated = result.migrated;
+  }
+  return {
+    id,
+    groupId: raw.groupId,
+    type: raw.type,
+    payload,
+    createdAt: typeof raw.createdAt === "string" ? raw.createdAt : new Date().toISOString(),
+    // If we migrated the body shape, the prior backoff is meaningless — clear
+    // retry state so the next drain pass actually attempts the entry.
+    attemptCount: bodyMigrated ? 0 : (Number.isFinite(raw.attemptCount) && raw.attemptCount >= 0 ? Math.floor(raw.attemptCount) : 0),
+    nextRetryAt: bodyMigrated ? null : (typeof raw.nextRetryAt === "string" ? raw.nextRetryAt : null),
+    lastError: bodyMigrated ? null : (raw.lastError && typeof raw.lastError === "object"
+      ? { status: raw.lastError.status || null, message: typeof raw.lastError.message === "string" ? raw.lastError.message : "" }
+      : null),
+    sourceSeriesLabel: typeof raw.sourceSeriesLabel === "string" ? raw.sourceSeriesLabel : "",
+    sourceSeriesId: typeof raw.sourceSeriesId === "string" ? raw.sourceSeriesId : ""
+  };
+}
+
+function normalizeRasterizeQueue(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(normalizeRasterizeEntry).filter(Boolean);
+}
+
+function loadRasterizeQueue() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(RASTERIZE_PATH, "utf8"));
+    return normalizeRasterizeQueue(raw);
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveRasterizeQueue() {
+  try {
+    fs.writeFileSync(RASTERIZE_PATH, JSON.stringify(rasterizeQueue, null, 2));
+  } catch (err) {
+    debugLog("rasterize", "Failed to save queue:", err.message);
+  }
+}
+
+function enqueueRasterizeEntry(entry) {
+  const normalized = normalizeRasterizeEntry(entry);
+  if (!normalized) return null;
+  rasterizeQueue.push(normalized);
+  saveRasterizeQueue();
+  return normalized;
+}
+
+function removeRasterizeEntry(id) {
+  const idx = rasterizeQueue.findIndex(e => e.id === id);
+  if (idx >= 0) {
+    rasterizeQueue.splice(idx, 1);
+    saveRasterizeQueue();
+  }
 }
 
 function createClient() {
@@ -947,6 +1351,8 @@ function createWindow(options = {}) {
   });
 
   if (IS_DEV) {
+    // Auto-open dev tools on startup (temporary for series API test harness)
+    mainWindow.webContents.openDevTools({ mode: "detach" });
     mainWindow.webContents.on("before-input-event", (event, input) => {
       if (!input || input.type !== "keyDown") {
         return;
@@ -1187,7 +1593,11 @@ function mapGroupCalendarEvents(results, groupId, options = {}) {
           createdById: typeof createdByValue === "string" ? createdByValue : null,
           durationMinutes,
           timezone: getEventField(event, "timezone") || null,
-          featured: Boolean(featured)
+          featured: Boolean(featured),
+          // Series fields (native VRChat recurring event support)
+          seriesId: getEventField(event, "seriesId") || null,
+          occurrenceKind: getEventField(event, "occurrenceKind") || null,
+          occurrenceModified: Boolean(getEventField(event, "occurrenceModified"))
         };
       })
     .sort((a, b) => {
@@ -1568,6 +1978,14 @@ ipcMain.handle("window:isMaximized", () => {
     return false;
   }
   return mainWindow.isMaximized();
+});
+
+// TEMPORARY: renderer-side debug logger that writes to the persistent debug log
+// so we can read it after the fact. Remove with the rest of the test harness.
+ipcMain.handle("debug:log", (_, payload) => {
+  const { context = "renderer", message = "" } = payload || {};
+  debugLog(`renderer:${context}`, message);
+  return true;
 });
 
 ipcMain.handle("settings:get", () => settings);
@@ -2073,6 +2491,768 @@ ipcMain.handle("profiles:delete", async (_, payload) => {
   return profiles;
 });
 
+// --- Series IPC handlers (VRChat native recurring events) ---
+
+ipcMain.handle("series:list", async (_, payload) => {
+  const { groupId } = payload || {};
+  if (!groupId) return {};
+  return series[groupId] || {};
+});
+
+ipcMain.handle("series:create", async (_, payload) => {
+  try {
+    const { groupId, label, eventTemplate, recurrence, startsAtUtc, endsAtUtc, announcements } = payload || {};
+    if (!groupId || !eventTemplate || !recurrence || !startsAtUtc || !endsAtUtc) {
+      throw new Error("Missing series payload fields.");
+    }
+    await ensureUser();
+    await ensureCalendarPermission(groupId);
+
+    const requestBody = {
+      title: eventTemplate.title,
+      description: eventTemplate.description || "",
+      startsAt: startsAtUtc,
+      endsAt: endsAtUtc,
+      category: eventTemplate.category || "hangout",
+      sendCreationNotification: Boolean(eventTemplate.sendCreationNotification),
+      accessType: eventTemplate.accessType || "public",
+      languages: Array.isArray(eventTemplate.languages) ? eventTemplate.languages : [],
+      platforms: Array.isArray(eventTemplate.platforms) ? eventTemplate.platforms : [],
+      tags: Array.isArray(eventTemplate.tags) ? eventTemplate.tags : [],
+      imageId: eventTemplate.imageId || null,
+      featured: false,
+      isDraft: false,
+      roleIds: Array.isArray(eventTemplate.roleIds) ? eventTemplate.roleIds : [],
+      // Series fields (not in SDK types yet — passed raw)
+      occurrenceKind: "series",
+      recurrence: normalizeRecurrence(recurrence)
+    };
+
+    debugApiCall("createGroupCalendarEvent (series)", { groupId, body: requestBody });
+    const response = await vrchat.createGroupCalendarEvent({
+      throwOnError: true,
+      path: { groupId },
+      body: requestBody
+    });
+    debugApiResponse("createGroupCalendarEvent (series)", response);
+
+    const seriesId = getEventId(response.data);
+    if (!seriesId) {
+      return { ok: false, error: { message: "Series created but no ID returned." } };
+    }
+
+    if (!series[groupId]) series[groupId] = {};
+    const stored = {
+      label: label || eventTemplate.title || "Untitled Series",
+      groupId,
+      seriesId,
+      createdAt: new Date().toISOString(),
+      lastSyncedAt: new Date().toISOString(),
+      firstOccurrenceUtc: startsAtUtc,
+      firstOccurrenceEndUtc: endsAtUtc,
+      recurrence: normalizeRecurrence(recurrence),
+      eventTemplate: normalizeSeriesEventTemplate(eventTemplate)
+    };
+    series[groupId][seriesId] = stored;
+    saveSeries(series);
+
+    // Fire announcement actions (webhook, ICS) — fire and forget
+    if (announcements) {
+      try {
+        trySeriesAnnouncements(groupId, stored, startsAtUtc, endsAtUtc, announcements, "created");
+      } catch (annErr) {
+        debugLog("series", "Series announcement error:", annErr.message);
+      }
+    }
+
+    return { ok: true, seriesId, data: response.data };
+  } catch (err) {
+    debugApiResponse("createGroupCalendarEvent (series)", null, err);
+    return { ok: false, error: shapeApiError(err, "Could not create series.") };
+  }
+});
+
+ipcMain.handle("series:update", async (_, payload) => {
+  try {
+    const {
+      groupId, seriesId, eventTemplate, recurrence, label,
+      startsAtUtc, endsAtUtc, announcements,
+      modificationStrategy,   // "keep" | "discard" | undefined (default discard)
+      modifiedOccurrences     // [{ id, startsAtUtc, body }] — required when strategy === "keep"
+    } = payload || {};
+    if (!groupId || !seriesId) {
+      throw new Error("Missing series payload fields.");
+    }
+    await ensureUser();
+    await ensureCalendarPermission(groupId);
+
+    // Build minimal request body — only include fields that are present
+    const requestBody = {};
+    if (eventTemplate) {
+      if (typeof eventTemplate.title === "string") requestBody.title = eventTemplate.title;
+      if (typeof eventTemplate.description === "string") requestBody.description = eventTemplate.description;
+      if (typeof eventTemplate.category === "string") requestBody.category = eventTemplate.category;
+      if (typeof eventTemplate.accessType === "string") requestBody.accessType = eventTemplate.accessType;
+      if (Array.isArray(eventTemplate.languages)) requestBody.languages = eventTemplate.languages;
+      if (Array.isArray(eventTemplate.platforms)) requestBody.platforms = eventTemplate.platforms;
+      if (Array.isArray(eventTemplate.tags)) requestBody.tags = eventTemplate.tags;
+      if (Array.isArray(eventTemplate.roleIds)) requestBody.roleIds = eventTemplate.roleIds;
+      if (eventTemplate.imageId !== undefined) requestBody.imageId = eventTemplate.imageId;
+    }
+    if (recurrence) {
+      requestBody.recurrence = normalizeRecurrence(recurrence);
+    }
+    // startsAt / endsAt drive the first occurrence's date+time. Without these,
+    // VRChat receives a no-op recurrence update and the series stays anchored
+    // at its original first occurrence — silently. Always pass through when
+    // the renderer supplied them.
+    if (typeof startsAtUtc === "string" && startsAtUtc) requestBody.startsAt = startsAtUtc;
+    if (typeof endsAtUtc === "string" && endsAtUtc) requestBody.endsAt = endsAtUtc;
+
+    debugApiCall("updateGroupCalendarEvent (series)", { groupId, seriesId, body: requestBody });
+    try {
+      await vrchat.updateGroupCalendarEvent({
+        throwOnError: true,
+        path: { groupId, calendarId: seriesId },
+        body: requestBody
+      });
+    } catch (parseErr) {
+      // VRChat returns 200 OK with empty body for series updates, which trips up the SDK's JSON parser.
+      // Suppress that specific case but rethrow real errors.
+      if (parseErr?.message !== "Unexpected end of JSON input") {
+        throw parseErr;
+      }
+    }
+
+    // Update local metadata
+    if (!series[groupId]) series[groupId] = {};
+    const existing = series[groupId][seriesId] || {};
+    const stored = {
+      ...existing,
+      label: typeof label === "string" ? label : (existing.label || "Untitled Series"),
+      groupId,
+      seriesId,
+      lastSyncedAt: new Date().toISOString(),
+      // Preserve the original first occurrence timestamps (only update if explicitly provided)
+      firstOccurrenceUtc: startsAtUtc || existing.firstOccurrenceUtc || null,
+      firstOccurrenceEndUtc: endsAtUtc || existing.firstOccurrenceEndUtc || null,
+      recurrence: recurrence ? normalizeRecurrence(recurrence) : existing.recurrence,
+      eventTemplate: eventTemplate
+        ? normalizeSeriesEventTemplate({ ...existing.eventTemplate, ...eventTemplate })
+        : existing.eventTemplate
+    };
+    series[groupId][seriesId] = stored;
+    saveSeries(series);
+
+    // Mod-preservation flow: when the user chose "Keep", snapshot the
+    // pre-update modifications, then classify them against the (just
+    // regenerated) new occurrences. Same logic as series:regenerate, but the
+    // seriesId stays the same since this was a PUT not DELETE+CREATE.
+    if (modificationStrategy === "keep" && Array.isArray(modifiedOccurrences) && modifiedOccurrences.length) {
+      const sourceSeriesLabel = stored.label || label || "Untitled Series";
+      const snapshotEntries = [];
+      for (const mod of modifiedOccurrences) {
+        if (!mod || !mod.body) continue;
+        const b = mod.body;
+        const standaloneBody = {
+          title: b.title || "",
+          description: b.description || "",
+          startsAt: b.startsAt,
+          endsAt: b.endsAt,
+          category: b.category || "hangout",
+          sendCreationNotification: false,
+          accessType: b.accessType || "public",
+          languages: Array.isArray(b.languages) ? b.languages : [],
+          platforms: Array.isArray(b.platforms) ? b.platforms : [],
+          tags: Array.isArray(b.tags) ? b.tags : [],
+          imageId: b.imageId || null,
+          featured: Boolean(b.featured),
+          isDraft: Boolean(b.isDraft),
+          ...(Array.isArray(b.roleIds) ? { roleIds: b.roleIds } : {})
+        };
+        const entry = enqueueRasterizeEntry({
+          groupId,
+          type: "standalone",
+          payload: standaloneBody,
+          sourceSeriesLabel,
+          sourceSeriesId: seriesId,
+          createdAt: new Date().toISOString()
+        });
+        if (entry) snapshotEntries.push({ entry, originalDate: isoDateOnly(mod.startsAtUtc) });
+      }
+
+      // Classify against the regenerated occurrences (still under the same seriesId).
+      // Two important things:
+      //   1. Skip requestGet — its 10s dedupe window will hand back the
+      //      pre-update list cached by the renderer's recent
+      //      seriesCheckModifications call, which makes us classify against
+      //      stale occurrence IDs and silently drop modifications.
+      //   2. Poll for the new occurrences — VRChat regenerates asynchronously
+      //      after the PUT returns 200, and the lag is variable. We retry up
+      //      to 5 times (10s total) until the new occurrences actually appear.
+      let newOccurrencesByDate = new Map();
+      try {
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+          await new Promise(r => setTimeout(r, 2000));
+          debugApiCall(`getGroupCalendarEvents (post-update classify, attempt ${attempt + 1}/5)`, { groupId });
+          const listResp = await vrchat.getGroupCalendarEvents({
+            path: { groupId },
+            query: { n: 100 }
+          });
+          const events = getCalendarEventList(listResp.data);
+          const matchingForSeries = events.filter(ev => getEventField(ev, "seriesId") === seriesId);
+          if (matchingForSeries.length > 0) {
+            for (const ev of matchingForSeries) {
+              const startIso = parseEventDateValue(getEventStartValue(ev))?.toUTC().toISO();
+              const dateKey = isoDateOnly(startIso);
+              if (dateKey && !newOccurrencesByDate.has(dateKey)) {
+                newOccurrencesByDate.set(dateKey, getEventId(ev));
+              }
+            }
+            debugLog("rasterize", `Post-update poll attempt ${attempt + 1}: found ${matchingForSeries.length} occurrences with seriesId ${seriesId}, ${newOccurrencesByDate.size} unique dates.`);
+            break;
+          }
+          debugLog("rasterize", `Post-update poll attempt ${attempt + 1}: 0 occurrences yet for seriesId ${seriesId}, retrying.`);
+        }
+        if (newOccurrencesByDate.size === 0) {
+          debugLog("rasterize", `Post-update classify: gave up after 5 polls — VRChat hasn't regenerated yet. Modifications will stay as standalones.`);
+        }
+        let convertedCount = 0;
+        for (const entry of rasterizeQueue) {
+          if (entry.groupId !== groupId) continue;
+          if (entry.type !== "standalone") continue;
+          const sameSourceById = entry.sourceSeriesId && entry.sourceSeriesId === seriesId;
+          const sameSourceByLabel = !entry.sourceSeriesId && entry.sourceSeriesLabel === sourceSeriesLabel;
+          if (!sameSourceById && !sameSourceByLabel) continue;
+          const originalDate = isoDateOnly(entry.payload?.startsAt);
+          if (!originalDate) continue;
+          const matchOccurrenceId = newOccurrencesByDate.get(originalDate);
+          if (matchOccurrenceId) {
+            entry.type = "occurrenceUpdate";
+            entry.payload = { occurrenceId: matchOccurrenceId, body: entry.payload };
+            convertedCount += 1;
+          }
+        }
+        debugLog("rasterize", `Post-update classify: ${newOccurrencesByDate.size} new occurrences, converted ${convertedCount} standalone(s) to PUTs.`);
+        saveRasterizeQueue();
+      } catch (classifyErr) {
+        debugLog("rasterize", "Could not classify overlaps post-update:", classifyErr.message);
+      }
+      // Kick off a drain in the background
+      drainRasterizeQueue().catch(err => debugLog("rasterize", "Drain error:", err.message));
+    }
+
+    // Fire announcement actions when explicitly requested (and we have start/end times for ICS)
+    if (announcements && startsAtUtc && endsAtUtc) {
+      try {
+        trySeriesAnnouncements(groupId, stored, startsAtUtc, endsAtUtc, announcements, "updated");
+      } catch (annErr) {
+        debugLog("series", "Series announcement error:", annErr.message);
+      }
+    }
+
+    return { ok: true, pendingRasterize: rasterizeQueue.length };
+  } catch (err) {
+    debugApiResponse("updateGroupCalendarEvent (series)", null, err);
+    return { ok: false, error: shapeApiError(err, "Could not update series.") };
+  }
+});
+
+ipcMain.handle("series:delete", async (_, payload) => {
+  try {
+    const { groupId, seriesId } = payload || {};
+    if (!groupId || !seriesId) {
+      throw new Error("Missing series payload fields.");
+    }
+    await ensureUser();
+    await ensureCalendarPermission(groupId);
+
+    debugApiCall("deleteGroupCalendarEvent (series)", { groupId, seriesId });
+    await vrchat.deleteGroupCalendarEvent({
+      throwOnError: true,
+      path: { groupId, calendarId: seriesId }
+    });
+    debugApiResponse("deleteGroupCalendarEvent (series)", { ok: true });
+
+    if (series[groupId]?.[seriesId]) {
+      delete series[groupId][seriesId];
+      saveSeries(series);
+    }
+
+    return { ok: true };
+  } catch (err) {
+    debugApiResponse("deleteGroupCalendarEvent (series)", null, err);
+    return {
+      ok: false,
+      error: {
+        status: err?.response?.status || null,
+        message: err?.message || "Could not delete series."
+      }
+    };
+  }
+});
+
+ipcMain.handle("series:checkModifications", async (_, payload) => {
+  try {
+    const { groupId, seriesId } = payload || {};
+    if (!groupId || !seriesId) {
+      throw new Error("Missing series payload fields.");
+    }
+    await ensureUser();
+    await ensureCalendarPermission(groupId);
+
+    const response = await requestGet(
+      "getGroupCalendarEvents",
+      { path: { groupId }, query: { n: 100 } },
+      () => vrchat.getGroupCalendarEvents({
+        path: { groupId },
+        query: { n: 100 }
+      })
+    );
+    const results = getCalendarEventList(response.data);
+    const modified = results.filter(e =>
+      getEventField(e, "seriesId") === seriesId &&
+      Boolean(getEventField(e, "occurrenceModified"))
+    );
+    return {
+      ok: true,
+      count: modified.length,
+      occurrences: modified.map(e => {
+        const startsAtUtc = parseEventDateValue(getEventStartValue(e))?.toUTC().toISO() || null;
+        const endsAtUtc = parseEventDateValue(getEventField(e, "endsAt"))?.toUTC().toISO() || null;
+        return {
+          id: getEventId(e),
+          title: getEventField(e, "title") || "",
+          startsAtUtc,
+          endsAtUtc,
+          // Full body suitable for rasterization (POST as standalone) or merge (PUT to occurrence)
+          body: {
+            title: getEventField(e, "title") || "",
+            description: getEventField(e, "description") || "",
+            category: getEventField(e, "category") || "hangout",
+            accessType: getEventField(e, "accessType") || "public",
+            languages: Array.isArray(getEventField(e, "languages")) ? getEventField(e, "languages") : [],
+            platforms: Array.isArray(getEventField(e, "platforms")) ? getEventField(e, "platforms") : [],
+            tags: Array.isArray(getEventField(e, "tags")) ? getEventField(e, "tags") : [],
+            imageId: getEventField(e, "imageId") || null,
+            roleIds: Array.isArray(getEventField(e, "roleIds")) ? getEventField(e, "roleIds") : [],
+            featured: Boolean(getEventField(e, "featured")),
+            isDraft: Boolean(getEventField(e, "isDraft")),
+            startsAt: startsAtUtc,
+            endsAt: endsAtUtc
+          }
+        };
+      })
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: {
+        status: err?.response?.status || null,
+        message: err?.message || "Could not check modifications."
+      }
+    };
+  }
+});
+
+ipcMain.handle("series:reconcile", async (_, payload) => {
+  const { groupId } = payload || {};
+  if (!groupId || !series[groupId]) {
+    return { ok: true, orphaned: [] };
+  }
+  await ensureUser();
+  await ensureCalendarPermission(groupId);
+
+  const orphaned = [];
+  const localIds = Object.keys(series[groupId]);
+  for (const seriesId of localIds) {
+    try {
+      await vrchat.getGroupCalendarEvent({
+        throwOnError: true,
+        path: { groupId, calendarId: seriesId }
+      });
+      // Update lastSyncedAt on success
+      if (series[groupId][seriesId]) {
+        series[groupId][seriesId].lastSyncedAt = new Date().toISOString();
+      }
+    } catch (err) {
+      if (err?.response?.status === 404) {
+        orphaned.push(seriesId);
+      }
+    }
+  }
+  if (orphaned.length) {
+    saveSeries(series);
+  }
+  return { ok: true, orphaned };
+});
+
+// ----------------------------------------------------------------------------
+// Series regeneration: delete an existing series and create a new one with a
+// changed recurrence rule, while preserving the data of any modified
+// occurrences either by re-applying them to overlapping new occurrences (PUT)
+// or rasterizing them as standalone events (POST). All POST/PUT work is
+// queued in pending-rasterize.json so it survives crashes and rate limits.
+// ----------------------------------------------------------------------------
+
+function isRateLimitErr(err) {
+  return err?.response?.status === 429;
+}
+
+/** Pull a retry-after suggestion (seconds) from a 429 response, defaulting to 60min. */
+function rateLimitRetrySeconds(err) {
+  const headers = err?.response?.headers;
+  if (headers) {
+    const ra = headers.get?.("retry-after") ?? headers["retry-after"];
+    if (ra) {
+      const n = Number(ra);
+      if (Number.isFinite(n) && n > 0) return Math.round(n);
+    }
+  }
+  return 60 * 60;
+}
+
+/** Build a renderer-friendly error object from an SDK error. Replaces opaque
+ *  429s with a clear "rate limited — try again in Xm" message so the toast
+ *  is actionable instead of just whatever VRChat happened to write. */
+function shapeApiError(err, fallbackMessage) {
+  const status = err?.response?.status || null;
+  if (status === 429) {
+    const seconds = rateLimitRetrySeconds(err);
+    const minutes = Math.max(1, Math.round(seconds / 60));
+    return {
+      status: 429,
+      message: `VRChat rate limit hit. Try again in ~${minutes} minute${minutes === 1 ? "" : "s"}.`
+    };
+  }
+  return {
+    status,
+    message: err?.message || fallbackMessage
+  };
+}
+
+function isoDateOnly(iso) {
+  if (typeof iso !== "string" || !iso) return null;
+  return iso.slice(0, 10);
+}
+
+/** Single drain pass over the rasterize queue. Stops on rate limit errors and
+ *  records nextRetryAt so the next tick (or app restart) picks up cleanly. */
+async function drainRasterizeQueue() {
+  if (rasterizeDraining) return { processed: 0, remaining: rasterizeQueue.length };
+  rasterizeDraining = true;
+  let processed = 0;
+  try {
+    if (!vrchat) {
+      // Not authed yet — try later.
+      return { processed: 0, remaining: rasterizeQueue.length };
+    }
+    const now = Date.now();
+    // Process a snapshot to avoid mutation surprises during await
+    const snapshot = rasterizeQueue.slice();
+    for (const entry of snapshot) {
+      // Respect nextRetryAt
+      if (entry.nextRetryAt && Date.parse(entry.nextRetryAt) > now) continue;
+      try {
+        if (entry.type === "standalone") {
+          debugApiCall("createGroupCalendarEvent (rasterize)", { groupId: entry.groupId, body: entry.payload });
+          await vrchat.createGroupCalendarEvent({
+            throwOnError: true,
+            path: { groupId: entry.groupId },
+            body: entry.payload
+          });
+          debugApiResponse("createGroupCalendarEvent (rasterize)", { ok: true });
+        } else if (entry.type === "occurrenceUpdate") {
+          const { occurrenceId, body } = entry.payload || {};
+          if (!occurrenceId) {
+            debugLog("rasterize", "Missing occurrenceId, dropping entry", entry.id);
+            removeRasterizeEntry(entry.id);
+            continue;
+          }
+          debugApiCall("updateGroupCalendarEvent (rasterize)", { groupId: entry.groupId, occurrenceId, body });
+          await vrchat.updateGroupCalendarEvent({
+            throwOnError: true,
+            path: { groupId: entry.groupId, calendarId: occurrenceId },
+            body
+          });
+          debugApiResponse("updateGroupCalendarEvent (rasterize)", { ok: true });
+        }
+        removeRasterizeEntry(entry.id);
+        processed += 1;
+      } catch (err) {
+        entry.attemptCount += 1;
+        entry.lastError = {
+          status: err?.response?.status || null,
+          message: err?.message || "Unknown error"
+        };
+        if (isRateLimitErr(err)) {
+          // Push retry to ~1 hour from now (matches existing automation engine cadence)
+          entry.nextRetryAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+          debugLog("rasterize", `Rate limited on ${entry.id}, retrying after ${entry.nextRetryAt}`);
+          saveRasterizeQueue();
+          // Stop draining for this group — further work for the same group will also 429
+          break;
+        }
+        // Non-429 error: back off but keep entry so user can intervene
+        entry.nextRetryAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+        debugLog("rasterize", `Failed entry ${entry.id} (${entry.lastError.status}): ${entry.lastError.message}`);
+        saveRasterizeQueue();
+      }
+    }
+  } finally {
+    rasterizeDraining = false;
+  }
+  return { processed, remaining: rasterizeQueue.length };
+}
+
+ipcMain.handle("series:regenerate", async (_, payload) => {
+  try {
+    const {
+      groupId,
+      seriesId: oldSeriesId,
+      label,
+      eventTemplate,
+      recurrence,
+      startsAtUtc,
+      endsAtUtc,
+      announcements,
+      modificationStrategy,   // "keep" | "discard"
+      modifiedOccurrences     // [{ id, startsAtUtc, body }] from renderer's pre-flight
+    } = payload || {};
+    if (!groupId || !oldSeriesId || !eventTemplate || !recurrence || !startsAtUtc || !endsAtUtc) {
+      throw new Error("Missing regeneration payload fields.");
+    }
+    await ensureUser();
+    await ensureCalendarPermission(groupId);
+
+    const sourceSeriesLabel = series[groupId]?.[oldSeriesId]?.label || label || "Untitled Series";
+    const mods = Array.isArray(modifiedOccurrences) ? modifiedOccurrences : [];
+
+    // Order matters: create the new series FIRST. If create fails, nothing is
+    // destroyed and the user can retry without data loss. We accept a brief
+    // window where both old and new series exist if the subsequent delete
+    // fails — much better than the previous order which lost the old series
+    // when create failed.
+    const requestBody = {
+      title: eventTemplate.title,
+      description: eventTemplate.description || "",
+      startsAt: startsAtUtc,
+      endsAt: endsAtUtc,
+      category: eventTemplate.category || "hangout",
+      sendCreationNotification: Boolean(eventTemplate.sendCreationNotification),
+      accessType: eventTemplate.accessType || "public",
+      languages: Array.isArray(eventTemplate.languages) ? eventTemplate.languages : [],
+      platforms: Array.isArray(eventTemplate.platforms) ? eventTemplate.platforms : [],
+      tags: Array.isArray(eventTemplate.tags) ? eventTemplate.tags : [],
+      imageId: eventTemplate.imageId || null,
+      featured: false,
+      isDraft: false,
+      roleIds: Array.isArray(eventTemplate.roleIds) ? eventTemplate.roleIds : [],
+      occurrenceKind: "series",
+      recurrence: normalizeRecurrence(recurrence)
+    };
+    debugApiCall("createGroupCalendarEvent (regenerate)", { groupId, body: requestBody });
+    const response = await vrchat.createGroupCalendarEvent({
+      throwOnError: true,
+      path: { groupId },
+      body: requestBody
+    });
+    debugApiResponse("createGroupCalendarEvent (regenerate)", response);
+
+    const newSeriesId = getEventId(response.data);
+    if (!newSeriesId) {
+      return { ok: false, error: { message: "Series regenerated but no ID returned." } };
+    }
+
+    // Now snapshot modifications to the persistent queue. Past this point, if
+    // anything fails, modifications are recoverable from pending-rasterize.json.
+    // The standalone body must match what createGroupCalendarEvent expects for
+    // a non-series event — strip series-related fields, add isDraft and
+    // sendCreationNotification.
+    const snapshotEntries = [];
+    if (modificationStrategy === "keep" && mods.length) {
+      for (const mod of mods) {
+        if (!mod || !mod.body) continue;
+        const b = mod.body;
+        const standaloneBody = {
+          title: b.title || "",
+          description: b.description || "",
+          startsAt: b.startsAt,
+          endsAt: b.endsAt,
+          category: b.category || "hangout",
+          // Hardcoded false: we don't want to fire a "new event" notification
+          // for a rasterized event since the original announcement already happened.
+          sendCreationNotification: false,
+          accessType: b.accessType || "public",
+          languages: Array.isArray(b.languages) ? b.languages : [],
+          platforms: Array.isArray(b.platforms) ? b.platforms : [],
+          tags: Array.isArray(b.tags) ? b.tags : [],
+          imageId: b.imageId || null,
+          featured: Boolean(b.featured),
+          // Preserve the user's draft state if they had one; otherwise default published.
+          isDraft: Boolean(b.isDraft),
+          ...(Array.isArray(b.roleIds) ? { roleIds: b.roleIds } : {})
+        };
+        const entry = enqueueRasterizeEntry({
+          groupId,
+          type: "standalone",
+          payload: standaloneBody,
+          sourceSeriesLabel,
+          sourceSeriesId: oldSeriesId,
+          createdAt: new Date().toISOString()
+        });
+        if (entry) snapshotEntries.push({ entry, originalDate: isoDateOnly(mod.startsAtUtc) });
+      }
+    }
+
+    // Delete the old series. If this fails the new series is already up; the
+    // user has duplicates briefly but no data is lost. Errors here are
+    // non-fatal — log and continue.
+    try {
+      debugApiCall("deleteGroupCalendarEvent (regenerate)", { groupId, oldSeriesId });
+      await vrchat.deleteGroupCalendarEvent({
+        throwOnError: true,
+        path: { groupId, calendarId: oldSeriesId }
+      });
+      debugApiResponse("deleteGroupCalendarEvent (regenerate)", { ok: true });
+      if (series[groupId]?.[oldSeriesId]) {
+        delete series[groupId][oldSeriesId];
+        saveSeries(series);
+      }
+    } catch (delErr) {
+      debugApiResponse("deleteGroupCalendarEvent (regenerate)", null, delErr);
+      debugLog("series", `Old series ${oldSeriesId} not deleted (${delErr?.response?.status || "?"}); user may need to remove manually.`);
+    }
+
+    // Save new series record
+    if (!series[groupId]) series[groupId] = {};
+    const stored = {
+      label: label || sourceSeriesLabel,
+      groupId,
+      seriesId: newSeriesId,
+      createdAt: new Date().toISOString(),
+      lastSyncedAt: new Date().toISOString(),
+      firstOccurrenceUtc: startsAtUtc,
+      firstOccurrenceEndUtc: endsAtUtc,
+      recurrence: normalizeRecurrence(recurrence),
+      eventTemplate: normalizeSeriesEventTemplate(eventTemplate)
+    };
+    series[groupId][newSeriesId] = stored;
+    saveSeries(series);
+
+    // Post-create: convert overlapping standalone queue entries to occurrence
+    // PUTs. We sweep both this attempt's entries AND any leftover from prior
+    // failed attempts that target the same source series — those represent
+    // committed user intent ("Keep") that survived the failure and shouldn't
+    // be left as standalones if the new series now hits their dates.
+    // Skip requestGet (its dedupe cache may serve a pre-create snapshot from
+    // a recent seriesCheckModifications call) and poll for the new occurrences
+    // — VRChat regenerates asynchronously after the create returns.
+    let newOccurrencesByDate = new Map();
+    try {
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        await new Promise(r => setTimeout(r, 2000));
+        debugApiCall(`getGroupCalendarEvents (post-create classify, attempt ${attempt + 1}/5)`, { groupId });
+        const listResp = await vrchat.getGroupCalendarEvents({
+          path: { groupId },
+          query: { n: 100 }
+        });
+        const events = getCalendarEventList(listResp.data);
+        const matchingForSeries = events.filter(ev => getEventField(ev, "seriesId") === newSeriesId);
+        if (matchingForSeries.length > 0) {
+          for (const ev of matchingForSeries) {
+            const startIso = parseEventDateValue(getEventStartValue(ev))?.toUTC().toISO();
+            const dateKey = isoDateOnly(startIso);
+            if (dateKey && !newOccurrencesByDate.has(dateKey)) {
+              newOccurrencesByDate.set(dateKey, getEventId(ev));
+            }
+          }
+          debugLog("rasterize", `Post-create poll attempt ${attempt + 1}: found ${matchingForSeries.length} occurrences with seriesId ${newSeriesId}, ${newOccurrencesByDate.size} unique dates.`);
+          break;
+        }
+        debugLog("rasterize", `Post-create poll attempt ${attempt + 1}: 0 occurrences yet for seriesId ${newSeriesId}, retrying.`);
+      }
+      if (newOccurrencesByDate.size === 0) {
+        debugLog("rasterize", `Post-create classify: gave up after 5 polls — VRChat hasn't regenerated yet. Modifications will stay as standalones.`);
+      }
+
+      // Identify which queue entries to sweep. Match by:
+      //   - Same group, AND
+      //   - Same sourceSeriesId (preferred), OR same sourceSeriesLabel as fallback
+      //     for entries written before sourceSeriesId was tracked, AND
+      //   - Type still "standalone" (already-converted entries are skipped)
+      let convertedCount = 0;
+      for (const entry of rasterizeQueue) {
+        if (entry.groupId !== groupId) continue;
+        if (entry.type !== "standalone") continue;
+        const sameSourceById = entry.sourceSeriesId && entry.sourceSeriesId === oldSeriesId;
+        const sameSourceByLabel = !entry.sourceSeriesId && entry.sourceSeriesLabel === sourceSeriesLabel;
+        if (!sameSourceById && !sameSourceByLabel) continue;
+        // Get the originalDate. For entries from this attempt we have it in
+        // snapshotEntries; for older entries we read it from the payload's startsAt.
+        const originalDate = isoDateOnly(entry.payload?.startsAt);
+        if (!originalDate) continue;
+        const matchOccurrenceId = newOccurrencesByDate.get(originalDate);
+        if (matchOccurrenceId) {
+          entry.type = "occurrenceUpdate";
+          entry.payload = { occurrenceId: matchOccurrenceId, body: entry.payload };
+          convertedCount += 1;
+        }
+      }
+      if (convertedCount > 0) {
+        debugLog("rasterize", `Converted ${convertedCount} standalone entries to occurrence updates after regenerate.`);
+      }
+      saveRasterizeQueue();
+    } catch (err) {
+      debugLog("rasterize", "Could not classify overlaps post-create:", err.message);
+      // Non-fatal — entries stay as standalones, which is the safe fallback
+    }
+
+    // Fire announcements for the new series
+    if (announcements) {
+      try {
+        trySeriesAnnouncements(groupId, stored, startsAtUtc, endsAtUtc, announcements, "created");
+      } catch (annErr) {
+        debugLog("series", "Series announcement error:", annErr.message);
+      }
+    }
+
+    // Kick off a drain in the background — no await
+    drainRasterizeQueue().catch(err => debugLog("rasterize", "Drain error:", err.message));
+
+    return {
+      ok: true,
+      newSeriesId,
+      data: response.data,
+      pendingRasterize: rasterizeQueue.length
+    };
+  } catch (err) {
+    debugApiResponse("series:regenerate", null, err);
+    return { ok: false, error: shapeApiError(err, "Could not regenerate series.") };
+  }
+});
+
+ipcMain.handle("series:rasterizeStatus", async () => {
+  return {
+    ok: true,
+    count: rasterizeQueue.length,
+    entries: rasterizeQueue.map(e => ({
+      id: e.id,
+      groupId: e.groupId,
+      type: e.type,
+      attemptCount: e.attemptCount,
+      nextRetryAt: e.nextRetryAt,
+      lastError: e.lastError,
+      sourceSeriesLabel: e.sourceSeriesLabel,
+      createdAt: e.createdAt
+    }))
+  };
+});
+
+ipcMain.handle("series:rasterizeDrain", async () => {
+  return await drainRasterizeQueue();
+});
+
 ipcMain.handle("dates:options", async (_, payload) => {
   const { patterns, monthsAhead, timezone } = payload || {};
   return generateDateOptionsFromPatterns(patterns || [], monthsAhead || 6, timezone || "UTC");
@@ -2225,7 +3405,8 @@ ipcMain.handle("events:listGroup", async (_, payload) => {
       "deletedAt", "category", "accessType", "featured", "isDraft", "imageId", "imageUrl",
       "languages", "platforms", "roleIds", "tags", "type", "ownerId",
       "interestedUserCount", "userInterest", "hostEarlyJoinMinutes",
-      "guestEarlyJoinMinutes", "closeInstanceAfterEndMinutes", "usesInstanceOverflow"
+      "guestEarlyJoinMinutes", "closeInstanceAfterEndMinutes", "usesInstanceOverflow",
+      "durationInMs", "occurrenceKind", "recurrence", "seriesId", "occurrenceModified"
     ]);
     const sampleEvent = rawResults[0];
     const allFields = Object.keys(sampleEvent);
@@ -2848,17 +4029,212 @@ ipcMain.handle("automation:getRestorableCount", async (_, payload) => {
   return automationEngine.getRestorableCount(groupId, profileKey);
 });
 
+// --- TEMPORARY: Series API test harness (remove before release) ---
+
+ipcMain.handle("test:createSeries", async (_, payload) => {
+  const { groupId } = payload || {};
+  if (!groupId) throw new Error("Missing groupId");
+  await ensureUser();
+  await ensureCalendarPermission(groupId);
+
+  const now = new Date();
+  const startsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 1 week from now
+  const endsAt = new Date(startsAt.getTime() + 2 * 60 * 60 * 1000); // 2 hours
+
+  const requestBody = {
+    title: "EC Series Test",
+    description: "Testing series creation via API — safe to delete",
+    startsAt: startsAt.toISOString(),
+    endsAt: endsAt.toISOString(),
+    category: "hangout",
+    sendCreationNotification: false,
+    accessType: "group",
+    languages: ["eng"],
+    platforms: ["standalonewindows", "android"],
+    tags: [],
+    isDraft: false,
+    parentId: null,
+    roleIds: [],
+    // Series-specific fields (not in SDK types yet)
+    occurrenceKind: "series",
+    recurrence: {
+      frequency: "weekly",
+      interval: 1,
+      timezone: "America/Chicago",
+      daysOfWeek: ["WE"],
+      end: {
+        type: "afterOccurrences",
+        count: 4
+      }
+    }
+  };
+
+  debugLog("test:createSeries", "Request body:", requestBody);
+  try {
+    const response = await vrchat.createGroupCalendarEvent({
+      throwOnError: true,
+      path: { groupId },
+      body: requestBody
+    });
+    debugLog("test:createSeries", "Response:", JSON.stringify(response.data, null, 2));
+    return { ok: true, data: response.data };
+  } catch (err) {
+    debugLog("test:createSeries", "Error:", err?.response?.status, err?.response?.data || err?.message);
+    return { ok: false, status: err?.response?.status, error: err?.response?.data || err?.message };
+  }
+});
+
+ipcMain.handle("test:fetchEvent", async (_, payload) => {
+  const { groupId, calendarId } = payload || {};
+  if (!groupId || !calendarId) throw new Error("Missing groupId or calendarId");
+  await ensureUser();
+
+  debugLog("test:fetchEvent", "Fetching:", { groupId, calendarId });
+  try {
+    const response = await vrchat.getGroupCalendarEvent({
+      throwOnError: true,
+      path: { groupId, calendarId }
+    });
+    debugLog("test:fetchEvent", "Response:", JSON.stringify(response.data, null, 2));
+    return { ok: true, data: response.data };
+  } catch (err) {
+    debugLog("test:fetchEvent", "Error:", err?.response?.status, err?.response?.data || err?.message);
+    return { ok: false, status: err?.response?.status, error: err?.response?.data || err?.message };
+  }
+});
+
+ipcMain.handle("test:deleteSeries", async (_, payload) => {
+  const { groupId, calendarId } = payload || {};
+  if (!groupId || !calendarId) throw new Error("Missing groupId or calendarId");
+  await ensureUser();
+  await ensureCalendarPermission(groupId);
+
+  debugLog("test:deleteSeries", "Deleting:", { groupId, calendarId });
+  try {
+    const response = await vrchat.deleteGroupCalendarEvent({
+      throwOnError: true,
+      path: { groupId, calendarId }
+    });
+    debugLog("test:deleteSeries", "Response:", JSON.stringify(response.data, null, 2));
+    return { ok: true, data: response.data };
+  } catch (err) {
+    debugLog("test:deleteSeries", "Error:", err?.response?.status, err?.response?.data || err?.message);
+    return { ok: false, status: err?.response?.status, error: err?.response?.data || err?.message };
+  }
+});
+
+ipcMain.handle("test:updateSeries", async (_, payload) => {
+  const { groupId, calendarId, recurrence, fields = {} } = payload || {};
+  if (!groupId || !calendarId) throw new Error("Missing groupId or calendarId");
+  await ensureUser();
+  await ensureCalendarPermission(groupId);
+
+  const requestBody = { ...fields };
+  if (recurrence !== undefined) requestBody.recurrence = recurrence;
+
+  debugLog("test:updateSeries", "Request body:", requestBody);
+  try {
+    const response = await vrchat.updateGroupCalendarEvent({
+      throwOnError: true,
+      path: { groupId, calendarId },
+      body: requestBody
+    });
+    debugLog("test:updateSeries", "Response:", JSON.stringify(response.data, null, 2));
+    return { ok: true, data: response.data };
+  } catch (err) {
+    debugLog("test:updateSeries", "Error:", err?.response?.status, err?.response?.data || err?.message);
+    return { ok: false, status: err?.response?.status, error: err?.response?.data || err?.message };
+  }
+});
+
+ipcMain.handle("test:updateOccurrence", async (_, payload) => {
+  const { groupId, calendarId, fields = {} } = payload || {};
+  if (!groupId || !calendarId) throw new Error("Missing groupId or calendarId");
+  await ensureUser();
+  await ensureCalendarPermission(groupId);
+
+  debugLog("test:updateOccurrence", "Request body:", fields);
+  try {
+    const response = await vrchat.updateGroupCalendarEvent({
+      throwOnError: true,
+      path: { groupId, calendarId },
+      body: fields
+    });
+    debugLog("test:updateOccurrence", "Response:", JSON.stringify(response.data, null, 2));
+    return { ok: true, data: response.data };
+  } catch (err) {
+    debugLog("test:updateOccurrence", "Error:", err?.response?.status, err?.response?.data || err?.message);
+    return { ok: false, status: err?.response?.status, error: err?.response?.data || err?.message };
+  }
+});
+
+ipcMain.handle("test:createWithParentId", async (_, payload) => {
+  const { groupId, parentId } = payload || {};
+  if (!groupId || !parentId) throw new Error("Missing groupId or parentId");
+  await ensureUser();
+  await ensureCalendarPermission(groupId);
+
+  const now = new Date();
+  const startsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 2 weeks
+  const endsAt = new Date(startsAt.getTime() + 2 * 60 * 60 * 1000);
+
+  const requestBody = {
+    title: "EC ParentId Test",
+    description: "Testing if parentId links a new event to an existing series",
+    startsAt: startsAt.toISOString(),
+    endsAt: endsAt.toISOString(),
+    category: "hangout",
+    sendCreationNotification: false,
+    accessType: "group",
+    languages: ["eng"],
+    platforms: ["standalonewindows", "android"],
+    tags: [],
+    isDraft: false,
+    parentId,
+    roleIds: []
+  };
+
+  debugLog("test:createWithParentId", "Request body:", requestBody);
+  try {
+    const response = await vrchat.createGroupCalendarEvent({
+      throwOnError: true,
+      path: { groupId },
+      body: requestBody
+    });
+    debugLog("test:createWithParentId", "Response:", JSON.stringify(response.data, null, 2));
+    return { ok: true, data: response.data };
+  } catch (err) {
+    debugLog("test:createWithParentId", "Error:", err?.response?.status, err?.response?.data || err?.message);
+    return { ok: false, status: err?.response?.status, error: err?.response?.data || err?.message };
+  }
+});
+
+// --- END TEMPORARY ---
+
 app.whenReady().then(() => {
   initDebugLog();
   initializePaths();
   maybeImportProfiles();
   profiles = loadProfiles();
+  series = loadSeries();
+  rasterizeQueue = loadRasterizeQueue();
+  // Persist any normalize-time migrations so future loads don't re-migrate.
+  if (rasterizeQueue.length) saveRasterizeQueue();
   const startHidden = shouldStartHiddenAtLogin();
   createWindow({ startHidden });
   if (IS_DEV) {
     const logPath = debugModule.getLogPath?.() || "(unknown)";
     console.log(`\n📄 Debug log file: ${logPath}\n`);
   }
+
+  // Drain pending rasterize queue 30s after launch (gives auth time to settle),
+  // then every hour. Runs are no-ops when the queue is empty or auth isn't ready.
+  setTimeout(() => {
+    drainRasterizeQueue().catch(err => debugLog("rasterize", "Startup drain error:", err.message));
+  }, 30 * 1000);
+  setInterval(() => {
+    drainRasterizeQueue().catch(err => debugLog("rasterize", "Hourly drain error:", err.message));
+  }, 60 * 60 * 1000);
 
   // Initialize automation engine after 2 seconds to allow UI to fully load
   setTimeout(() => {

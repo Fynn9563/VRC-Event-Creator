@@ -4,8 +4,8 @@ export const ru = {
   nav: {
     create: "Создать событие",
     modify: "Редактировать события",
-    profiles: "Управление шаблонами",
-    settings: "Настройки"
+    settings: "Настройки",
+    schedules: "Управление расписаниями"
   },
   auth: {
     title: "Войти",
@@ -18,10 +18,8 @@ export const ru = {
     loggingIn: "Вход...",
     loginFailed: "Ошибка входа.",
     sessionChecking: "Проверка сессии...",
-    sessionCheckFailed: "Не удалось проверить сессию.",
     loginRequired: "Требуется вход.",
     loggedInAs: "Вход выполнен как {name}.",
-    logoutFailed: "Не удалось выйти.",
     loggedOut: "Вы вышли."
   },
   twoFactor: {
@@ -55,19 +53,9 @@ export const ru = {
     loadFailed: "Не удалось загрузить галерею."
   },
   settings: {
-    title: "Настройки",
     theme: {
       title: "Тема",
       description: "Настройте внешний вид приложения. Выберите пресет или настройте вручную.",
-      label: "Цветовая тема",
-      default: "По умолчанию (бирюзовый/зеленый)",
-      blue: "Океанский синий",
-      purple: "Фиолетовая дымка",
-      amber: "Янтарь Altimit",
-      red: "Красный кармин",
-      custom: "Пользовательские цвета",
-      accentColor: "Цвет акцента",
-      bgColor: "Цвет фона",
       presetLabel: "Текущая тема",
       nameLabel: "Название темы",
       namePlaceholder: "Новое название темы",
@@ -149,10 +137,8 @@ export const ru = {
       autoUploadImages: "Автоматически загружать изображения галереи из импортированных событий/шаблонов"
     },
     discord: {
-      title: "Интеграция с Discord",
       enable: "Включить интеграцию с Discord",
       description: "Автоматически создаёт мероприятия в Discord при создании событий VRChat.",
-      profileHint: "События из этого шаблона также будут опубликованы в Discord.",
       tokenLabel: "Токен бота",
       tokenPlaceholder: "Вставьте токен бота",
       guildLabel: "ID сервера",
@@ -161,11 +147,9 @@ export const ru = {
       testSuccess: "Подключено как {botName}",
       testFailed: "Ошибка подключения. Проверьте токен бота.",
       tokenMissing: "Сначала введите токен бота.",
-      groupLabel: "Группа",
       selectGroup: "Выберите группу...",
       saveButton: "Сохранить",
       saved: "Настройки Discord сохранены.",
-      syncLabel: "Опубликовать в Discord",
       eventLabel: "Создать событие Discord",
       syncSuccess: "Мероприятие Discord создано для «{title}»",
       syncFailed: "Синхронизация с Discord не удалась для «{title}»: {error}"
@@ -177,23 +161,15 @@ export const ru = {
       syncFailed: "Не удалось отправить webhook для \"{title}\": {error}"
     },
     calendar: {
-      title: "Интеграция с календарём",
-      description: "Создаёт файлы календаря .ics с напоминаниями, сохраняемые локально или прикрепляемые к публикациям webhook.",
       enable: "Включить создание файлов календаря",
       createInvite: "Создать приглашение календаря .ics",
-      remindersTitle: "Напоминания календаря .ics",
       enableReminders: "Включить напоминания календаря .ics",
-      remindersDescription: "Настройте напоминания по умолчанию для файлов .ics.",
       addReminder: "Добавить напоминание",
-      postToDiscord: "Отправить .ics в Discord",
       unit: {
         minutes: "минут",
         hours: "часов",
         days: "дней"
       },
-      syncLabel: "Прикрепить файл .ics",
-      syncSuccess: "Файл календаря отправлен для \"{title}\"",
-      syncFailed: "Ошибка отправки файла календаря для \"{title}\": {error}",
       webhookLabel: "Webhook URL",
       webhookPlaceholder: "https://discord.com/api/webhooks/...",
       webhookTestButton: "Проверить вебхук",
@@ -202,7 +178,8 @@ export const ru = {
       webhookMissing: "Сначала введите URL вебхука.",
       remindersHint: "Некоторые приложения-календари могут использовать только первое напоминание.",
       saveDirLabel: "Директория сохранения календаря",
-      autoSaved: "Файл календаря сохранён: {filePath}"
+      autoSaved: "Файл календаря сохранён: {filePath}",
+      inviteTitle: "Приглашение в календарь"
     },
     eckit: {
       importButton: "Импортировать кит",
@@ -219,7 +196,10 @@ export const ru = {
       selectImage: "Выбрать"
     },
     saveButton: "Сохранить настройки",
-    saved: "Настройки сохранены."
+    saved: "Настройки сохранены.",
+    featuredVerification: {
+      permissionDenied: "Этой группе не разрешено создавать рекомендуемые события."
+    }
   },
   demo: {
     controls: {
@@ -255,7 +235,6 @@ export const ru = {
     ios: "iOS"
   },
   events: {
-    title: "Создать событие",
     steps: {
       group: "Группа",
       date: "Дата",
@@ -273,17 +252,15 @@ export const ru = {
       groupRequired: "Группа (обязательно)",
       profileOptional: "Шаблон (необязательно)",
       advanced: "Дополнительно",
-      importJson: "Импорт из JSON",
-      dateSource: "Использовать",
-      dateSourcePattern: "Шаблон",
-      dateSourceManual: "Вручную",
       patternDates: "Даты шаблона",
       manualDate: "Ручная дата",
-      manualTime: "Ручное время"
+      manualTime: "Ручное время",
+      dateSourceManual: "Вручную",
+      dateSource: "Использовать",
+      dateSourcePattern: "Шаблон"
     },
     hints: {
       profileDefaults: "Выберите шаблон для значений по умолчанию или оставьте пустым для ручного создания.",
-      importJson: "Импортировать детали события из файла JSON."
     },
     dateHints: {
       default: "Ручной режим готов. Шаблоны с шаблонами открывают варианты дат.",
@@ -295,19 +272,12 @@ export const ru = {
     },
     profileHint: "Шаблоны необязательны. Используйте для значений по умолчанию или создавайте вручную.",
     loadProfile: "Загрузить шаблон (необязательно)",
-    loadProfilePlaceholder: "Выберите шаблон",
     clearProfile: "Очистить шаблон",
-    importJsonButton: "Импорт JSON",
     importSuccess: "Данные события импортированы из JSON.",
     importWrongType: "Похоже, это JSON шаблона. Пожалуйста, используйте импорт шаблона.",
-    exportJsonButton: "Экспорт JSON",
     exportSuccess: "Данные события экспортированы в JSON.",
-    dateSource: "Дата и время",
-    dateSourceManual: "Вручную",
-    dateSourcePattern: "По шаблону шаблона",
     dateOption: "Выберите дату",
     patternDateLabel: "{label} - {date}",
-    access: "Доступ",
     roleRestrictions: {
       title: "Ограничения ролей",
       hint: "Необязательно - если включено, присоединяться могут только выбранные роли группы.",
@@ -337,20 +307,13 @@ export const ru = {
     },
     created: "Событие создано.",
     failed: "Не удалось создать событие.",
-    selectGroupError: "Выберите группу.",
     selectDateError: "Выберите дату.",
     updateRequired: "Доступно обновление. Пожалуйста, обновите приложение перед созданием событий.",
-    requiredSingle: "{field} обязателен.",
-    requiredMultiple: "{fields} обязательны.",
-    noDateOptionsError: "Для шаблона нет доступных дат.",
     featuredPermissionRevoked: "У этой группы больше нет разрешения создавать избранные события.",
     groupFairPermissionRevoked: "У этой группы больше нет разрешения включать события в групповую ярмарку."
   },
   modify: {
-    title: "Редактировать события",
     subtitle: "Редактируйте или удаляйте предстоящие события группы.",
-    groupLabel: "Группа",
-    showPending: "Показать ожидающие",
     countEmpty: "Предстоящие события недоступны.",
     countGroupFallback: "Эта группа",
     countStatus: "Предстоящие события для {group}: {count}.",
@@ -359,8 +322,6 @@ export const ru = {
     eventImage: "Изображение события",
     noImage: "Без изображения",
     untitled: "Событие без названия",
-    profileLabel: "Загрузить шаблон (необязательно)",
-    profileSelect: "Выберите шаблон",
     profileLoad: "Загрузить",
     profileSelectError: "Выберите шаблон для загрузки.",
     profileLoadFailed: "Не удалось загрузить значения шаблона.",
@@ -373,10 +334,7 @@ export const ru = {
     },
     updateRequired: "Доступно обновление. Пожалуйста, обновите приложение перед редактированием событий.",
     selectEventError: "Выберите событие для редактирования.",
-    requiredSingle: "{field} обязательно.",
     selectDateError: "Выберите дату и время.",
-    durationError: "Длительность должна быть положительным числом.",
-    maxLanguages: "Можно выбрать не более 3 языков.",
     saveFailed: "Не удалось обновить событие.",
     saved: "Событие обновлено.",
     deleteFailed: "Не удалось удалить событие.",
@@ -401,11 +359,28 @@ export const ru = {
       editSaved: "Ожидающее событие обновлено.",
       editFailed: "Не удалось обновить ожидающее событие."
     },
-    postingOptions: "Параметры публикации"
+    postingOptions: "Параметры публикации",
+    badge: {
+      modified: "Изменено"
+    },
+    filters: {
+      heading: "Показывать",
+      modified: "Изменённые события",
+      pending: "Ожидающие события",
+      standalone: "Отдельные события"
+    },
+    filtersButton: "Фильтры",
+    timeRange: {
+      "1month": "1 месяц",
+      "1week": "1 неделя",
+      "1year": "1 год",
+      "2weeks": "2 недели",
+      "3months": "3 месяца",
+      "6months": "6 месяцев",
+      label: "Период времени"
+    }
   },
   profiles: {
-    title: "Управление шаблонами",
-    subtitle: "Создавайте шаблоны для групп.",
     steps: {
       select: "Выбор",
       basics: "Основы",
@@ -413,35 +388,24 @@ export const ru = {
       audience: "Аудитория"
     },
     section: {
-      selection: "Выбор шаблона",
       basics: "Основы шаблона",
-      schedule: "Расписание",
       audience: "Аудитория"
     },
     labels: {
-      group: "Группа",
-      profile: "Шаблон"
     },
     buttons: {
       new: "Новый"
     },
-    importJsonButton: "Импорт JSON",
     importSuccess: "Данные шаблона импортированы из JSON.",
     importWrongType: "Похоже, это JSON события. Пожалуйста, используйте импорт события.",
-    exportJsonButton: "Экспорт JSON",
     exportSuccess: "Данные шаблона экспортированы в JSON.",
     hints: {
       groupAccess: "Выберите группу с доступом к календарю.",
       patternsInfo: "Шаблоны используются для предварительного создания дат."
     },
-    existingProfile: "Существующий шаблон",
     existingProfilePlaceholder: "Выберите шаблон",
-    noProfiles: "В этой группе нет шаблонов",
-    newButton: "Новый шаблон",
-    saveButton: "Сохранить шаблон",
     displayName: "Название шаблона",
     displayNamePlaceholder: "Шаблон встречи сообщества",
-    access: "Доступ",
     durationDefault: "Длительность по умолчанию (DD:HH:MM)",
     dateMode: "Режим даты",
     dateModePattern: "По шаблону",
@@ -449,7 +413,6 @@ export const ru = {
     dateModeBoth: "Шаблоны + вручную",
     sendNotificationDefault: "Отправлять уведомление по умолчанию",
     patterns: {
-      title: "Повторяющиеся шаблоны",
       addButton: "Добавить шаблон",
       clearButton: "Очистить шаблоны",
       noPatterns: "Шаблонов пока нет.",
@@ -496,13 +459,7 @@ export const ru = {
         after: "После окончания предыдущего события",
         monthly: "Ежемесячно в определенный день"
       },
-      offsetHint: "За сколько до/после публиковать событие:",
-      days: "Дни",
-      hours: "Часы",
-      minutes: "Минуты",
-      monthlyHint: "Публиковать события в этот день каждого месяца:",
       monthlyDay: "День месяца",
-      monthlyDayHint: "Дни 29-31 будут использовать последний день более коротких месяцев",
       monthlyTime: "Время",
       repeatMode: "Повторять",
       repeatModes: {
@@ -510,7 +467,6 @@ export const ru = {
         count: "Фиксированное количество"
       },
       repeatCount: "Событий создать",
-      disclaimer: "Для автоматизации требуется запущенное приложение. Пропущенные автоматизации можно обработать на вкладке Изменить события.",
       patternsRequired: "Для автоматизации требуется как минимум один шаблон",
       confirmTitle: "Включить автоматизацию?",
       confirmEnable: "Для автоматизации требуется запущенное приложение для публикации событий. Пропущенные автоматизации можно обработать на вкладке Изменить события.",
@@ -530,11 +486,6 @@ export const ru = {
         monthly: "Каждый месяц {day}-го числа в {time}"
       },
       helpers: {
-        offsetDays: "Установите, за сколько дней до/после публиковать событие",
-        offsetHours: "Установите, за сколько часов до/после публиковать событие",
-        offsetMinutes: "Установите, за сколько минут до/после публиковать событие",
-        monthlyDay: "Дни 29-31 будут использовать последний день более коротких месяцев",
-        monthlyTime: "Установите время, в которое события будут публиковаться каждый месяц"
       },
       offsetProse: "Опубликовать следующее событие за 7 дней до его начала.",
       monthlyProse: "Каждый месяц 1-го числа в 6:00 PM",
@@ -549,14 +500,6 @@ export const ru = {
     updated: "Шаблон обновлен.",
     deleted: "Шаблон удален.",
     confirmDelete: "Удалить шаблон \"{name}\"?",
-    selectGroupError: "Выберите группу.",
-    selectGroupFirst: "Сначала выберите группу.",
-    selectProfileError: "Выберите шаблон для редактирования.",
-    maxLanguages: "Разрешено максимум 3 языка.",
-    durationError: "Длительность должна быть положительным числом.",
-    required: "{fields} {verb} обязательны.",
-    requiredSingle: "{field} обязателен.",
-    requiredMultiple: "{fields} обязательны."
   },
   common: {
     syncing: "Синхронизация данных...",
@@ -581,7 +524,6 @@ export const ru = {
     groupFairEvent: "Включить в групповую ярмарку",
     noMatches: "Совпадений нет.",
     noGroupsAccess: "Нет групп с доступом к календарю",
-    selectGroup: "Выбрать группу",
     selectGroupPlaceholder: "Выберите группу",
     accessTypes: {
       public: "Публичный",
@@ -630,9 +572,26 @@ export const ru = {
       languagesHint: "выбрано: {count}",
       filterLanguages: "Фильтр языков...",
       platforms: "Платформы",
-      manualDate: "Дата",
-      manualTime: "Время"
-    }
+    },
+    errors: {
+      durationError: "Длительность должна быть положительным числом.",
+      maxLanguages: "Можно выбрать не более 3 языков.",
+      noGroup: "Выберите группу.",
+      requiredMultiple: "{fields} обязательны.",
+      requiredSingle: "{field} обязателен."
+    },
+    exportJson: "Экспорт JSON",
+    importJson: "Импорт JSON",
+    labels: {
+      group: "Группа",
+      schedule: "Расписание",
+      series: "Серия",
+      templates: "Шаблоны"
+    },
+    section: {
+      scheduleSelection: "Выбор расписания"
+    },
+    selectTemplate: "Выберите шаблон"
   },
   wizard: {
     back: "Назад",
@@ -643,5 +602,133 @@ export const ru = {
     message: "Событие \"{title}\" уже запланировано на это время.",
     changeTime: "Выбрать время заново",
     continue: "Создать в любом случае"
+  },
+  schedules: {
+    announcements: {
+      hint: "Переключите действия, выполняемые при публикации события этим шаблоном.",
+      hintSeries: "Переключите действия, выполняемые при создании или изменении этой серии.",
+      title: "Анонсы"
+    },
+    empty: {
+      all: "Нет расписаний для этой группы.",
+      series: "Нет серий для этой группы.",
+      templates: "Нет шаблонов для этой группы."
+    },
+    filter: {
+      all: "Все",
+      label: "Показывать"
+    },
+    info: {
+      series: {
+        bullet1: "VRChat заранее создаёт все повторения на сервере по правилу повторения.",
+        bullet2: "Настроил и забыл — после создания приложение не нужно.",
+        bullet3: "Ограничения: нельзя анонсировать каждое событие отдельно; правило повторения нельзя изменить без пересоздания всех повторений (изменения теряются).",
+        bullet4: "Подходит для стабильных повторяющихся событий, которым не нужны анонсы.",
+        title: "Серии"
+      },
+      template: {
+        bullet1: "Каждое событие публикуется как отдельная запись в календаре — изменяется индивидуально.",
+        bullet2: "По желанию анонсируйте каждое событие через запланированные события Discord, вебхуки и приглашения календаря .ics.",
+        bullet3: "Сочетайте с автоматизацией и расписанием по шаблонам для публикации без участия.",
+        bullet4: "Для автоматической публикации приложение должно быть запущено.",
+        title: "Шаблоны"
+      }
+    },
+    modeBlurb: {
+      moreInfo: "(подробнее)",
+      series: "Серия — это встроенный планировщик повторяющихся событий VRChat. Сервер заранее создаёт все повторения. Без анонсов.",
+      template: "Шаблоны автоматически заполняют повторяющиеся события и публикуют каждое отдельно, с опциональными анонсами."
+    },
+    saveButton: {
+      seriesCreate: "Создать серию",
+      template: "Сохранить шаблон"
+    },
+    subtitle: "Шаблоны для запланированных событий с анонсами и встроенные серии VRChat.",
+    types: {
+      templateButton: "Шаблон"
+    }
+  },
+  series: {
+    confirmDelete: "Удалить «{label}»? Серия и все её повторения будут удалены из VRChat.",
+    confirmDeleteTitle: "Удалить серию?",
+    created: "Серия «{label}» создана.",
+    days: {
+      fr: "Пт",
+      mo: "Пн",
+      sa: "Сб",
+      su: "Вс",
+      th: "Чт",
+      tu: "Вт",
+      we: "Ср"
+    },
+    deleted: "Серия «{label}» удалена.",
+    disclaimer: "Серию можно перенести только до начала первого повторения. После старта изменить дату или время можно только удалив серию. События можно запланировать максимум на год вперёд. Максимальная длительность события — 31 день.",
+    end: {
+      afterDateLabel: "В определённую дату",
+      afterOccurrencesLabel: "После N повторений",
+      never: "Никогда",
+      occurrencesLabel: "повторений"
+    },
+    errors: {
+      createFailed: "Не удалось создать серию.",
+      deleteFailed: "Не удалось удалить серию.",
+      noDaysOfWeek: "Выберите хотя бы один день недели.",
+      noEndDate: "Укажите дату окончания.",
+      noLabel: "Метка серии обязательна.",
+      noSeries: "Серия не выбрана.",
+      noStartDate: "Дата и время первого повторения обязательны.",
+      noTitle: "Название события обязательно.",
+      notFound: "Серия не найдена.",
+      regenFailed: "Не удалось пересоздать серию.",
+      startInPast: "Первое повторение должно быть в будущем. Обновите дату перед сохранением.",
+      updateFailed: "Не удалось обновить серию."
+    },
+    frequency: {
+      custom: "Своя",
+      daily: "Ежедневно",
+      monthly: "Ежемесячно",
+      weekdays: "По будням",
+      weekends: "По выходным",
+      weekly: "Еженедельно",
+      yearly: "Ежегодно"
+    },
+    labels: {
+      daysOfWeek: "Повторять по",
+      endCondition: "Заканчивается",
+      frequency: "Частота",
+      interval: "Повторять каждые",
+      startDate: "Дата первого повторения",
+      startTime: "Время начала"
+    },
+    lockedHint: "Эта серия уже началась. Дата, время и правило повторения заблокированы — но можно ещё настроить, когда она закончится. Чтобы перенести, нажмите «Разблокировать» — при сохранении серия будет заменена на новую.",
+    rasterize: {
+      retryIn: "Следующая попытка через {wait}.",
+      retryNow: "Повторить сейчас",
+      statusText: "{count} событий ожидают создания.{wait}"
+    },
+    regen: {
+      choiceMessage: "В этой серии {count} изменённых событий. Текущая серия будет заменена новой.\n\n• Сохранить изменения: совпадения в тот же день обновят новую серию; события без совпадений станут отдельными.\n• Отменить изменения: правки этих повторений будут потеряны.",
+      choiceTitle: "Заменить серию?",
+      confirmAction: "Заменить серию",
+      confirmMessage: "Текущая серия будет заменена новой. Продолжить?",
+      discard: "Отменить изменения",
+      keep: "Сохранить изменения",
+      success: "Серия «{label}» заменена.",
+      successWithMods: "Серия «{label}» заменена. {count} изменений в очереди."
+    },
+    regenWarning: "Правило повторения разблокировано. Если изменить его, текущая серия будет заменена новой.",
+    regenWarningWithMods: "Правило повторения разблокировано. Если изменить его, текущая серия будет заменена новой, и вас спросят, как обработать её {count} изменённых событий.",
+    unit: {
+      days: "дней",
+      months: "месяцев",
+      weeks: "недель",
+      years: "лет"
+    },
+    unlockButton: "Разблокировать",
+    updateRequired: "Доступно обновление. Пожалуйста, обновите перед изменением серий.",
+    updated: "Серия «{label}» обновлена.",
+    warnings: {
+      confirmUpdate: "Обновить серию"
+    }
   }
 };

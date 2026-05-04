@@ -31,14 +31,14 @@
         <nav class="sidebar">
           <button class="nav-btn is-active" data-view="create" data-i18n="nav.create" disabled>Create Event</button>
           <button class="nav-btn" data-view="modify" data-i18n="nav.modify" disabled>Modify Events</button>
-          <button class="nav-btn" data-view="profiles" data-i18n="nav.profiles" disabled>Manage Profiles</button>
+          <button class="nav-btn" data-view="profiles" data-i18n="nav.schedules" disabled>Manage Schedules</button>
           <button class="nav-btn" data-view="about" data-i18n="nav.settings">Settings</button>
         </nav>
 
         <section class="content">
           <section class="view" id="view-create">
             <div class="view-header">
-              <h2 data-i18n="events.title">Create Event</h2>
+              <h2 data-i18n="nav.create">Create Event</h2>
               <p data-i18n="events.profileHint">Profiles are optional. Use one for defaults, or create everything manually.</p>
             </div>
 
@@ -81,7 +81,7 @@
                   </div>
                   <div id="event-advanced-section" class="card is-hidden">
                     <h3 data-i18n="events.labels.advanced">Advanced</h3>
-                    <button id="event-import-json" class="ghost compact-button" type="button" disabled data-i18n="events.importJsonButton">Import JSON</button>
+                    <button id="event-import-json" class="ghost compact-button" type="button" disabled data-i18n="common.importJson">Import JSON</button>
                   </div>
                 </div>
 
@@ -271,7 +271,7 @@
                   </div>
                   <div id="event-export-section" class="card is-hidden">
                     <h3 data-i18n="events.labels.advanced">Advanced</h3>
-                    <button id="event-export-json" class="ghost compact-button" type="button" data-i18n="events.exportJsonButton">Export JSON</button>
+                    <button id="event-export-json" class="ghost compact-button" type="button" data-i18n="common.exportJson">Export JSON</button>
                   </div>
                   <div class="field mt-1">
                     <label class="toggle">
@@ -293,22 +293,43 @@
 
           <section class="view is-hidden" id="view-modify">
             <div class="view-header">
-              <h2 data-i18n="modify.title">Modify Events</h2>
+              <h2 data-i18n="nav.modify">Modify Events</h2>
               <p data-i18n="modify.subtitle">Edit or delete upcoming group events.</p>
             </div>
 
             <div class="card">
               <div class="modify-toolbar">
                 <div class="field">
-                  <label for="modify-group" data-i18n="modify.groupLabel">Group</label>
+                  <label for="modify-group" data-i18n="common.labels.group">Group</label>
                   <select id="modify-group"></select>
                 </div>
+                <div class="field">
+                  <label for="modify-time-range" data-i18n="modify.timeRange.label">Time Range</label>
+                  <select id="modify-time-range">
+                    <option value="7" data-i18n="modify.timeRange.1week">1 week</option>
+                    <option value="14" data-i18n="modify.timeRange.2weeks">2 weeks</option>
+                    <option value="30" data-i18n="modify.timeRange.1month">1 month</option>
+                    <option value="90" selected data-i18n="modify.timeRange.3months">3 months</option>
+                    <option value="180" data-i18n="modify.timeRange.6months">6 months</option>
+                    <option value="365" data-i18n="modify.timeRange.1year">1 year</option>
+                  </select>
+                </div>
                 <div class="modify-actions">
-                  <label class="toggle-row compact-toggle">
-                    <input id="modify-show-pending" type="checkbox" checked />
-                    <span data-i18n="modify.showPending">Show Pending</span>
-                  </label>
+                  <button class="ghost compact-button" id="modify-filters-btn" type="button" data-i18n="modify.filtersButton">Filters</button>
                   <button class="ghost compact-button" id="modify-refresh" type="button" data-i18n="common.refresh">Refresh</button>
+                </div>
+              </div>
+              <!-- Filters panel (toggled by Filters button) -->
+              <div class="modify-filters-panel is-hidden" id="modify-filters-panel">
+                <div class="modify-filter-group">
+                  <h4 data-i18n="modify.filters.heading">Show</h4>
+                  <label class="toggle"><input type="checkbox" id="modify-filter-pending" checked /><span data-i18n="modify.filters.pending">Pending events</span></label>
+                  <label class="toggle"><input type="checkbox" id="modify-filter-standalone" checked /><span data-i18n="modify.filters.standalone">Standalone events</span></label>
+                  <label class="toggle"><input type="checkbox" id="modify-filter-modified" checked /><span data-i18n="modify.filters.modified">Modified occurrences</span></label>
+                </div>
+                <div class="modify-filter-group is-hidden" id="modify-filter-series-group">
+                  <h4 data-i18n="common.labels.series">Series</h4>
+                  <div id="modify-filter-series-list"></div>
                 </div>
               </div>
               <p class="hint" id="modify-count" data-i18n="modify.countEmpty">Upcoming events unavailable.</p>
@@ -318,8 +339,8 @@
 
           <section class="view is-hidden" id="view-profiles">
             <div class="view-header">
-              <h2 data-i18n="profiles.title">Manage Profiles</h2>
-              <p data-i18n="profiles.subtitle">Create reusable templates per group.</p>
+              <h2 data-i18n="nav.schedules">Manage Schedules</h2>
+              <p data-i18n="schedules.subtitle">Templates for announcement-driven scheduling and native VRChat recurring series.</p>
             </div>
 
             <div class="wizard" id="profile-wizard">
@@ -345,13 +366,21 @@
               <div class="wizard-body">
                 <div class="wizard-step" data-step="1">
                   <div class="card">
-                    <h3 data-i18n="profiles.section.selection">Profile Selection</h3>
+                    <h3 data-i18n="common.section.scheduleSelection">Schedule Selection</h3>
                     <div class="field">
-                      <label for="profile-group" data-i18n="profiles.labels.group">Group</label>
+                      <label for="profile-group" data-i18n="common.labels.group">Group</label>
                       <select id="profile-group"></select>
                     </div>
                     <div class="field">
-                      <label for="profile-existing" data-i18n="profiles.labels.profile">Profile</label>
+                      <label data-i18n="schedules.filter.label">Show</label>
+                      <div class="schedule-filter-chips" id="schedule-filter-chips">
+                        <button class="chip is-active" data-filter="all" type="button" data-i18n="schedules.filter.all">All</button>
+                        <button class="chip" data-filter="templates" type="button" data-i18n="common.labels.templates">Templates</button>
+                        <button class="chip" data-filter="series" type="button" data-i18n="common.labels.series">Series</button>
+                      </div>
+                    </div>
+                    <div class="field">
+                      <label for="profile-existing" data-i18n="common.labels.schedule">Schedule</label>
                       <div class="profile-select-row">
                         <button id="profile-new" class="ghost" type="button" data-i18n="profiles.buttons.new">New</button>
                         <select id="profile-existing"></select>
@@ -361,8 +390,12 @@
                         </div>
                       </div>
                     </div>
+                    <div id="rasterize-status" class="hint warning rasterize-status is-hidden">
+                      <span id="rasterize-status-text"></span>
+                      <button id="rasterize-status-retry" type="button" class="ghost compact-button" data-i18n="series.rasterize.retryNow">Retry Now</button>
+                    </div>
                     <div class="profile-hint-row">
-                      <p class="hint" data-i18n="profiles.hints.groupAccess">Choose a group with calendar access.</p>
+                      <p class="hint" id="schedule-group-hint" data-i18n="profiles.hints.groupAccess">Choose a group with calendar access.</p>
                       <div id="profile-import-export-buttons" class="profile-io-buttons is-hidden">
                         <button id="profile-import-json" class="ghost icon-button" type="button" disabled title="Import Profile JSON">
                             <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -426,49 +459,47 @@
                         <span data-i18n="profiles.sendNotificationDefault">Send Notification by default</span>
                       </label>
                     </div>
-                    <div class="field is-hidden" id="calendar-sync-field">
-                      <label class="toggle">
-                        <input id="calendar-sync-check" type="checkbox" />
-                        <span data-i18n="settings.calendar.createInvite">Create .ics Calendar Invite</span>
-                      </label>
-                    </div>
-                    <div class="field is-hidden" id="discord-sync-field">
-                      <label class="toggle">
-                        <input id="discord-sync-check" type="checkbox" checked />
-                        <span data-i18n="settings.discord.eventLabel">Create Discord Event</span>
-                      </label>
-                    </div>
-                    <div class="field is-hidden" id="webhook-post-field">
-                      <label class="toggle">
-                        <input id="webhook-post-check" type="checkbox" />
-                        <span data-i18n="settings.webhook.postLabel">Post Discord Webhook</span>
-                      </label>
-                    </div>
-                    <div class="field is-hidden" id="profile-webhook-message-field">
-                      <label class="toggle">
-                        <input id="profile-webhook-message-enabled" type="checkbox" />
-                        <span data-i18n="settings.eckit.attachMessage">Attach Custom Webhook Message</span>
-                      </label>
-                    </div>
-                  </div>
-                  <div class="card is-hidden" id="profile-webhook-message-card">
-                    <h3 data-i18n="settings.eckit.messageTitle">Custom Webhook Message</h3>
-                    <div class="field">
-                      <textarea id="profile-webhook-message" rows="3" maxlength="2000" placeholder="Write a custom message to include with the webhook post..." data-i18n-placeholder="settings.eckit.messagePlaceholder"></textarea>
-                    </div>
-                    <div class="field">
-                      <label data-i18n="settings.eckit.attachImage">Attach Image</label>
-                      <div class="input-with-button">
-                        <input id="profile-webhook-image-path" type="text" readonly placeholder="No image selected" data-i18n-placeholder="settings.eckit.noImage" />
-                        <button id="profile-webhook-image-btn" class="ghost compact-button" type="button" data-i18n="settings.eckit.selectImage">Select</button>
-                      </div>
-                    </div>
                   </div>
                 </div>
 
                 <div class="wizard-step is-hidden" data-step="3">
+                  <!-- Schedule header with type toggle -->
+                  <div class="card schedule-header-card">
+                    <div class="schedule-header-row">
+                      <div>
+                        <h3 data-i18n="common.labels.schedule">Schedule</h3>
+                        <p class="hint">
+                          <span id="schedule-mode-blurb-template" data-i18n="schedules.modeBlurb.template">Templates autofill repeated events and post each occurrence individually with optional announcements.</span>
+                          <span id="schedule-mode-blurb-series" class="is-hidden" data-i18n="schedules.modeBlurb.series">A series is VRChat's native recurring event scheduler. The server pre-generates all occurrences server-side. No announcements.</span>
+                          <button class="link-button" type="button" id="schedule-mode-more-info" data-i18n="schedules.modeBlurb.moreInfo">(more info)</button>
+                        </p>
+                      </div>
+                      <div class="schedule-type-toggle" role="group" aria-label="Schedule type">
+                        <button id="schedule-type-template-btn" class="schedule-toggle-btn" type="button" data-type="template" data-i18n="schedules.types.templateButton">Template</button>
+                        <button id="schedule-type-series-btn" class="schedule-toggle-btn" type="button" data-type="series" data-i18n="common.labels.series">Series</button>
+                      </div>
+                    </div>
+                    <div class="schedule-mode-info is-hidden" id="schedule-mode-info">
+                      <h4 data-i18n="schedules.info.template.title">Templates</h4>
+                      <ul>
+                        <li data-i18n="schedules.info.template.bullet1">Each event posts as an independent calendar entry — modifiable per occurrence.</li>
+                        <li data-i18n="schedules.info.template.bullet2">Optionally announce each event via Discord scheduled events, webhooks, and .ics calendar invites.</li>
+                        <li data-i18n="schedules.info.template.bullet3">Combine with EC's automation and pattern-based scheduling for hands-off posting.</li>
+                        <li data-i18n="schedules.info.template.bullet4">Requires the app to be running for automated posting.</li>
+                      </ul>
+                      <h4 data-i18n="schedules.info.series.title">Series</h4>
+                      <ul>
+                        <li data-i18n="schedules.info.series.bullet1">VRChat pre-generates all occurrences server-side from a recurrence rule.</li>
+                        <li data-i18n="schedules.info.series.bullet2">Set-and-forget — no app required after creation.</li>
+                        <li data-i18n="schedules.info.series.bullet3">Limitations: no per-event announcements; the recurrence rule cannot be changed without regenerating all occurrences (modifications are lost).</li>
+                        <li data-i18n="schedules.info.series.bullet4">Best for stable, repeating events that don't need announcements (weekly meetups, office hours).</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- Template-mode content -->
+                  <div data-schedule-mode="template" class="is-hidden" id="schedule-mode-template">
                   <div class="card">
-                    <h3 data-i18n="profiles.section.schedule">Schedule</h3>
                     <div class="grid three">
                       <div class="field">
                         <label for="profile-duration" data-i18n="profiles.durationDefault">Default Duration</label>
@@ -516,21 +547,8 @@
                     </div>
                   </div>
 
-                  <div class="card is-hidden" id="profile-calendar-reminders-card">
-                    <h3 data-i18n="settings.calendar.remindersTitle">.ics Calendar Reminders</h3>
-                    <div class="field">
-                      <label class="toggle">
-                        <input id="profile-calendar-reminders-enabled" type="checkbox" />
-                        <span data-i18n="settings.calendar.enableReminders">Enable .ics Calendar Reminders</span>
-                      </label>
-                    </div>
-                    <div id="profile-calendar-reminders-list" class="calendar-reminders-list is-hidden"></div>
-                    <button id="profile-calendar-reminder-add" class="ghost compact-button is-hidden" type="button" data-i18n="settings.calendar.addReminder">Add Reminder</button>
-                    <p class="hint is-hidden" id="profile-calendar-reminders-hint" data-i18n="settings.calendar.remindersHint">Some calendar apps may only use the first reminder.</p>
-                  </div>
-
                   <div class="card" id="automation-card">
-                    <h3 data-i18n="profiles.automation.title">Automation (Experimental)</h3>
+                    <h3 data-i18n="profiles.automation.title">Automation</h3>
                     <p class="hint" data-i18n="profiles.automation.description">Automatically post events based on your patterns. Events will appear as "Pending" in Modify Events.</p>
 
                     <div class="field">
@@ -594,6 +612,116 @@
                       <span id="automation-restore-count" class="hint"></span>
                     </div>
                   </div>
+                  </div><!-- /schedule-mode-template -->
+
+                  <!-- Series-mode content -->
+                  <div data-schedule-mode="series" class="is-hidden" id="schedule-mode-series">
+                    <div class="card">
+                      <p class="hint info" id="series-disclaimer" data-i18n="series.disclaimer">A series can only be rescheduled before its first occurrence begins. Once it starts, you must delete it to change the date or time. Events can be scheduled up to one year ahead. Maximum event length is 31 days.</p>
+                      <div class="grid three">
+                        <div class="field">
+                          <label for="series-start-date" data-i18n="series.labels.startDate">First Occurrence Date</label>
+                          <input id="series-start-date" type="date" />
+                        </div>
+                        <div class="field">
+                          <label for="series-start-time" data-i18n="series.labels.startTime">Start Time</label>
+                          <input id="series-start-time" type="time" />
+                        </div>
+                        <div class="field">
+                          <label for="series-timezone" data-i18n="common.fields.timezone">Timezone</label>
+                          <select id="series-timezone"></select>
+                        </div>
+                      </div>
+                      <div class="grid two">
+                        <div class="field">
+                          <label for="series-duration" data-i18n="common.fields.duration">Duration (DD:HH:MM)</label>
+                          <input id="series-duration" type="text" placeholder="00:02:00" />
+                          <div class="hint" id="series-duration-preview"></div>
+                        </div>
+                        <div class="field">
+                          <label for="series-frequency" data-i18n="series.labels.frequency">Frequency</label>
+                          <select id="series-frequency">
+                            <option value="daily" data-i18n="series.frequency.daily">Daily</option>
+                            <option value="weekly" data-i18n="series.frequency.weekly" selected>Weekly</option>
+                            <option value="weekdays" data-i18n="series.frequency.weekdays">Weekdays</option>
+                            <option value="weekends" data-i18n="series.frequency.weekends">Weekends</option>
+                            <option value="monthly" data-i18n="series.frequency.monthly">Monthly</option>
+                            <option value="yearly" data-i18n="series.frequency.yearly">Yearly</option>
+                            <option value="custom" data-i18n="series.frequency.custom">Custom</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <!-- Custom-only fields -->
+                      <div class="grid two is-hidden" id="series-custom-row">
+                        <div class="field">
+                          <label for="series-interval" data-i18n="series.labels.interval">Repeat every</label>
+                          <div class="inline-row">
+                            <input id="series-interval" type="number" min="1" max="366" value="1" />
+                            <select id="series-interval-unit">
+                              <option value="daily" data-i18n="series.unit.days">days</option>
+                              <option value="weekly" selected data-i18n="series.unit.weeks">weeks</option>
+                              <option value="monthly" data-i18n="series.unit.months">months</option>
+                              <option value="yearly" data-i18n="series.unit.years">years</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="field is-hidden" id="series-days-of-week-field">
+                        <label data-i18n="series.labels.daysOfWeek">Repeats on</label>
+                        <div class="series-dow-row">
+                          <label class="toggle"><input type="checkbox" data-day="MO" /><span data-i18n="series.days.mo">Mon</span></label>
+                          <label class="toggle"><input type="checkbox" data-day="TU" /><span data-i18n="series.days.tu">Tue</span></label>
+                          <label class="toggle"><input type="checkbox" data-day="WE" /><span data-i18n="series.days.we">Wed</span></label>
+                          <label class="toggle"><input type="checkbox" data-day="TH" /><span data-i18n="series.days.th">Thu</span></label>
+                          <label class="toggle"><input type="checkbox" data-day="FR" /><span data-i18n="series.days.fr">Fri</span></label>
+                          <label class="toggle"><input type="checkbox" data-day="SA" /><span data-i18n="series.days.sa">Sat</span></label>
+                          <label class="toggle"><input type="checkbox" data-day="SU" /><span data-i18n="series.days.su">Sun</span></label>
+                        </div>
+                      </div>
+
+                      <div class="field">
+                        <label for="series-end-type" data-i18n="series.labels.endCondition">Ends</label>
+                        <div class="series-end-inline">
+                          <select id="series-end-type" class="series-end-select">
+                            <option value="never" selected data-i18n="series.end.never">Never</option>
+                            <option value="afterOccurrences" data-i18n="series.end.afterOccurrencesLabel">After N occurrences</option>
+                            <option value="afterDate" data-i18n="series.end.afterDateLabel">On a specific date</option>
+                          </select>
+                          <span class="series-end-row is-hidden" id="series-end-occurrences-row">
+                            <input id="series-end-count" type="number" min="1" max="366" value="10" />
+                            <span data-i18n="series.end.occurrencesLabel">occurrences</span>
+                          </span>
+                          <span class="series-end-row is-hidden" id="series-end-date-row">
+                            <input id="series-end-date" type="date" />
+                          </span>
+                        </div>
+                      </div>
+                      <p class="hint is-hidden" id="series-modification-warning"></p>
+                    </div>
+                  </div><!-- /schedule-mode-series -->
+
+                  <!-- Calendar invite toggle + reminders (shared by both modes — schedule-related) -->
+                  <div class="card is-hidden" id="profile-calendar-invite-card">
+                    <h3 data-i18n="settings.calendar.inviteTitle">Calendar Invite</h3>
+                    <div class="field" id="calendar-sync-field">
+                      <label class="toggle">
+                        <input id="calendar-sync-check" type="checkbox" />
+                        <span data-i18n="settings.calendar.createInvite">Create .ics Calendar Invite</span>
+                      </label>
+                    </div>
+                    <div class="is-hidden" id="profile-calendar-reminders-card">
+                      <div class="field">
+                        <label class="toggle">
+                          <input id="profile-calendar-reminders-enabled" type="checkbox" />
+                          <span data-i18n="settings.calendar.enableReminders">Enable .ics Calendar Reminders</span>
+                        </label>
+                      </div>
+                      <div id="profile-calendar-reminders-list" class="calendar-reminders-list is-hidden"></div>
+                      <button id="profile-calendar-reminder-add" class="ghost compact-button is-hidden" type="button" data-i18n="settings.calendar.addReminder">Add Reminder</button>
+                      <p class="hint is-hidden" id="profile-calendar-reminders-hint" data-i18n="settings.calendar.remindersHint">Some calendar apps may only use the first reminder.</p>
+                    </div>
+                  </div>
                 </div>
 
                 <div class="wizard-step is-hidden" data-step="4">
@@ -638,6 +766,44 @@
                       </label>
                     </div>
                   </div>
+
+                  <!-- Announcements card (announcement actions when posting an event/series) -->
+                  <div class="card" id="profile-announcements-card">
+                    <h3 data-i18n="schedules.announcements.title">Announcements</h3>
+                    <p class="hint" id="profile-announcements-hint" data-i18n="schedules.announcements.hint">Toggle the actions to perform when this schedule posts an event.</p>
+                    <div class="field is-hidden" id="discord-sync-field">
+                      <label class="toggle">
+                        <input id="discord-sync-check" type="checkbox" checked />
+                        <span data-i18n="settings.discord.eventLabel">Create Discord Event</span>
+                      </label>
+                    </div>
+                    <div class="field is-hidden" id="webhook-post-field">
+                      <label class="toggle">
+                        <input id="webhook-post-check" type="checkbox" />
+                        <span data-i18n="settings.webhook.postLabel">Post Discord Webhook</span>
+                      </label>
+                    </div>
+                    <div class="field is-hidden" id="profile-webhook-message-field">
+                      <label class="toggle">
+                        <input id="profile-webhook-message-enabled" type="checkbox" />
+                        <span data-i18n="settings.eckit.attachMessage">Attach Custom Webhook Message</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="card is-hidden" id="profile-webhook-message-card">
+                    <h3 data-i18n="settings.eckit.messageTitle">Custom Webhook Message</h3>
+                    <div class="field">
+                      <textarea id="profile-webhook-message" rows="3" maxlength="2000" placeholder="Write a custom message to include with the webhook post..." data-i18n-placeholder="settings.eckit.messagePlaceholder"></textarea>
+                    </div>
+                    <div class="field">
+                      <label data-i18n="settings.eckit.attachImage">Attach Image</label>
+                      <div class="input-with-button">
+                        <input id="profile-webhook-image-path" type="text" readonly placeholder="No image selected" data-i18n-placeholder="settings.eckit.noImage" />
+                        <button id="profile-webhook-image-btn" class="ghost compact-button" type="button" data-i18n="settings.eckit.selectImage">Select</button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -649,11 +815,12 @@
                 </div>
               </div>
             </div>
+
           </section>
 
           <section class="view is-hidden" id="view-about">
             <div class="view-header">
-              <h2 data-i18n="settings.title">Settings</h2>
+              <h2 data-i18n="nav.settings">Settings</h2>
             </div>
 
             <div class="card">
@@ -712,7 +879,7 @@
                   <p class="hint discord-description" data-i18n="settings.discord.description">Automatically create Discord Events when VRChat events are posted. Configure per group below.</p>
                   <div id="discord-configured-list" class="discord-configured-list"></div>
                   <div class="field">
-                    <label for="discord-group-select" data-i18n="settings.discord.groupLabel">Group</label>
+                    <label for="discord-group-select" data-i18n="common.labels.group">Group</label>
                     <select id="discord-group-select"></select>
                   </div>
                   <div id="discord-group-config" class="is-hidden">
@@ -731,7 +898,7 @@
                     </div>
                     <div class="field is-hidden" id="discord-webhook-field">
                       <div class="discord-fields-row">
-                        <div class="field discord-field-half" style="flex:0 0 auto;">
+                        <div class="field discord-field-half discord-field-fixed">
                           <label class="toggle">
                             <input id="discord-webhook-enabled" type="checkbox" />
                             <span data-i18n="settings.webhook.enableLabel">Enable Webhook</span>
@@ -757,7 +924,7 @@
                           <label for="eckit-embed-color" data-i18n="settings.eckit.embedColor">Embed Color</label>
                           <div class="input-with-button">
                             <input id="eckit-embed-color" type="color" value="#1FC3AD" />
-                            <input id="eckit-embed-color-hex" type="text" placeholder="#1FC3AD" style="flex:1;min-width:0;" />
+                            <input id="eckit-embed-color-hex" type="text" placeholder="#1FC3AD" class="eckit-embed-color-hex" />
                           </div>
                         </div>
                       </div>
@@ -1040,7 +1207,7 @@
         </div>
         <div class="modify-body">
           <div class="field">
-            <label for="modify-profile" data-i18n="modify.profileLabel">Load Profile (optional)</label>
+            <label for="modify-profile" data-i18n="events.loadProfile">Load Template (optional)</label>
             <div class="inline-row">
               <select id="modify-profile"></select>
               <button id="modify-profile-load" class="ghost compact-button" type="button" data-i18n="modify.profileLoad">Load</button>

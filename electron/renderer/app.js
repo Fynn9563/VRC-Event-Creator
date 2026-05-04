@@ -1,16 +1,34 @@
 // Main application entry point - imports and wires modular components
 
 import { CATEGORIES, ACCESS_TYPES, LANGUAGES, PLATFORMS, DATE_MODES, PATTERN_TYPES, WEEKDAYS, MONTHS, TAG_LIMIT } from "./config.js";
-import { dom, state, setEventWizard, setProfileWizard, getProfileWizard, getProfileEditConfirmed } from "./state.js";
+import { dom, state, setEventWizard, setProfileWizard, getProfileWizard, getProfileEditConfirmed, setProfileEditConfirmed } from "./state.js";
 import { setStatus, setFootMeta, showToast, setAuthState, setUpdateAvailable, setUpdateProgress, refreshStatusPill, showView, renderSelect, renderChecklist, setupWizard, bindWindowControls, initThemeControls, loadTheme, handleThemeChange, handleThemeReset, handleThemePresetSave, handleThemePresetDelete, handleThemePresetImport, handleThemePresetExport, syncThemeLocalization } from "./ui.js";
 import { initI18n, setLanguage, getCurrentLanguage, getLanguageOptions, applyTranslations, t, getLanguageDisplayName } from "./i18n/index.js";
 import { createTagInput, handleOpenDataDir, handleChangeDataDir, buildTimezones, normalizeDurationInput, sanitizeDurationInputValue, enforceGroupAccess, getTodayDateString, getMaxEventDateString, parseDurationInput, getTimeZoneAbbr } from "./utils.js";
 import { checkSession, handleLogin, handleLoginClose, handleLogout, handleSettingsSave } from "./auth.js";
-import { resetProfileForm, applyProfileToForm, renderProfileList, updateProfileActionButtons, handleProfileNew, handleProfileEdit, handleProfileDelete, handleProfileSelection, handleProfileGroupChange, handleProfileSave, updateProfileDurationPreview, handleProfileAccessChange, renderProfileRoleRestrictions, validateAndCorrectAutomationOffset, handleProfileImportJson, handleProfileExportJson, updateDiscordVisibility, renderDiscordGroupSelect, initDiscordUI, updateCalendarVisibility, renderCalendarReminders, readCalendarRemindersFromDom, addCalendarReminderRow } from "./profiles.js";
+import { resetProfileForm, applyProfileToForm, renderProfileList, updateProfileActionButtons, handleProfileNew, handleProfileEdit, handleProfileDelete, handleProfileSelection, handleProfileGroupChange, handleProfileSave, updateProfileDurationPreview, handleProfileAccessChange, renderProfileRoleRestrictions, validateAndCorrectAutomationOffset, handleProfileImportJson, handleProfileExportJson, updateDiscordVisibility, renderDiscordGroupSelect, initDiscordUI, updateCalendarVisibility, renderCalendarReminders, readCalendarRemindersFromDom, addCalendarReminderRow, handleProfileWizardStepChange as profilesHandleProfileWizardStepChange } from "./profiles.js";
 import { syncDateInputs, applyManualEventDefaults, handleEventGroupChange, handleEventProfileChange, handleEventCreate, handleEventAccessChange, renderEventRoleRestrictions, renderEventLanguageList, renderEventProfileOptions, renderEventPlatformList, updateDateOptions, refreshUpcomingEventCount, renderUpcomingEventCountLabel, updateEventDurationPreview, handleEventImportJson, handleEventExportJson, updateAdvancedSettingsVisibility, updateImportExportVisibility } from "./events.js";
 import { initGalleryPicker, openGalleryPicker } from "./gallery.js";
-import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLocalization, updateModifyDurationPreview, updateModifyCalendarRemindersVisibility, updateModifyWebhookVisibility } from "./modify.js";
+import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLocalization, updateModifyDurationPreview, updateModifyCalendarRemindersVisibility, updateModifyWebhookVisibility, resetModifyFilters } from "./modify.js";
 import { initDemoControls } from "./demo.js";
+import {
+  initSeriesModule,
+  loadSeriesForGroup,
+  resetSeriesRecurrenceForm,
+  applySeriesToWizard,
+  showScheduleMode,
+  handleSeriesCreate,
+  handleSeriesUpdate,
+  handleSeriesDelete,
+  updateSeriesFrequencyVisibility,
+  updateSeriesEndVisibility,
+  updateSeriesDurationPreview,
+  populateSeriesTimezoneDropdown,
+  setRecurrenceFieldsLocked,
+  inspectSeriesOccurrences,
+  initRasterizeStatusIndicator,
+  refreshRasterizeStatus
+} from "./series.js";
 
 (() => {
   const api = window.vrcEvent;
@@ -216,6 +234,11 @@ import { initDemoControls } from "./demo.js";
       state.groups = await api.getGroups();
       state.profiles = await api.getProfiles();
       state.kitGroupIds = await api.eckitGetKitGroupIds().catch(() => []);
+      // Load series for currently-selected groups
+      const profileGroupId = dom.profileGroup?.value;
+      if (profileGroupId) {
+        await loadSeriesForGroup(profileGroupId);
+      }
       renderGroupSelects({ preserveSelection });
       enforceGroupAccess(dom.eventAccess, dom.eventGroup.value);
       enforceGroupAccess(dom.profileAccess, dom.profileGroup.value);
@@ -843,7 +866,7 @@ import { initDemoControls } from "./demo.js";
         missing.push(t("common.fields.description"));
       }
       if (missing.length) {
-        const key = missing.length === 1 ? "events.requiredSingle" : "events.requiredMultiple";
+        const key = missing.length === 1 ? "common.errors.requiredSingle" : "common.errors.requiredMultiple";
         showToast(t(key, { field: missing[0], fields: missing.join(", ") }), true);
         return false;
       }
@@ -851,70 +874,54 @@ import { initDemoControls } from "./demo.js";
     return true;
   }
 
-  function handleProfileWizardStepChange({ current, next }) {
-    // Going backward - allow and keep group/profile selection on step 0
-      if (next < current) {
-        if (next === 0) {
-          // Returning to step 0 - keep group selected, unlock it, refresh profile list
-          const currentGroup = dom.profileGroup.value;
-          resetProfileForm();
-        if (currentGroup) {
-          dom.profileGroup.value = currentGroup;
-          renderProfileList(api);
-        }
-          updateProfileActionButtons();
-          renderProfileLanguageList();
-          renderProfilePlatformList();
-          void renderProfileRoleRestrictions(api);
-          renderPatternList();
-        }
-        return true;
-      }
-    // Going forward from step 0
-    if (current === 0 && next > 0) {
-      if (!dom.profileGroup.value) {
-        showToast(t("profiles.selectGroupFirst"), true);
-        return false;
-      }
-      // If a profile is selected, auto-enter edit mode
-      const selectedProfile = dom.profileExisting.value;
-      if (selectedProfile) {
-        const [groupId, profileKey] = selectedProfile.split("::");
-        if (groupId && profileKey) {
-          applyProfileToForm(groupId, profileKey);
-          updateProfileActionButtons();
-          renderProfileLanguageList();
-          renderProfilePlatformList();
-          void renderProfileRoleRestrictions(api);
-          renderPatternList();
-        }
-      } else if (!getProfileEditConfirmed()) {
-        // No profile selected and not in edit mode - reset for new profile
-        resetProfileForm();
-        dom.profileExisting.value = "";
-        updateProfileActionButtons();
-        renderProfileLanguageList();
-        renderProfilePlatformList();
-        void renderProfileRoleRestrictions(api);
-        renderPatternList();
+  function handleProfileWizardStepChange(payload) {
+    const { current, next } = payload;
+    // Refresh template list when returning to step 0 so newly saved schedules show up
+    if (next < current && next === 0) {
+      const currentGroup = dom.profileGroup.value;
+      if (currentGroup) {
+        renderProfileList(api);
       }
     }
-    // Validate basics before moving to patterns
-    if (next > 1) {
-      const displayName = dom.profileDisplayName.value.trim();
-      const eventName = dom.profileName.value.trim();
-      const description = dom.profileDescription.value.trim();
-      const missing = [];
-      if (!displayName) missing.push(t("profiles.displayName"));
-      if (!eventName) missing.push(t("common.fields.eventName"));
-      if (!description) missing.push(t("common.fields.description"));
-      if (missing.length) {
-        const key = missing.length === 1 ? "profiles.requiredSingle" : "profiles.requiredMultiple";
-        showToast(t(key, { field: missing[0], fields: missing.join(", ") }), true);
-        return false;
+    const result = profilesHandleProfileWizardStepChange(payload);
+    // After advancing to step 3 with a series, re-run the occurrence inspection so date/time
+    // backfill happens every navigation (not just on dropdown change). This covers the case
+    // where the user goes step1 → step3, back to step1, forward to step3 again.
+    if (result && next > current && next >= 2 && state.schedules?.editingType === "series") {
+      const groupId = dom.profileGroup.value;
+      const seriesId = state.schedules?.editingSeriesId;
+      if (groupId && seriesId) {
+        inspectSeriesOccurrences(api, groupId, seriesId).then(info => {
+          // Don't re-lock if the user has explicitly clicked Unlock — respect their override
+          if (info.started === true && !state.schedules?.recurrenceUnlocked) {
+            setRecurrenceFieldsLocked(true);
+          }
+          if (info.earliestStart) {
+            // Persist to in-memory state so the next applySeriesToWizard has it.
+            if (state.series?.[groupId]?.[seriesId]) {
+              state.series[groupId][seriesId].firstOccurrenceUtc = info.earliestStart;
+              if (info.earliestEnd) {
+                state.series[groupId][seriesId].firstOccurrenceEndUtc = info.earliestEnd;
+              }
+            }
+            // Backfill the form fields if they're empty.
+            if (dom.seriesStartDate?.value === "" || dom.seriesStartTime?.value === "") {
+              const localDate = new Date(info.earliestStart);
+              if (!Number.isNaN(localDate.getTime())) {
+                const yyyy = localDate.getFullYear();
+                const mm = String(localDate.getMonth() + 1).padStart(2, "0");
+                const dd = String(localDate.getDate()).padStart(2, "0");
+                const hh = String(localDate.getHours()).padStart(2, "0");
+                const mi = String(localDate.getMinutes()).padStart(2, "0");
+                if (dom.seriesStartDate && !dom.seriesStartDate.value) dom.seriesStartDate.value = `${yyyy}-${mm}-${dd}`;
+                if (dom.seriesStartTime && !dom.seriesStartTime.value) dom.seriesStartTime.value = `${hh}:${mi}`;
+              }
+            }
+          }
+        }).catch(() => {});
       }
     }
-    return true;
+    return result;
   }
 
   function handleDateSourceChange(event) {
@@ -953,7 +960,12 @@ import { initDemoControls } from "./demo.js";
   function bindEvents() {
     dom.navButtons.forEach(btn => btn.addEventListener("click", () => {
       const view = btn.dataset.view;
+      const previousView = Array.from(dom.navButtons).find(b => b.classList.contains("is-active"))?.dataset.view;
       showView(view);
+      // Reset Modify Events filters when leaving the tab (filters are session-scoped)
+      if (previousView === "modify" && view !== "modify") {
+        resetModifyFilters();
+      }
       // Refresh profile list when navigating to profiles view
       if (view === "profiles") {
         renderProfileList(api);
@@ -1344,12 +1356,12 @@ import { initDemoControls } from "./demo.js";
     // Webhook sync toast listeners
     if (api.onWebhookSyncSuccess) {
       api.onWebhookSyncSuccess(({ eventTitle }) => {
-        showToast((t("settings.calendar.syncSuccess") || "Calendar file sent for \"{title}\"").replace("{title}", eventTitle));
+        showToast(t("settings.webhook.syncSuccess").replace("{title}", eventTitle));
       });
     }
     if (api.onWebhookSyncFailed) {
       api.onWebhookSyncFailed(({ eventTitle, error }) => {
-        showToast((t("settings.calendar.syncFailed") || "Calendar file delivery failed for \"{title}\": {error}").replace("{title}", eventTitle).replace("{error}", error), true);
+        showToast(t("settings.webhook.syncFailed").replace("{title}", eventTitle).replace("{error}", error), true);
       });
     }
     // Initialize Discord UI (token toggle, test button, auto-save)
@@ -1502,12 +1514,269 @@ import { initDemoControls } from "./demo.js";
     if (dom.modifyEventImagePicker) {
       dom.modifyEventImagePicker.addEventListener("click", () => openGalleryPicker(dom.modifyEventImageId));
     }
-      dom.profileGroup.addEventListener("change", () => { handleProfileGroupChange(api); renderProfileList(api); });
-      dom.profileExisting.addEventListener("change", () => handleProfileSelection(api));
-      dom.profileNew.addEventListener("click", () => { const r = handleProfileNew(); if (!r.success && r.message) showToast(r.message, true); });
-      dom.profileEdit.addEventListener("click", () => { const r = handleProfileEdit(); if (!r.success && r.message) showToast(r.message, true); });
-    dom.profileDelete.addEventListener("click", async () => { const r = await handleProfileDelete(api); if (r.success) { showToast(r.message); await refreshData(); resetProfileForm(); renderProfileLanguageList(); renderProfilePlatformList(); renderPatternList(); void renderProfileRoleRestrictions(api); } else if (!r.cancelled) showToast(r.message, true); });
-      dom.profileSave.addEventListener("click", async () => { const r = await handleProfileSave(api); if (r.success) { showToast(r.message); await refreshData(); renderProfileList(api); dom.profileExisting.value = `${r.groupId}::${r.profileKey}`; applyProfileToForm(r.groupId, r.profileKey); updateProfileActionButtons(); renderProfileLanguageList(); renderProfilePlatformList(); renderPatternList(); await renderProfileRoleRestrictions(api); } else showToast(r.message, true); });
+      // Init series module
+      initSeriesModule(api);
+      initRasterizeStatusIndicator();
+
+      // Schedule type filter chips
+      if (dom.scheduleFilterChips) {
+        dom.scheduleFilterChips.addEventListener("click", (event) => {
+          const btn = event.target.closest("button[data-filter]");
+          if (!btn) return;
+          state.schedules.filterType = btn.dataset.filter || "all";
+          dom.scheduleFilterChips.querySelectorAll("button").forEach(b => {
+            b.classList.toggle("is-active", b === btn);
+          });
+          renderProfileList(api);
+        });
+      }
+
+      // Step 3 type toggle (Template / Series segmented control)
+      if (dom.scheduleTypeTemplateBtn) {
+        dom.scheduleTypeTemplateBtn.addEventListener("click", () => {
+          if (state.schedules.editingType === "template") return;
+          state.schedules.editingType = "template";
+          // Don't clear the series form — DOM retains values for in-session toggle return
+          showScheduleMode("template");
+        });
+      }
+      if (dom.scheduleTypeSeriesBtn) {
+        dom.scheduleTypeSeriesBtn.addEventListener("click", () => {
+          if (state.schedules.editingType === "series") return;
+          // Initialize series fields with sensible defaults the first time we toggle here
+          // in this session (only if start date is empty — preserves user input on toggle-back)
+          if (!dom.seriesStartDate?.value) {
+            resetSeriesRecurrenceForm();
+          }
+          state.schedules.editingType = "series";
+          showScheduleMode("series");
+        });
+      }
+      // More info disclosure
+      if (dom.scheduleModeMoreInfo) {
+        dom.scheduleModeMoreInfo.addEventListener("click", () => {
+          if (dom.scheduleModeInfo) {
+            dom.scheduleModeInfo.classList.toggle("is-hidden");
+          }
+        });
+      }
+      // Series end-type dropdown — show/hide rows
+      if (dom.seriesEndType) {
+        dom.seriesEndType.addEventListener("change", () => updateSeriesEndVisibility());
+      }
+      // Series interval-unit dropdown — re-evaluate weekday checkbox visibility
+      if (dom.seriesIntervalUnit) {
+        dom.seriesIntervalUnit.addEventListener("change", () => updateSeriesFrequencyVisibility());
+      }
+
+      dom.profileGroup.addEventListener("change", async () => {
+        handleProfileGroupChange(api);
+        const groupId = dom.profileGroup.value;
+        if (groupId) {
+          await loadSeriesForGroup(groupId);
+        }
+        renderProfileList(api);
+        // Reset wizard editing state and unlock toggle when switching groups
+        state.schedules.editingType = null;
+        state.schedules.editingSeriesId = null;
+        showScheduleMode(null, { lock: false });
+      });
+      dom.profileExisting.addEventListener("change", async () => {
+        const selected = dom.profileExisting.value;
+        if (selected.startsWith("series::")) {
+          // Series selected — populate the wizard for editing so step buttons work directly
+          const seriesId = selected.slice("series::".length);
+          const groupId = dom.profileGroup?.value;
+          state.schedules.selectedType = "series";
+          state.schedules.editingType = "series";
+          state.schedules.editingSeriesId = seriesId;
+          // Lazy-load series data if missing (covers stale-state scenarios)
+          let seriesData = state.series?.[groupId]?.[seriesId];
+          if (!seriesData) {
+            try {
+              const list = await api.seriesList({ groupId });
+              if (list) {
+                state.series[groupId] = list;
+                seriesData = list[seriesId];
+              }
+            } catch (err) { /* ignore */ }
+          }
+          // Always set edit-confirmed for series so wizard transitions work
+          setProfileEditConfirmed(true);
+          showScheduleMode("series", { lock: true });
+          if (seriesData) {
+            applySeriesToWizard(seriesData);
+          }
+          // Async-inspect occurrences: lock recurrence fields if started + backfill missing dates
+          setRecurrenceFieldsLocked(false);
+          inspectSeriesOccurrences(api, groupId, seriesId).then(info => {
+            if (info.started === true) setRecurrenceFieldsLocked(true);
+            if ((!seriesData?.firstOccurrenceUtc) && info.earliestStart && dom.seriesStartDate?.value === "") {
+              const localDate = new Date(info.earliestStart);
+              if (!Number.isNaN(localDate.getTime())) {
+                const yyyy = localDate.getFullYear();
+                const mm = String(localDate.getMonth() + 1).padStart(2, "0");
+                const dd = String(localDate.getDate()).padStart(2, "0");
+                const hh = String(localDate.getHours()).padStart(2, "0");
+                const mi = String(localDate.getMinutes()).padStart(2, "0");
+                if (dom.seriesStartDate) dom.seriesStartDate.value = `${yyyy}-${mm}-${dd}`;
+                if (dom.seriesStartTime) dom.seriesStartTime.value = `${hh}:${mi}`;
+              }
+            }
+          }).catch(() => {});
+          updateProfileActionButtons();
+          return;
+        } else if (selected) {
+          // Template selected — handleProfileSelection loads the data; mark as edit
+          state.schedules.selectedType = "template";
+          state.schedules.editingType = "template";
+          state.schedules.editingSeriesId = null;
+          showScheduleMode("template", { lock: true });
+          setRecurrenceFieldsLocked(false);
+          handleProfileSelection(api);
+          setProfileEditConfirmed(true);
+        } else {
+          state.schedules.selectedType = null;
+          state.schedules.editingType = null;
+          state.schedules.editingSeriesId = null;
+          showScheduleMode(null, { lock: false });
+          setRecurrenceFieldsLocked(false);
+          setProfileEditConfirmed(false);
+        }
+        updateProfileActionButtons();
+      });
+      dom.profileNew.addEventListener("click", () => {
+        if (!dom.profileGroup?.value) {
+          showToast(t("common.errors.noGroup") || "Select a group.", true);
+          return;
+        }
+        // Reset editing state — type will be picked in step 3 (toggle stays unlocked)
+        state.schedules.editingType = null;
+        state.schedules.editingSeriesId = null;
+        showScheduleMode(null, { lock: false });
+        // Ensure recurrence fields are unlocked for new series
+        setRecurrenceFieldsLocked(false);
+        const r = handleProfileNew();
+        if (!r.success && r.message) showToast(r.message, true);
+      });
+      dom.profileEdit.addEventListener("click", () => {
+        const selected = dom.profileExisting?.value || "";
+        if (selected.startsWith("series::")) {
+          const seriesId = selected.slice("series::".length);
+          const groupId = dom.profileGroup?.value;
+          const seriesData = state.series?.[groupId]?.[seriesId];
+          if (!seriesData) {
+            showToast(t("series.errors.notFound") || "Series not found.", true);
+            return;
+          }
+          // Set up wizard for editing this series — lock the type toggle
+          applySeriesToWizard(seriesData);
+          showScheduleMode("series", { lock: true });
+          setProfileEditConfirmed(true);
+          // Default to unlocked recurrence fields — async inspect below may re-lock
+          setRecurrenceFieldsLocked(false);
+          // Async: inspect occurrences to lock if started + backfill date/time if missing
+          inspectSeriesOccurrences(api, groupId, seriesId).then(info => {
+            if (info.started === true) setRecurrenceFieldsLocked(true);
+            if (!seriesData.firstOccurrenceUtc && info.earliestStart && dom.seriesStartDate?.value === "") {
+              const localDate = new Date(info.earliestStart);
+              if (!Number.isNaN(localDate.getTime())) {
+                const yyyy = localDate.getFullYear();
+                const mm = String(localDate.getMonth() + 1).padStart(2, "0");
+                const dd = String(localDate.getDate()).padStart(2, "0");
+                const hh = String(localDate.getHours()).padStart(2, "0");
+                const mi = String(localDate.getMinutes()).padStart(2, "0");
+                if (dom.seriesStartDate) dom.seriesStartDate.value = `${yyyy}-${mm}-${dd}`;
+                if (dom.seriesStartTime) dom.seriesStartTime.value = `${hh}:${mi}`;
+              }
+            }
+          }).catch(() => {});
+          // Land on step 2 (Basics) — most edits target event details, not recurrence
+          const w0 = getProfileWizard();
+          if (w0?.goTo) w0.goTo(1);
+          return;
+        }
+        // Template edit — existing flow, locked to template
+        state.schedules.editingType = "template";
+        state.schedules.editingSeriesId = null;
+        showScheduleMode("template", { lock: true });
+        const r = handleProfileEdit();
+        if (!r.success && r.message) showToast(r.message, true);
+      });
+    dom.profileDelete.addEventListener("click", async () => {
+      const selected = dom.profileExisting?.value || "";
+      if (selected.startsWith("series::")) {
+        const seriesId = selected.slice("series::".length);
+        await handleSeriesDelete(api, seriesId);
+        return;
+      }
+      const r = await handleProfileDelete(api);
+      if (r.success) { showToast(r.message); await refreshData(); resetProfileForm(); renderProfileLanguageList(); renderProfilePlatformList(); renderPatternList(); void renderProfileRoleRestrictions(api); }
+      else if (!r.cancelled) showToast(r.message, true);
+    });
+
+    // Refresh schedule list event (dispatched after series CRUD)
+    document.addEventListener("schedules:refresh", () => {
+      renderProfileList(api);
+    });
+
+    // Series recurrence form: live updates (in step 3 series mode)
+    if (dom.seriesFrequency) {
+      dom.seriesFrequency.addEventListener("change", () => updateSeriesFrequencyVisibility());
+    }
+    if (dom.seriesDuration) {
+      dom.seriesDuration.addEventListener("input", () => {
+        dom.seriesDuration.value = sanitizeDurationInputValue(dom.seriesDuration.value);
+        updateSeriesDurationPreview();
+      });
+      dom.seriesDuration.addEventListener("blur", () => {
+        normalizeDurationInput(dom.seriesDuration, 120);
+        updateSeriesDurationPreview();
+      });
+    }
+      // Save dispatches based on editingType
+      dom.profileSave.addEventListener("click", async () => {
+        if (state.schedules.editingType === "series") {
+          const result = state.schedules.editingSeriesId
+            ? await handleSeriesUpdate(api)
+            : await handleSeriesCreate(api);
+          if (result?.success) {
+            await refreshData({ preserveSelection: true });
+            renderProfileList(api);
+            // Reset wizard editing state and unlock toggle after series save
+            state.schedules.editingType = null;
+            state.schedules.editingSeriesId = null;
+            showScheduleMode(null, { lock: false });
+            // Reset form fields so the next New click starts fresh, but keep the group
+            resetProfileForm();
+            if (dom.profileExisting) dom.profileExisting.value = "";
+            updateProfileActionButtons();
+            // Return to step 1 (Selection) so user can pick another or create a new one
+            const wizard = getProfileWizard();
+            if (wizard?.goTo) wizard.goTo(0);
+          }
+          return;
+        }
+        // Template save — existing flow
+        const r = await handleProfileSave(api);
+        if (r.success) {
+          showToast(r.message);
+          await refreshData({ preserveSelection: true });
+          renderProfileList(api);
+          // Reset form fields and return to step 1 so user can pick another or create new
+          resetProfileForm();
+          if (dom.profileExisting) dom.profileExisting.value = "";
+          updateProfileActionButtons();
+          renderProfileLanguageList();
+          renderProfilePlatformList();
+          renderPatternList();
+          await renderProfileRoleRestrictions(api);
+          const wizard = getProfileWizard();
+          if (wizard?.goTo) wizard.goTo(0);
+        } else {
+          showToast(r.message, true);
+        }
+      });
       dom.profileLanguageFilter.addEventListener("input", renderProfileLanguageList);
       dom.profileAccess.addEventListener("change", () => handleProfileAccessChange(api));
     if (dom.profileDuration) {
@@ -1683,7 +1952,7 @@ import { initDemoControls } from "./demo.js";
       nextButton: dom.eventNext,
       beforeStepChange: handleEventWizardStepChange
     }));
-    setProfileWizard(setupWizard({ wizardId: "profile-wizard", stepsId: "profile-steps", backButton: dom.profileBack, nextButton: dom.profileNext, beforeStepChange: handleProfileWizardStepChange }));
+    setProfileWizard(setupWizard({ wizardId: "profile-wizard", stepsId: "profile-steps", backButton: dom.profileBack, nextButton: dom.profileNext, saveButton: dom.profileSave, beforeStepChange: handleProfileWizardStepChange }));
     api.onTwoFactorRequired(() => { dom.twoFactorOverlay.classList.remove("is-hidden"); dom.twoFactorCode.focus(); });
     const info = await api.getAppInfo();
     if (info) {

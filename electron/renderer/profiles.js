@@ -4,6 +4,8 @@ import { dom, state, setProfileEditConfirmed, getProfileEditConfirmed, getProfil
 import { t } from "./i18n/index.js";
 import { enforceTagsInput, sanitizeText, formatDuration, normalizeDurationInput, parseDurationInput, formatDurationPreview, enforceGroupAccess } from "./utils.js";
 import { fetchGroupRoles, renderRoleList } from "./roles.js";
+import { applySeriesToWizard, showScheduleMode } from "./series.js";
+import { showToast } from "./ui.js";
 
 let roleFetchToken = 0;
 let _discordApi = null;
@@ -533,16 +535,22 @@ export function updateProfileActionButtons() {
   }
 }
 
-// Render profile list for a selected group
+// Render schedule list (templates + series) for a selected group
 export function renderProfileList(api) {
   const groupId = dom.profileGroup.value;
   const currentValue = dom.profileExisting.value;
+  const filterType = state.schedules?.filterType || "all";
+
+  // Hide the "Choose a group" hint once a group is selected
+  if (dom.scheduleGroupHint) {
+    dom.scheduleGroupHint.classList.toggle("is-hidden", Boolean(groupId));
+  }
 
   if (!groupId) {
     dom.profileExisting.innerHTML = "";
     const option = document.createElement("option");
     option.value = "";
-    option.textContent = t("profiles.selectGroupFirst");
+    option.textContent = t("common.errors.noGroup");
     dom.profileExisting.appendChild(option);
     dom.profileExisting.disabled = true;
     updateProfileActionButtons();
@@ -551,31 +559,91 @@ export function renderProfileList(api) {
 
   const groupData = state.profiles?.[groupId];
   const profiles = groupData?.profiles || {};
-  const entries = Object.keys(profiles).map(profileKey => ({
-    label: getProfileLabel(profileKey, profiles[profileKey]),
-    value: `${groupId}::${profileKey}`
-  }));
+  const seriesMap = state.series?.[groupId] || {};
+
+  const templateEntries = [];
+  const seriesEntries = [];
+  if (filterType === "all" || filterType === "templates") {
+    Object.keys(profiles).forEach(profileKey => {
+      templateEntries.push({
+        label: getProfileLabel(profileKey, profiles[profileKey]),
+        value: `${groupId}::${profileKey}`
+      });
+    });
+  }
+  if (filterType === "all" || filterType === "series") {
+    Object.keys(seriesMap).forEach(seriesId => {
+      const s = seriesMap[seriesId];
+      seriesEntries.push({
+        label: s.label || "Untitled Series",
+        value: `series::${seriesId}`
+      });
+    });
+  }
+  const totalEntries = templateEntries.length + seriesEntries.length;
 
   dom.profileExisting.innerHTML = "";
   const placeholderOption = document.createElement("option");
   placeholderOption.value = "";
-  placeholderOption.textContent = entries.length
-    ? t("profiles.existingProfilePlaceholder")
-    : t("profiles.noProfiles");
+  // Filter-aware empty placeholder
+  if (totalEntries === 0) {
+    if (filterType === "templates") {
+      placeholderOption.textContent = t("schedules.empty.templates") || "No templates for this group.";
+    } else if (filterType === "series") {
+      placeholderOption.textContent = t("schedules.empty.series") || "No series for this group.";
+    } else {
+      placeholderOption.textContent = t("schedules.empty.all") || "No schedules for this group.";
+    }
+  } else {
+    placeholderOption.textContent = t("profiles.existingProfilePlaceholder") || "Select…";
+  }
   dom.profileExisting.appendChild(placeholderOption);
 
-  entries.forEach(entry => {
-    const option = document.createElement("option");
-    option.value = entry.value;
-    option.textContent = entry.label;
-    dom.profileExisting.appendChild(option);
-  });
+  const appendEntries = (entries) => {
+    entries.forEach(entry => {
+      const option = document.createElement("option");
+      option.value = entry.value;
+      option.textContent = entry.label;
+      dom.profileExisting.appendChild(option);
+    });
+  };
 
-  if (currentValue && entries.some(entry => entry.value === currentValue)) {
+  if (filterType === "all") {
+    // Use optgroups when showing both
+    if (templateEntries.length) {
+      const tplGroup = document.createElement("optgroup");
+      tplGroup.label = t("common.labels.templates") || "Templates";
+      templateEntries.forEach(entry => {
+        const option = document.createElement("option");
+        option.value = entry.value;
+        option.textContent = entry.label;
+        tplGroup.appendChild(option);
+      });
+      dom.profileExisting.appendChild(tplGroup);
+    }
+    if (seriesEntries.length) {
+      const srGroup = document.createElement("optgroup");
+      srGroup.label = t("common.labels.series") || "Series";
+      seriesEntries.forEach(entry => {
+        const option = document.createElement("option");
+        option.value = entry.value;
+        option.textContent = entry.label;
+        srGroup.appendChild(option);
+      });
+      dom.profileExisting.appendChild(srGroup);
+    }
+  } else {
+    // Single-type view — flat list, no group needed
+    appendEntries(templateEntries);
+    appendEntries(seriesEntries);
+  }
+
+  const allValues = [...templateEntries, ...seriesEntries].map(e => e.value);
+  if (currentValue && allValues.includes(currentValue)) {
     dom.profileExisting.value = currentValue;
   }
 
-  dom.profileExisting.disabled = entries.length === 0;
+  dom.profileExisting.disabled = totalEntries === 0;
   updateProfileActionButtons();
 }
 
@@ -587,13 +655,13 @@ export function validateProfileBasics() {
   const missing = [];
 
   if (!displayName) {
-    missing.push("Profile name");
+    missing.push(t("profiles.displayName") || "Schedule name");
   }
   if (!eventName) {
-    missing.push("Event name");
+    missing.push(t("common.fields.eventName") || "Event name");
   }
   if (!description) {
-    missing.push("Description");
+    missing.push(t("common.fields.description") || "Description");
   }
 
   if (missing.length) {
@@ -604,31 +672,109 @@ export function validateProfileBasics() {
   return { valid: true };
 }
 
+// Helper that mirrors a renderer log line to both console AND the persistent debug log file
+function _wlog(message) {
+  console.log("[wizard]", message);
+  if (window.vrcEvent?.debugLog) {
+    window.vrcEvent.debugLog({ context: "wizard", message: typeof message === "string" ? message : JSON.stringify(message) }).catch(() => {});
+  }
+}
+
 // Handle profile wizard step change
 export function handleProfileWizardStepChange({ current, next }) {
-  if (next <= current) {
+  _wlog(`step change current=${current} next=${next} selected=${dom.profileExisting?.value || ""} editConfirmed=${getProfileEditConfirmed()}`);
+  if (next < current) {
+    syncStep3Mode(next);
+    return true;
+  }
+  if (next === current) {
     return true;
   }
 
   if (current === 0 && next > 0) {
     if (!dom.profileGroup.value) {
-      return { allowed: false, message: "Select a group first." };
+      _wlog("blocked: no group");
+      showToast(t("common.errors.noGroup") || "Select a group.", true);
+      return false;
     }
-    if (!getProfileEditConfirmed()) {
+    const selected = dom.profileExisting?.value || "";
+    if (selected) {
+      const groupId = dom.profileGroup.value;
+      _wlog(`forward with selection: ${selected} editingType=${state.schedules?.editingType}`);
+      if (selected.startsWith("series::")) {
+        const seriesId = selected.slice("series::".length);
+        const seriesData = state.series?.[groupId]?.[seriesId];
+        state.schedules.editingType = "series";
+        state.schedules.editingSeriesId = seriesId;
+        if (seriesData) {
+          _wlog("applying series data to wizard");
+          applySeriesToWizard(seriesData);
+          showScheduleMode("series", { lock: true });
+        } else {
+          _wlog(`series data missing for ${groupId} / ${seriesId} — have keys: ${Object.keys(state.series?.[groupId] || {}).join(",")}`);
+        }
+      } else {
+        const parts = selected.split("::");
+        const profileKey = parts.slice(1).join("::");
+        if (groupId && profileKey) {
+          state.schedules.editingType = "template";
+          state.schedules.editingSeriesId = null;
+          applyProfileToForm(groupId, profileKey);
+          showScheduleMode("template", { lock: true });
+        }
+      }
+      setProfileEditConfirmed(true);
+    } else if (!getProfileEditConfirmed()) {
+      _wlog("no selection — resetting form (New flow)");
       resetProfileForm();
-      dom.profileExisting.value = "";
       updateProfileActionButtons();
     }
   }
 
   if (next > 1) {
     const validation = validateProfileBasics();
+    _wlog(`validation valid=${validation.valid} msg="${validation.message || ""}" displayName="${dom.profileDisplayName?.value || ""}" name="${dom.profileName?.value || ""}" descLen=${dom.profileDescription?.value?.length || 0}`);
     if (!validation.valid) {
-      return { allowed: false, message: validation.message };
+      showToast(validation.message, true);
+      return false;
     }
   }
 
+  // When entering step 3 (index 2), ensure the chooser/mode is visible per editingType
+  if (next === 2) {
+    syncStep3Mode(next);
+  }
+
   return true;
+}
+
+// Sync step 3 mode container visibility based on state.schedules.editingType.
+// Defaults to "template" if no type was chosen yet (the toggle always shows one mode).
+function syncStep3Mode(stepIndex) {
+  if (stepIndex !== 2) return;
+  const editingType = state.schedules?.editingType || "template";
+  // Auto-default to template the first time the user lands on step 3 without a type
+  if (!state.schedules?.editingType) {
+    state.schedules.editingType = "template";
+  }
+  if (dom.scheduleModeTemplate) {
+    dom.scheduleModeTemplate.classList.toggle("is-hidden", editingType !== "template");
+  }
+  if (dom.scheduleModeSeries) {
+    dom.scheduleModeSeries.classList.toggle("is-hidden", editingType !== "series");
+  }
+  if (dom.scheduleTypeTemplateBtn) {
+    dom.scheduleTypeTemplateBtn.classList.toggle("is-active", editingType === "template");
+  }
+  if (dom.scheduleTypeSeriesBtn) {
+    dom.scheduleTypeSeriesBtn.classList.toggle("is-active", editingType === "series");
+  }
+  if (dom.scheduleModeBlurbTemplate) {
+    dom.scheduleModeBlurbTemplate.classList.toggle("is-hidden", editingType !== "template");
+  }
+  if (dom.scheduleModeBlurbSeries) {
+    dom.scheduleModeBlurbSeries.classList.toggle("is-hidden", editingType !== "series");
+  }
 }
 
 // Handle profile group change
@@ -827,7 +973,7 @@ export async function handleProfileSave(api) {
       await api.updateProfile(profilePayload);
       return {
         success: true,
-        message: "Profile updated.",
+        message: t("profiles.updated"),
         groupId,
         profileKey,
         wasEdit: true
@@ -836,7 +982,7 @@ export async function handleProfileSave(api) {
       await api.createProfile(profilePayload);
       return {
         success: true,
-        message: "Profile created.",
+        message: t("profiles.created"),
         groupId,
         profileKey,
         wasEdit: false
@@ -861,7 +1007,7 @@ export async function handleProfileDelete(api) {
   const profile = state.profiles?.[groupId]?.profiles?.[profileKey];
   const label = getProfileLabel(profileKey, profile);
 
-  const confirmDelete = window.confirm(`Delete profile "${label}"?`);
+  const confirmDelete = window.confirm(t("profiles.confirmDelete", { name: label }));
   if (!confirmDelete) {
     return { success: false, cancelled: true };
   }
@@ -870,7 +1016,7 @@ export async function handleProfileDelete(api) {
     await api.deleteProfile({ groupId, profileKey });
     return {
       success: true,
-      message: "Profile deleted."
+      message: t("profiles.deleted")
     };
   } catch (err) {
     return {
@@ -1262,13 +1408,24 @@ export function updateDiscordVisibility({ expandPanel } = {}) {
   if (!eventKitActive && dom.eventWebhookMessageInput) {
     dom.eventWebhookMessageInput.classList.add("is-hidden");
   }
+  // Hide the announcements card entirely when no toggles inside are visible
+  if (dom.profileAnnouncementsCard) {
+    const anyVisible = (dom.discordSyncField && !dom.discordSyncField.classList.contains("is-hidden"))
+      || (dom.webhookPostField && !dom.webhookPostField.classList.contains("is-hidden"))
+      || (dom.profileWebhookMessageField && !dom.profileWebhookMessageField.classList.contains("is-hidden"));
+    dom.profileAnnouncementsCard.classList.toggle("is-hidden", !anyVisible);
+  }
 }
 
 /** Update visibility of calendar-related fields across the app.
  * Called when calendarEnabled setting changes, or when profile calendar sync toggles change. */
 export function updateCalendarVisibility() {
   const calendarEnabled = state.settings?.calendarEnabled === true;
-  // Profile calendar reminders card: visible if calendar enabled AND calendarSync checked
+  // Calendar Invite card (step 3): visible when the calendar feature is enabled in settings
+  if (dom.profileCalendarInviteCard) {
+    dom.profileCalendarInviteCard.classList.toggle("is-hidden", !calendarEnabled);
+  }
+  // Reminders subsection: visible when the Create .ics toggle is checked
   if (dom.profileCalendarRemindersCard) {
     const calendarSyncOn = calendarEnabled && dom.calendarSyncCheck?.checked === true;
     dom.profileCalendarRemindersCard.classList.toggle("is-hidden", !calendarSyncOn);

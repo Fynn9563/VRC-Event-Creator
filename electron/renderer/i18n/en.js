@@ -4,8 +4,142 @@ export const en = {
   nav: {
     create: "Create Event",
     modify: "Modify Events",
-    profiles: "Manage Templates",
+    schedules: "Manage Schedules",
     settings: "Settings"
+  },
+  schedules: {
+    subtitle: "Templates for announcement-driven scheduling and native VRChat recurring series.",
+    saveButton: {
+      template: "Save Template",
+      seriesCreate: "Create Series"
+    },
+    announcements: {
+      title: "Announcements",
+      hint: "Toggle the actions to perform when this schedule posts an event.",
+      hintSeries: "Toggle the actions to perform when this series is created or modified."
+    },
+    modeBlurb: {
+      template: "Templates autofill repeated events and post each occurrence individually with optional announcements.",
+      series: "A series is VRChat's native recurring event scheduler. The server pre-generates all occurrences. No announcements.",
+      moreInfo: "(more info)"
+    },
+    info: {
+      template: {
+        title: "Templates",
+        bullet1: "Each event posts as an independent calendar entry — modifiable per occurrence.",
+        bullet2: "Optionally announce each event via Discord scheduled events, webhooks, and .ics calendar invites.",
+        bullet3: "Combine with automation and pattern-based scheduling for hands-off posting.",
+        bullet4: "Requires the app to be running for automated posting."
+      },
+      series: {
+        title: "Series",
+        bullet1: "VRChat pre-generates all occurrences server-side from a recurrence rule.",
+        bullet2: "Set-and-forget — no app required after creation.",
+        bullet3: "Limitations: no per-event announcements; the recurrence rule cannot be changed without regenerating all occurrences (modifications are lost).",
+        bullet4: "Best for stable, repeating events that don't need announcements."
+      }
+    },
+    filter: {
+      label: "Show",
+      all: "All"
+    },
+    types: {
+      templateButton: "Template",
+    },
+    empty: {
+      all: "No schedules for this group.",
+      templates: "No templates for this group.",
+      series: "No series for this group."
+    },
+    new: {
+    }
+  },
+  series: {
+    section: {
+    },
+    labels: {
+      startDate: "First Occurrence Date",
+      startTime: "Start Time",
+      frequency: "Frequency",
+      interval: "Repeat every",
+      daysOfWeek: "Repeats on",
+      endCondition: "Ends"
+    },
+    frequency: {
+      daily: "Daily",
+      weekly: "Weekly",
+      weekdays: "Weekdays",
+      weekends: "Weekends",
+      monthly: "Monthly",
+      yearly: "Yearly",
+      custom: "Custom"
+    },
+    unit: {
+      days: "days",
+      weeks: "weeks",
+      months: "months",
+      years: "years"
+    },
+    days: {
+      mo: "Mon",
+      tu: "Tue",
+      we: "Wed",
+      th: "Thu",
+      fr: "Fri",
+      sa: "Sat",
+      su: "Sun"
+    },
+    end: {
+      never: "Never",
+      afterOccurrencesLabel: "After N occurrences",
+      afterDateLabel: "On a specific date",
+      occurrencesLabel: "occurrences"
+    },
+    disclaimer: "A series can only be rescheduled before its first occurrence begins. Once it starts, you must delete it to change the date or time. Events can be scheduled up to one year ahead. Maximum event length is 31 days.",
+    lockedHint: "This series has already started. Date, time, and the repeat rule are locked — but you can still adjust when it ends. To reschedule, click Unlock — saving will replace this series with a new one.",
+    unlockButton: "Unlock",
+    regenWarning: "Recurrence is unlocked. If you change the recurrence, the current series will be replaced with a new one.",
+    regenWarningWithMods: "Recurrence is unlocked. If you change the recurrence, the current series will be replaced with a new one and you'll be asked how to handle its {count} modified events.",
+    regen: {
+      confirmMessage: "This will replace the current series with a new one. Continue?",
+      confirmAction: "Replace Series",
+      choiceTitle: "Replace series?",
+      choiceMessage: "This series has {count} modified events. The current series will be replaced with a new one.\n\n• Keep modifications: same-day overlaps update the new series; non-overlap events become standalones.\n• Discard modifications: changes to those occurrences are lost.",
+      keep: "Keep Modifications",
+      discard: "Discard Modifications",
+      success: "Series \"{label}\" replaced.",
+      successWithMods: "Series \"{label}\" replaced. {count} modifications queued."
+    },
+    rasterize: {
+      statusText: "{count} pending event(s) waiting to be created.{wait}",
+      retryIn: "Next retry in {wait}.",
+      retryNow: "Retry Now"
+    },
+    buttons: {
+    },
+    created: "Series \"{label}\" created.",
+    updated: "Series \"{label}\" updated.",
+    deleted: "Series \"{label}\" deleted.",
+    confirmDelete: "Delete \"{label}\"? This will remove the series and all its occurrences from VRChat.",
+    confirmDeleteTitle: "Delete series?",
+    updateRequired: "Update available. Please update before changing series.",
+    warnings: {
+      confirmUpdate: "Update Series"
+    },
+    errors: {
+      noLabel: "Series label is required.",
+      noTitle: "Event name is required.",
+      noStartDate: "First occurrence date and time are required.",
+      startInPast: "First occurrence must be in the future. Update the date before saving.",
+      noDaysOfWeek: "Select at least one day of the week.",
+      noEndDate: "Set an end date.",
+      notFound: "Series not found.",
+      createFailed: "Could not create series.",
+      updateFailed: "Could not update series.",
+      deleteFailed: "Could not delete series.",
+      regenFailed: "Could not regenerate series.",
+      noSeries: "No series selected."
+    }
   },
   auth: {
     title: "Access Node",
@@ -18,10 +152,8 @@ export const en = {
     loggingIn: "Logging in...",
     loginFailed: "Login failed.",
     sessionChecking: "Checking session...",
-    sessionCheckFailed: "Session check failed.",
     loginRequired: "Login required.",
     loggedInAs: "Logged in as {name}.",
-    logoutFailed: "Logout failed.",
     loggedOut: "Logged out."
   },
   twoFactor: {
@@ -55,19 +187,12 @@ export const en = {
     loadFailed: "Could not load gallery."
   },
   settings: {
-    title: "Settings",
+    featuredVerification: {
+      permissionDenied: "This group is not permitted to create featured events."
+    },
     theme: {
       title: "Theme",
       description: "Customize the appearance of the app. Select a preset or adjust manually.",
-      label: "Color Theme",
-      default: "Default (Teal/Green)",
-      blue: "Ocean Blue",
-      purple: "Purple Haze",
-      amber: "Altimit Amber",
-      red: "Crimson Red",
-      custom: "Custom Colors",
-      accentColor: "Accent Color",
-      bgColor: "Background Color",
       presetLabel: "Current Theme",
       nameLabel: "Theme Name",
       namePlaceholder: "New theme name",
@@ -149,10 +274,8 @@ export const en = {
       autoUploadImages: "Automatically upload gallery images from imported events/templates"
     },
     discord: {
-      title: "Discord Integration",
       enable: "Enable Discord integration",
       description: "Automatically create Discord Events when VRChat events are posted.",
-      profileHint: "Events from this template will also be posted to Discord.",
       tokenLabel: "Bot Token",
       tokenPlaceholder: "Paste your bot token",
       guildLabel: "Server ID",
@@ -161,11 +284,9 @@ export const en = {
       testSuccess: "Connected as {botName}",
       testFailed: "Connection failed. Check your bot token.",
       tokenMissing: "Enter a bot token first.",
-      groupLabel: "Group",
       selectGroup: "Select a group...",
       saveButton: "Save",
       saved: "Discord settings saved.",
-      syncLabel: "Post to Discord",
       eventLabel: "Create Discord Event",
       syncSuccess: "Discord event created for \"{title}\"",
       syncFailed: "Discord sync failed for \"{title}\": {error}"
@@ -177,23 +298,16 @@ export const en = {
       syncFailed: "Webhook delivery failed for \"{title}\": {error}"
     },
     calendar: {
-      title: "Calendar Integration",
-      description: "Generate .ics calendar files with reminders, auto-saved locally or attached to webhook posts.",
       enable: "Enable calendar file generation",
+      inviteTitle: "Calendar Invite",
       createInvite: "Create .ics Calendar Invite",
-      remindersTitle: ".ics Calendar Reminders",
       enableReminders: "Enable .ics Calendar Reminders",
-      remindersDescription: "Configure default reminders included in .ics files.",
       addReminder: "Add Reminder",
-      postToDiscord: "Post .ics to Discord",
       unit: {
         minutes: "minutes",
         hours: "hours",
         days: "days"
       },
-      syncLabel: "Attach .ics file",
-      syncSuccess: "Calendar file sent for \"{title}\"",
-      syncFailed: "Calendar file delivery failed for \"{title}\": {error}",
       webhookLabel: "Webhook URL",
       webhookPlaceholder: "https://discord.com/api/webhooks/...",
       webhookTestButton: "Test Webhook",
@@ -255,7 +369,6 @@ export const en = {
     ios: "iOS"
   },
   events: {
-    title: "Create Event",
     steps: {
       group: "Group",
       date: "Date",
@@ -273,7 +386,6 @@ export const en = {
       groupRequired: "Group (required)",
       profileOptional: "Template (optional)",
       advanced: "Advanced",
-      importJson: "Import from JSON",
       dateSource: "Use",
       dateSourcePattern: "Pattern",
       dateSourceManual: "Manual",
@@ -283,7 +395,6 @@ export const en = {
     },
     hints: {
       profileDefaults: "Pick a template for defaults, or leave blank to create manually.",
-      importJson: "Import event details from a JSON file."
     },
     dateHints: {
       default: "Manual mode is ready. Templates with patterns unlock date options.",
@@ -295,19 +406,12 @@ export const en = {
     },
     profileHint: "Templates are optional. Use one for defaults, or create everything manually.",
     loadProfile: "Load Template (optional)",
-    loadProfilePlaceholder: "Select a template",
     clearProfile: "Clear Template",
-    importJsonButton: "Import JSON",
     importSuccess: "Event data imported from JSON.",
     importWrongType: "This appears to be a template JSON. Please use Import Template instead.",
-    exportJsonButton: "Export JSON",
     exportSuccess: "Event data exported to JSON.",
-    dateSource: "Date & Time",
-    dateSourceManual: "Manual",
-    dateSourcePattern: "From template pattern",
     dateOption: "Select Date",
     patternDateLabel: "{label} - {date}",
-    access: "Access",
     roleRestrictions: {
       title: "Role Restrictions",
       hint: "Optional - If enabled, only the selected group roles may join.",
@@ -337,20 +441,34 @@ export const en = {
     },
     created: "Event created.",
     failed: "Could not create event.",
-    selectGroupError: "Select a group.",
     selectDateError: "Select a date.",
     updateRequired: "Update available. Please update before creating events.",
-    requiredSingle: "{field} is required.",
-    requiredMultiple: "{fields} are required.",
-    noDateOptionsError: "No date options available from template.",
     featuredPermissionRevoked: "This group no longer has permission to create featured events.",
     groupFairPermissionRevoked: "This group no longer has permission to include events in the Group Fair."
   },
   modify: {
-    title: "Modify Events",
     subtitle: "Edit or delete upcoming group events.",
-    groupLabel: "Group",
-    showPending: "Show Pending",
+    filter: {
+    },
+    filtersButton: "Filters",
+    timeRange: {
+      label: "Time Range",
+      "1week": "1 week",
+      "2weeks": "2 weeks",
+      "1month": "1 month",
+      "3months": "3 months",
+      "6months": "6 months",
+      "1year": "1 year"
+    },
+    filters: {
+      heading: "Show",
+      pending: "Pending events",
+      standalone: "Standalone events",
+      modified: "Modified occurrences"
+    },
+    badge: {
+      modified: "Modified"
+    },
     countEmpty: "Upcoming events unavailable.",
     countGroupFallback: "This group",
     countStatus: "Upcoming events for {group}: {count}.",
@@ -359,8 +477,6 @@ export const en = {
     eventImage: "Event image",
     noImage: "No image",
     untitled: "Untitled event",
-    profileLabel: "Load Template (optional)",
-    profileSelect: "Select a template",
     profileLoad: "Load",
     profileSelectError: "Select a template to load.",
     profileLoadFailed: "Could not load template defaults.",
@@ -373,10 +489,7 @@ export const en = {
     },
     updateRequired: "Update available. Please update before modifying events.",
     selectEventError: "Select an event to edit.",
-    requiredSingle: "{field} is required.",
     selectDateError: "Select a date and time.",
-    durationError: "Duration must be a positive number.",
-    maxLanguages: "Maximum 3 languages allowed.",
     saveFailed: "Could not update event.",
     saved: "Event updated.",
     deleteFailed: "Could not delete event.",
@@ -404,8 +517,6 @@ export const en = {
     postingOptions: "Posting Options"
   },
   profiles: {
-    title: "Manage Templates",
-    subtitle: "Create reusable templates per group.",
     steps: {
       select: "Select",
       basics: "Basics",
@@ -413,35 +524,22 @@ export const en = {
       audience: "Audience"
     },
     section: {
-      selection: "Template Selection",
-      basics: "Template Basics",
-      schedule: "Schedule",
+      basics: "Schedule Basics",
       audience: "Audience"
-    },
-    labels: {
-      group: "Group",
-      profile: "Template"
     },
     buttons: {
       new: "New"
     },
-    importJsonButton: "Import JSON",
     importSuccess: "Template data imported from JSON.",
     importWrongType: "This appears to be an event JSON. Please use Import Event instead.",
-    exportJsonButton: "Export JSON",
     exportSuccess: "Template data exported to JSON.",
     hints: {
       groupAccess: "Choose a group with calendar access.",
       patternsInfo: "Patterns are used to pre-generate upcoming dates."
     },
-    existingProfile: "Existing Template",
-    existingProfilePlaceholder: "Select a template",
-    noProfiles: "No templates for this group",
-    newButton: "New Template",
-    saveButton: "Save Template",
-    displayName: "Template Name",
-    displayNamePlaceholder: "Community Hangout Template",
-    access: "Access",
+    existingProfilePlaceholder: "Select a schedule",
+    displayName: "Schedule Name",
+    displayNamePlaceholder: "Community Hangout",
     durationDefault: "Default Duration (DD:HH:MM)",
     dateMode: "Date Mode",
     dateModePattern: "Pattern based",
@@ -449,7 +547,6 @@ export const en = {
     dateModeBoth: "Patterns + manual",
     sendNotificationDefault: "Send Notification by default",
     patterns: {
-      title: "Recurring Patterns",
       addButton: "Add Pattern",
       clearButton: "Clear Patterns",
       noPatterns: "No patterns yet.",
@@ -486,7 +583,7 @@ export const en = {
       ordinal4: "4th"
     },
     automation: {
-      title: "Automation (Experimental)",
+      title: "Automation",
       description: "Automatically post events based on your patterns. Events will appear as \"Pending\" in Modify Events.",
       enableLabel: "Enable Automation",
       timingLabel: "Scheduling Rule",
@@ -496,13 +593,7 @@ export const en = {
         after: "After previous event ends",
         monthly: "Monthly on specific day"
       },
-      offsetHint: "How long before/after to post the event listing:",
-      days: "Days",
-      hours: "Hours",
-      minutes: "Minutes",
-      monthlyHint: "Post events on this day each month:",
       monthlyDay: "Day of Month",
-      monthlyDayHint: "Days 29-31 will use the last day of shorter months",
       monthlyTime: "Time",
       repeatMode: "Repeat",
       repeatModes: {
@@ -510,7 +601,6 @@ export const en = {
         count: "Fixed count"
       },
       repeatCount: "Events to Create",
-      disclaimer: "Automation requires the app to be running. Missed automations can be handled from the Modify Events tab.",
       patternsRequired: "At least one pattern is required for automation",
       confirmTitle: "Enable Automation?",
       confirmEnable: "Automations require the app to be running to post events. Missed automations can be handled from the Modify Events tab.",
@@ -530,11 +620,6 @@ export const en = {
         monthly: "Every month on the {day}{ordinal} at {time}"
       },
       helpers: {
-        offsetDays: "Set how many days before/after to post the event",
-        offsetHours: "Set how many hours before/after to post the event",
-        offsetMinutes: "Set how many minutes before/after to post the event",
-        monthlyDay: "Days 29-31 will use the last day of shorter months",
-        monthlyTime: "Set the time when events will be posted each month"
       },
       offsetProse: "Post the next event 7 days before it begins.",
       monthlyProse: "Every month on the 1st at 6:00 PM",
@@ -549,14 +634,6 @@ export const en = {
     updated: "Template updated.",
     deleted: "Template deleted.",
     confirmDelete: "Delete template \"{name}\"?",
-    selectGroupError: "Select a group.",
-    selectGroupFirst: "Select a group first.",
-    selectProfileError: "Select a template to edit.",
-    maxLanguages: "Maximum 3 languages allowed.",
-    durationError: "Duration must be a positive number.",
-    required: "{fields} {verb} required.",
-    requiredSingle: "{field} is required.",
-    requiredMultiple: "{fields} are required."
   },
   common: {
     syncing: "Syncing data...",
@@ -576,13 +653,31 @@ export const en = {
     refresh: "Refresh",
     edit: "Edit",
     delete: "Delete",
+    importJson: "Import JSON",
+    exportJson: "Export JSON",
+    selectTemplate: "Select a template",
     rateLimitError: "Rate limited. Please wait and try again later.",
     featuredEvent: "Featured Event",
     groupFairEvent: "Include in Group Fair",
     noMatches: "No matches.",
     noGroupsAccess: "No groups with calendar access",
-    selectGroup: "Select Group",
     selectGroupPlaceholder: "Choose a group",
+    errors: {
+      noGroup: "Select a group.",
+      requiredSingle: "{field} is required.",
+      requiredMultiple: "{fields} are required.",
+      maxLanguages: "Maximum 3 languages allowed.",
+      durationError: "Duration must be a positive number."
+    },
+    section: {
+      scheduleSelection: "Schedule Selection"
+    },
+    labels: {
+      schedule: "Schedule",
+      group: "Group",
+      series: "Series",
+      templates: "Templates"
+    },
     accessTypes: {
       public: "Public",
       group: "Group"
@@ -630,8 +725,6 @@ export const en = {
       languagesHint: "{count} selected",
       filterLanguages: "Filter languages...",
       platforms: "Platforms",
-      manualDate: "Date",
-      manualTime: "Time"
     }
   },
   wizard: {

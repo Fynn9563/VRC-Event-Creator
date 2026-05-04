@@ -111,7 +111,7 @@ export const dom = {
   eventWarnConflicts: document.getElementById("event-warn-conflicts"),
   modifyGroup: document.getElementById("modify-group"),
   modifyRefresh: document.getElementById("modify-refresh"),
-  modifyShowPending: document.getElementById("modify-show-pending"),
+  modifyShowPending: null, // legacy — replaced by modifyFilterPending
   modifyEventGrid: document.getElementById("modify-event-grid"),
   modifyCount: document.getElementById("modify-count"),
   modifyOverlay: document.getElementById("modify-overlay"),
@@ -238,6 +238,7 @@ export const dom = {
   discordTestResult: document.getElementById("discord-test-result"),
   discordSaveBtn: document.getElementById("discord-save-btn"),
   discordConfiguredList: document.getElementById("discord-configured-list"),
+  profileAnnouncementsCard: document.getElementById("profile-announcements-card"),
   discordSyncField: document.getElementById("discord-sync-field"),
   discordSyncCheck: document.getElementById("discord-sync-check"),
   eventDiscordSyncField: document.getElementById("event-discord-sync-field"),
@@ -256,6 +257,7 @@ export const dom = {
   calendarSyncField: document.getElementById("calendar-sync-field"),
   calendarSyncCheck: document.getElementById("calendar-sync-check"),
   // Profile calendar reminders (Schedule step)
+  profileCalendarInviteCard: document.getElementById("profile-calendar-invite-card"),
   profileCalendarRemindersCard: document.getElementById("profile-calendar-reminders-card"),
   profileCalendarRemindersEnabled: document.getElementById("profile-calendar-reminders-enabled"),
   profileCalendarRemindersList: document.getElementById("profile-calendar-reminders-list"),
@@ -316,7 +318,47 @@ export const dom = {
   modifyWebhookMessageInput: document.getElementById("modify-webhook-message-input"),
   modifyWebhookMessage: document.getElementById("modify-webhook-message"),
   modifyWebhookImagePath: document.getElementById("modify-webhook-image-path"),
-  modifyWebhookImageBtn: document.getElementById("modify-webhook-image-btn")
+  modifyWebhookImageBtn: document.getElementById("modify-webhook-image-btn"),
+  // Modify Events series filter
+  // Modify view filters
+  modifyTimeRange: document.getElementById("modify-time-range"),
+  modifyFiltersBtn: document.getElementById("modify-filters-btn"),
+  modifyFiltersPanel: document.getElementById("modify-filters-panel"),
+  modifyFilterPending: document.getElementById("modify-filter-pending"),
+  modifyFilterStandalone: document.getElementById("modify-filter-standalone"),
+  modifyFilterModified: document.getElementById("modify-filter-modified"),
+  modifyFilterSeriesGroup: document.getElementById("modify-filter-series-group"),
+  modifyFilterSeriesList: document.getElementById("modify-filter-series-list"),
+  // Schedule selection helpers
+  scheduleGroupHint: document.getElementById("schedule-group-hint"),
+  // Schedule type filter chips
+  scheduleFilterChips: document.getElementById("schedule-filter-chips"),
+  // Step 3 type toggle + mode containers
+  scheduleTypeTemplateBtn: document.getElementById("schedule-type-template-btn"),
+  scheduleTypeSeriesBtn: document.getElementById("schedule-type-series-btn"),
+  scheduleModeBlurbTemplate: document.getElementById("schedule-mode-blurb-template"),
+  scheduleModeBlurbSeries: document.getElementById("schedule-mode-blurb-series"),
+  scheduleModeMoreInfo: document.getElementById("schedule-mode-more-info"),
+  scheduleModeInfo: document.getElementById("schedule-mode-info"),
+  scheduleModeTemplate: document.getElementById("schedule-mode-template"),
+  scheduleModeSeries: document.getElementById("schedule-mode-series"),
+  // Series-specific recurrence inputs (in step 3)
+  seriesDuration: document.getElementById("series-duration"),
+  seriesDurationPreview: document.getElementById("series-duration-preview"),
+  seriesStartDate: document.getElementById("series-start-date"),
+  seriesStartTime: document.getElementById("series-start-time"),
+  seriesTimezone: document.getElementById("series-timezone"),
+  seriesFrequency: document.getElementById("series-frequency"),
+  seriesCustomRow: document.getElementById("series-custom-row"),
+  seriesInterval: document.getElementById("series-interval"),
+  seriesIntervalUnit: document.getElementById("series-interval-unit"),
+  seriesDaysOfWeekField: document.getElementById("series-days-of-week-field"),
+  seriesEndType: document.getElementById("series-end-type"),
+  seriesEndOccurrencesRow: document.getElementById("series-end-occurrences-row"),
+  seriesEndDateRow: document.getElementById("series-end-date-row"),
+  seriesEndCount: document.getElementById("series-end-count"),
+  seriesEndDate: document.getElementById("series-end-date"),
+  seriesModificationWarning: document.getElementById("series-modification-warning")
 };
 
 export const state = {
@@ -331,6 +373,14 @@ export const state = {
   groupRoles: {},
   kitGroupIds: [],
   profiles: {},
+  series: {},
+  schedules: {
+    filterType: "all",       // "all" | "templates" | "series" — list filter
+    selectedType: null,      // "template" | "series" — what's currently selected in the dropdown
+    editingType: null,       // "template" | "series" | null — current wizard mode
+    editingSeriesId: null,   // when editing an existing series
+    recurrenceUnlocked: false // user clicked Unlock on a started series — save uses regenerate flow
+  },
   event: {
     languages: [],
     platforms: [],
@@ -370,9 +420,16 @@ export const state = {
     refreshBackoffUntil: 0,
     refreshBackoffIndex: 0,
     lastRefreshTime: 0,
-    showPending: true,
+    showPending: true,                   // legacy — kept for backward refs, mirrors filters.pending
     missedCount: 0,
-    selectedImageUrl: ""
+    selectedImageUrl: "",
+    filters: {
+      pending: true,
+      standalone: true,
+      modified: true,
+      series: {}                         // keyed by seriesId, true=visible
+    },
+    timeRangeDays: 90                    // default 3 months — persisted in settings
   },
   profile: {
     mode: "create",

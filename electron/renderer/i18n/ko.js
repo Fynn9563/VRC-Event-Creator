@@ -4,8 +4,8 @@ export const ko = {
   nav: {
     create: "이벤트 만들기",
     modify: "이벤트 수정",
-    profiles: "템플릿 관리",
-    settings: "설정"
+    settings: "설정",
+    schedules: "일정 관리"
   },
   auth: {
     title: "로그인",
@@ -18,10 +18,8 @@ export const ko = {
     loggingIn: "로그인 중...",
     loginFailed: "로그인 실패.",
     sessionChecking: "세션 확인 중...",
-    sessionCheckFailed: "세션 확인 실패.",
     loginRequired: "로그인이 필요합니다.",
     loggedInAs: "{name}로 로그인됨.",
-    logoutFailed: "로그아웃 실패.",
     loggedOut: "로그아웃됨."
   },
   twoFactor: {
@@ -55,19 +53,9 @@ export const ko = {
     loadFailed: "갤러리를 불러올 수 없습니다."
   },
   settings: {
-    title: "설정",
     theme: {
       title: "테마",
       description: "앱의 외형을 사용자 지정하세요. 프리셋을 선택하거나 수동으로 조정하세요.",
-      label: "색상 테마",
-      default: "기본 (청록/초록)",
-      blue: "오션 블루",
-      purple: "퍼플 헤이즈",
-      amber: "알티밋 앰버",
-      red: "크림슨 레드",
-      custom: "사용자 색상",
-      accentColor: "강조 색상",
-      bgColor: "배경 색상",
       presetLabel: "현재 테마",
       nameLabel: "테마 이름",
       namePlaceholder: "새 테마 이름",
@@ -149,10 +137,8 @@ export const ko = {
       autoUploadImages: "가져온 이벤트/템플릿에서 갤러리 이미지 자동 업로드"
     },
     discord: {
-      title: "Discord 연동",
       enable: "Discord 연동 활성화",
       description: "VRChat 이벤트 생성 시 Discord 이벤트를 자동으로 만듭니다.",
-      profileHint: "이 템플릿의 이벤트가 Discord에도 게시됩니다.",
       tokenLabel: "봇 토큰",
       tokenPlaceholder: "봇 토큰 붙여넣기",
       guildLabel: "서버 ID",
@@ -161,11 +147,9 @@ export const ko = {
       testSuccess: "{botName}(으)로 연결됨",
       testFailed: "연결 실패. 봇 토큰을 확인해 주세요.",
       tokenMissing: "먼저 봇 토큰을 입력해 주세요.",
-      groupLabel: "그룹",
       selectGroup: "그룹 선택...",
       saveButton: "저장",
       saved: "Discord 설정이 저장되었습니다.",
-      syncLabel: "Discord에 게시",
       eventLabel: "Discord 이벤트 생성",
       syncSuccess: "\"{title}\" Discord 이벤트가 생성되었습니다",
       syncFailed: "\"{title}\" Discord 동기화 실패: {error}"
@@ -177,23 +161,15 @@ export const ko = {
       syncFailed: "\"{title}\" 웹훅 전송 실패: {error}"
     },
     calendar: {
-      title: "캘린더 연동",
-      description: ".ics 캘린더 파일을 리마인더와 함께 생성하고, 로컬에 저장하거나 웹훅 게시물에 첨부합니다.",
       enable: "캘린더 파일 생성 활성화",
       createInvite: ".ics 캘린더 초대 생성",
-      remindersTitle: ".ics 캘린더 알림",
       enableReminders: ".ics 캘린더 알림 활성화",
-      remindersDescription: ".ics 파일에 포함할 기본 알림을 설정합니다.",
       addReminder: "알림 추가",
-      postToDiscord: ".ics를 Discord에 게시",
       unit: {
         minutes: "분",
         hours: "시간",
         days: "일"
       },
-      syncLabel: ".ics 파일 첨부",
-      syncSuccess: "\"{title}\" 캘린더 파일이 전송되었습니다",
-      syncFailed: "\"{title}\" 캘린더 파일 전송 실패: {error}",
       webhookLabel: "Webhook URL",
       webhookPlaceholder: "https://discord.com/api/webhooks/...",
       webhookTestButton: "Webhook 테스트",
@@ -202,7 +178,8 @@ export const ko = {
       webhookMissing: "먼저 Webhook URL을 입력하세요.",
       remindersHint: "일부 캘린더 앱은 첫 번째 알림만 사용할 수 있습니다.",
       saveDirLabel: "캘린더 저장 디렉토리",
-      autoSaved: "캘린더 파일 저장됨: {filePath}"
+      autoSaved: "캘린더 파일 저장됨: {filePath}",
+      inviteTitle: "캘린더 초대"
     },
     eckit: {
       importButton: "키트 가져오기",
@@ -219,7 +196,10 @@ export const ko = {
       selectImage: "선택"
     },
     saveButton: "설정 저장",
-    saved: "설정이 저장되었습니다."
+    saved: "설정이 저장되었습니다.",
+    featuredVerification: {
+      permissionDenied: "이 그룹은 추천 이벤트를 만들 권한이 없습니다."
+    }
   },
   demo: {
     controls: {
@@ -255,7 +235,6 @@ export const ko = {
     ios: "iOS"
   },
   events: {
-    title: "이벤트 만들기",
     steps: {
       group: "그룹",
       date: "날짜",
@@ -273,17 +252,15 @@ export const ko = {
       groupRequired: "그룹 (필수)",
       profileOptional: "템플릿 (선택)",
       advanced: "고급",
-      importJson: "JSON에서 가져오기",
-      dateSource: "사용",
-      dateSourcePattern: "패턴",
-      dateSourceManual: "수동",
       patternDates: "패턴 날짜",
       manualDate: "수동 날짜",
-      manualTime: "수동 시간"
+      manualTime: "수동 시간",
+      dateSourceManual: "수동",
+      dateSource: "사용",
+      dateSourcePattern: "패턴"
     },
     hints: {
       profileDefaults: "기본값을 위해 템플릿을 선택하거나, 비워두고 수동으로 생성하세요.",
-      importJson: "JSON 파일에서 이벤트 세부 정보를 가져옵니다."
     },
     dateHints: {
       default: "수동 모드가 준비되었습니다. 패턴이 있는 템플릿은 날짜 옵션을 제공합니다.",
@@ -295,19 +272,12 @@ export const ko = {
     },
     profileHint: "템플릿은 선택 사항입니다. 기본값을 위해 사용하거나 수동으로 모두 생성하세요.",
     loadProfile: "템플릿 불러오기 (선택)",
-    loadProfilePlaceholder: "템플릿 선택",
     clearProfile: "템플릿 지우기",
-    importJsonButton: "JSON 가져오기",
     importSuccess: "JSON에서 이벤트 데이터를 가져왔습니다.",
     importWrongType: "템플릿 JSON으로 보입니다. 대신 템플릿 가져오기를 사용하세요.",
-    exportJsonButton: "JSON 내보내기",
     exportSuccess: "이벤트 데이터를 JSON으로 내보냈습니다.",
-    dateSource: "날짜 및 시간",
-    dateSourceManual: "수동",
-    dateSourcePattern: "템플릿 패턴에서",
     dateOption: "날짜 선택",
     patternDateLabel: "{label} - {date}",
-    access: "접근",
     roleRestrictions: {
       title: "역할 제한",
       hint: "선택 사항 - 활성화하면 선택한 그룹 역할만 참여할 수 있습니다.",
@@ -337,20 +307,13 @@ export const ko = {
     },
     created: "이벤트가 생성되었습니다.",
     failed: "이벤트를 만들 수 없습니다.",
-    selectGroupError: "그룹을 선택하세요.",
     selectDateError: "날짜를 선택하세요.",
     updateRequired: "업데이트가 있습니다. 이벤트를 만들기 전에 업데이트하세요.",
-    requiredSingle: "{field}은(는) 필수입니다.",
-    requiredMultiple: "{fields}은(는) 필수입니다.",
-    noDateOptionsError: "템플릿에서 사용할 날짜 옵션이 없습니다.",
     featuredPermissionRevoked: "이 그룹은 더 이상 주목 이벤트를 생성할 권한이 없습니다.",
     groupFairPermissionRevoked: "이 그룹은 더 이상 그룹 페어에 이벤트를 포함할 권한이 없습니다."
   },
   modify: {
-    title: "이벤트 수정",
     subtitle: "그룹의 예정된 이벤트를 수정하거나 삭제합니다.",
-    groupLabel: "그룹",
-    showPending: "보류 중 표시",
     countEmpty: "예정된 이벤트를 불러올 수 없습니다.",
     countGroupFallback: "이 그룹",
     countStatus: "{group}의 예정된 이벤트: {count}.",
@@ -359,8 +322,6 @@ export const ko = {
     eventImage: "이벤트 이미지",
     noImage: "이미지 없음",
     untitled: "제목 없는 이벤트",
-    profileLabel: "템플릿 불러오기(선택)",
-    profileSelect: "템플릿 선택",
     profileLoad: "불러오기",
     profileSelectError: "불러올 템플릿을 선택하세요.",
     profileLoadFailed: "템플릿 기본값을 불러올 수 없습니다.",
@@ -373,10 +334,7 @@ export const ko = {
     },
     updateRequired: "업데이트가 있습니다. 이벤트를 수정하기 전에 업데이트하세요.",
     selectEventError: "수정할 이벤트를 선택하세요.",
-    requiredSingle: "{field}은(는) 필수입니다.",
     selectDateError: "날짜와 시간을 선택하세요.",
-    durationError: "지속 시간은 양수여야 합니다.",
-    maxLanguages: "최대 3개 언어까지 선택할 수 있습니다.",
     saveFailed: "이벤트를 업데이트할 수 없습니다.",
     saved: "이벤트가 업데이트되었습니다.",
     deleteFailed: "이벤트를 삭제할 수 없습니다.",
@@ -401,11 +359,28 @@ export const ko = {
       editSaved: "예정된 이벤트가 업데이트되었습니다.",
       editFailed: "예정된 이벤트를 업데이트할 수 없습니다."
     },
-    postingOptions: "게시 옵션"
+    postingOptions: "게시 옵션",
+    badge: {
+      modified: "수정됨"
+    },
+    filters: {
+      heading: "표시",
+      modified: "수정된 이벤트",
+      pending: "대기 중인 이벤트",
+      standalone: "단독 이벤트"
+    },
+    filtersButton: "필터",
+    timeRange: {
+      "1month": "1개월",
+      "1week": "1주",
+      "1year": "1년",
+      "2weeks": "2주",
+      "3months": "3개월",
+      "6months": "6개월",
+      label: "기간"
+    }
   },
   profiles: {
-    title: "템플릿 관리",
-    subtitle: "그룹별로 재사용 가능한 템플릿을 만듭니다.",
     steps: {
       select: "선택",
       basics: "기본",
@@ -413,35 +388,24 @@ export const ko = {
       audience: "대상"
     },
     section: {
-      selection: "템플릿 선택",
       basics: "템플릿 기본",
-      schedule: "일정",
       audience: "대상"
     },
     labels: {
-      group: "그룹",
-      profile: "템플릿"
     },
     buttons: {
       new: "새로 만들기"
     },
-    importJsonButton: "JSON 가져오기",
     importSuccess: "JSON에서 템플릿 데이터를 가져왔습니다.",
     importWrongType: "이벤트 JSON으로 보입니다. 대신 이벤트 가져오기를 사용하세요.",
-    exportJsonButton: "JSON 내보내기",
     exportSuccess: "템플릿 데이터를 JSON으로 내보냈습니다.",
     hints: {
       groupAccess: "캘린더 접근 권한이 있는 그룹을 선택하세요.",
       patternsInfo: "패턴은 예정 날짜를 미리 생성하는 데 사용됩니다."
     },
-    existingProfile: "기존 템플릿",
     existingProfilePlaceholder: "템플릿 선택",
-    noProfiles: "이 그룹에 템플릿이 없습니다",
-    newButton: "새 템플릿",
-    saveButton: "템플릿 저장",
     displayName: "템플릿 이름",
     displayNamePlaceholder: "커뮤니티 모임 템플릿",
-    access: "접근",
     durationDefault: "기본 지속 시간 (DD:HH:MM)",
     dateMode: "날짜 모드",
     dateModePattern: "패턴 기반",
@@ -449,7 +413,6 @@ export const ko = {
     dateModeBoth: "패턴 + 수동",
     sendNotificationDefault: "기본적으로 알림 보내기",
     patterns: {
-      title: "반복 패턴",
       addButton: "패턴 추가",
       clearButton: "패턴 지우기",
       noPatterns: "아직 패턴이 없습니다.",
@@ -496,13 +459,7 @@ export const ko = {
         after: "이전 이벤트 종료 후",
         monthly: "매월 특정 날짜"
       },
-      offsetHint: "이벤트 게시까지의 시간 (전/후):",
-      days: "일",
-      hours: "시간",
-      minutes: "분",
-      monthlyHint: "매월 이 날짜에 이벤트 게시:",
       monthlyDay: "일",
-      monthlyDayHint: "29~31일은 더 짧은 달의 마지막 날을 사용합니다",
       monthlyTime: "시간",
       repeatMode: "반복",
       repeatModes: {
@@ -510,7 +467,6 @@ export const ko = {
         count: "고정 횟수"
       },
       repeatCount: "생성 수",
-      disclaimer: "자동화를 사용하려면 앱이 실행 중이어야 합니다. 놓친 자동화는 이벤트 수정 탭에서 처리할 수 있습니다.",
       patternsRequired: "자동화에는 최소 1개의 패턴이 필요합니다",
       confirmTitle: "자동화를 활성화하시겠습니까?",
       confirmEnable: "자동화를 사용하려면 이벤트를 게시하기 위해 앱이 실행 중이어야 합니다. 놓친 자동화는 이벤트 수정 탭에서 처리할 수 있습니다.",
@@ -530,11 +486,6 @@ export const ko = {
         monthly: "매월 {day}일 {time}"
       },
       helpers: {
-        offsetDays: "이벤트를 게시할 날짜 수를 설정합니다",
-        offsetHours: "이벤트를 게시할 시간을 설정합니다",
-        offsetMinutes: "이벤트를 게시할 분을 설정합니다",
-        monthlyDay: "29~31일은 더 짧은 달의 마지막 날을 사용합니다",
-        monthlyTime: "매월 이벤트가 게시될 시간을 설정합니다"
       },
       offsetProse: "다음 이벤트 시작 7일 전에 게시합니다.",
       monthlyProse: "매월 1일 오후 6시",
@@ -549,14 +500,6 @@ export const ko = {
     updated: "템플릿이 업데이트되었습니다.",
     deleted: "템플릿이 삭제되었습니다.",
     confirmDelete: "템플릿 \"{name}\"을(를) 삭제할까요?",
-    selectGroupError: "그룹을 선택하세요.",
-    selectGroupFirst: "먼저 그룹을 선택하세요.",
-    selectProfileError: "편집할 템플릿을 선택하세요.",
-    maxLanguages: "최대 3개의 언어만 허용됩니다.",
-    durationError: "기간은 양수여야 합니다.",
-    required: "{fields} {verb} 필요합니다.",
-    requiredSingle: "{field}은(는) 필수입니다.",
-    requiredMultiple: "{fields}은(는) 필수입니다."
   },
   common: {
     syncing: "데이터 동기화 중...",
@@ -581,7 +524,6 @@ export const ko = {
     groupFairEvent: "그룹 페어에 포함",
     noMatches: "일치하는 항목이 없습니다.",
     noGroupsAccess: "캘린더 접근 권한이 있는 그룹이 없습니다",
-    selectGroup: "그룹 선택",
     selectGroupPlaceholder: "그룹을 선택하세요",
     accessTypes: {
       public: "공개",
@@ -630,9 +572,26 @@ export const ko = {
       languagesHint: "{count}개 선택됨",
       filterLanguages: "언어 검색...",
       platforms: "플랫폼",
-      manualDate: "날짜",
-      manualTime: "시간"
-    }
+    },
+    errors: {
+      durationError: "지속 시간은 양수여야 합니다.",
+      maxLanguages: "최대 3개 언어까지 선택할 수 있습니다.",
+      noGroup: "그룹을 선택하세요.",
+      requiredMultiple: "{fields}은(는) 필수입니다.",
+      requiredSingle: "{field}은(는) 필수입니다."
+    },
+    exportJson: "JSON 내보내기",
+    importJson: "JSON 가져오기",
+    labels: {
+      group: "그룹",
+      schedule: "일정",
+      series: "시리즈",
+      templates: "템플릿"
+    },
+    section: {
+      scheduleSelection: "일정 선택"
+    },
+    selectTemplate: "템플릿 선택"
   },
   wizard: {
     back: "뒤로",
@@ -643,5 +602,133 @@ export const ko = {
     message: "이벤트 \"{title}\"이(가) 이미 이 시간에 예정되어 있습니다.",
     changeTime: "시간 다시 선택",
     continue: "그대로 생성"
+  },
+  schedules: {
+    announcements: {
+      hint: "이 템플릿이 이벤트를 게시할 때 수행할 작업을 전환합니다.",
+      hintSeries: "이 시리즈가 생성되거나 수정될 때 수행할 작업을 전환합니다.",
+      title: "알림"
+    },
+    empty: {
+      all: "이 그룹에 일정이 없습니다.",
+      series: "이 그룹에 시리즈가 없습니다.",
+      templates: "이 그룹에 템플릿이 없습니다."
+    },
+    filter: {
+      all: "전체",
+      label: "표시"
+    },
+    info: {
+      series: {
+        bullet1: "VRChat가 반복 규칙에 따라 모든 회차를 서버에서 미리 생성합니다.",
+        bullet2: "설정 후엔 손이 갈 일이 없습니다 — 생성 후 앱은 필요하지 않습니다.",
+        bullet3: "제한 사항: 이벤트별 알림 불가. 반복 규칙을 변경하면 모든 회차가 재생성되며 수정 사항은 사라집니다.",
+        bullet4: "알림이 필요 없는 안정적인 반복 이벤트에 적합합니다.",
+        title: "시리즈"
+      },
+      template: {
+        bullet1: "각 이벤트는 독립된 캘린더 항목으로 게시되며 회차별로 수정할 수 있습니다.",
+        bullet2: "각 이벤트를 Discord 예정 이벤트, Webhook, .ics 캘린더 초대로 선택적으로 알릴 수 있습니다.",
+        bullet3: "자동화 및 패턴 기반 일정과 결합하여 방치형 게시가 가능합니다.",
+        bullet4: "자동 게시는 앱이 실행 중이어야 합니다.",
+        title: "템플릿"
+      }
+    },
+    modeBlurb: {
+      moreInfo: "(자세히)",
+      series: "시리즈는 VRChat 네이티브 반복 일정 도구입니다. 서버에서 모든 회차를 미리 생성합니다. 알림은 없습니다.",
+      template: "템플릿은 반복 이벤트를 자동으로 채우고 각 회차를 개별적으로 게시합니다(알림은 선택 사항)."
+    },
+    saveButton: {
+      seriesCreate: "시리즈 만들기",
+      template: "템플릿 저장"
+    },
+    subtitle: "알림 기반 일정용 템플릿과 VRChat 네이티브 반복 시리즈입니다.",
+    types: {
+      templateButton: "템플릿"
+    }
+  },
+  series: {
+    confirmDelete: "「{label}」을(를) 삭제하시겠습니까? 시리즈와 모든 회차가 VRChat에서 제거됩니다.",
+    confirmDeleteTitle: "시리즈를 삭제하시겠습니까?",
+    created: "시리즈 「{label}」을(를) 만들었습니다.",
+    days: {
+      fr: "금",
+      mo: "월",
+      sa: "토",
+      su: "일",
+      th: "목",
+      tu: "화",
+      we: "수"
+    },
+    deleted: "시리즈 「{label}」을(를) 삭제했습니다.",
+    disclaimer: "시리즈는 첫 회차가 시작되기 전에만 일정을 변경할 수 있습니다. 시작된 후에는 날짜나 시간을 바꾸려면 삭제해야 합니다. 이벤트는 최대 1년 전까지 예약할 수 있습니다. 한 이벤트의 최대 길이는 31일입니다.",
+    end: {
+      afterDateLabel: "특정 날짜에",
+      afterOccurrencesLabel: "N회 후",
+      never: "없음",
+      occurrencesLabel: "회"
+    },
+    errors: {
+      createFailed: "시리즈를 만들 수 없습니다.",
+      deleteFailed: "시리즈를 삭제할 수 없습니다.",
+      noDaysOfWeek: "최소 한 요일을 선택하세요.",
+      noEndDate: "종료일을 설정하세요.",
+      noLabel: "시리즈 레이블은 필수입니다.",
+      noSeries: "선택된 시리즈가 없습니다.",
+      noStartDate: "첫 회차의 날짜와 시간은 필수입니다.",
+      noTitle: "이벤트 이름은 필수입니다.",
+      notFound: "시리즈를 찾을 수 없습니다.",
+      regenFailed: "시리즈를 재생성할 수 없습니다.",
+      startInPast: "첫 회차는 미래여야 합니다. 저장하기 전에 날짜를 업데이트하세요.",
+      updateFailed: "시리즈를 업데이트할 수 없습니다."
+    },
+    frequency: {
+      custom: "사용자 지정",
+      daily: "매일",
+      monthly: "매월",
+      weekdays: "평일",
+      weekends: "주말",
+      weekly: "매주",
+      yearly: "매년"
+    },
+    labels: {
+      daysOfWeek: "반복 요일",
+      endCondition: "종료",
+      frequency: "빈도",
+      interval: "반복 간격",
+      startDate: "첫 회차 날짜",
+      startTime: "시작 시간"
+    },
+    lockedHint: "이 시리즈는 이미 시작되었습니다. 날짜, 시간, 반복 규칙은 잠겨 있지만 종료 시점은 여전히 조정할 수 있습니다. 일정을 변경하려면 잠금 해제를 클릭하세요 — 저장하면 이 시리즈가 새 시리즈로 교체됩니다.",
+    rasterize: {
+      retryIn: "{wait} 후에 다시 시도합니다.",
+      retryNow: "지금 다시 시도",
+      statusText: "{count}개의 이벤트가 생성 대기 중입니다.{wait}"
+    },
+    regen: {
+      choiceMessage: "이 시리즈에는 {count}개의 수정된 이벤트가 있습니다. 현재 시리즈가 새 시리즈로 교체됩니다.\n\n• 수정 유지: 같은 날 겹치는 항목은 새 시리즈에 반영되고, 겹치지 않는 항목은 단독 이벤트가 됩니다.\n• 수정 폐기: 해당 회차의 변경 사항이 사라집니다.",
+      choiceTitle: "시리즈를 교체하시겠습니까?",
+      confirmAction: "시리즈 교체",
+      confirmMessage: "현재 시리즈가 새 시리즈로 교체됩니다. 계속하시겠습니까?",
+      discard: "수정 폐기",
+      keep: "수정 유지",
+      success: "시리즈 「{label}」을(를) 교체했습니다.",
+      successWithMods: "시리즈 「{label}」을(를) 교체했습니다. {count}건의 수정이 대기 중입니다."
+    },
+    regenWarning: "반복 규칙이 잠금 해제되었습니다. 반복 규칙을 변경하면 현재 시리즈가 새 시리즈로 교체됩니다.",
+    regenWarningWithMods: "반복 규칙이 잠금 해제되었습니다. 반복 규칙을 변경하면 현재 시리즈가 새 시리즈로 교체되며 수정된 {count}개 이벤트를 어떻게 처리할지 묻습니다.",
+    unit: {
+      days: "일",
+      months: "개월",
+      weeks: "주",
+      years: "년"
+    },
+    unlockButton: "잠금 해제",
+    updateRequired: "업데이트가 있습니다. 시리즈를 변경하기 전에 업데이트하세요.",
+    updated: "시리즈 「{label}」을(를) 업데이트했습니다.",
+    warnings: {
+      confirmUpdate: "시리즈 업데이트"
+    }
   }
 };
