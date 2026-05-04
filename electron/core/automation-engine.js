@@ -769,12 +769,12 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
       }
     }
 
-    // Hard cap: publish time must be at least 30 minutes before event start
+    // Threshold for the past-time recovery below — the silent 30-min clamp
+    // that used to live here was removed because it overrode user-specified
+    // automation timing without any UI signal (e.g. user enters 1 min, engine
+    // forced 30 min). Trust the user's input. Form-side validation can warn
+    // for tight intervals, but the engine no longer rewrites them.
     const MIN_BUFFER_MS = 30 * 60 * 1000;
-    const maxPublishTime = eventStartTime.getTime() - MIN_BUFFER_MS;
-    if (publishTime.getTime() > maxPublishTime) {
-      publishTime = new Date(maxPublishTime);
-    }
 
     // If publish time is in the past but event start is still in the future,
     // recover by scheduling soon instead of skipping. This prevents "after" mode
@@ -1901,13 +1901,8 @@ function calculatePublishTime(eventStartsAt, profile) {
     publishTime = new Date(eventStartTime.getTime() - offsetMs);
   }
 
-  // Hard cap: publish time must be at least 30 minutes before event start
-  const MIN_BUFFER_MS = 30 * 60 * 1000;
-  const maxPublishTime = eventStartTime.getTime() - MIN_BUFFER_MS;
-  if (publishTime.getTime() > maxPublishTime) {
-    publishTime = new Date(maxPublishTime);
-  }
-
+  // Silent 30-min clamp removed (see calculatePendingEvents above) — trust
+  // the user's automation timing input.
   return publishTime;
 }
 
