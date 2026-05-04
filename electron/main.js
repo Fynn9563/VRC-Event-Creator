@@ -2513,6 +2513,12 @@ ipcMain.handle("profiles:delete", async (_, payload) => {
     if (automationEngine.isInitialized()) {
       automationEngine.purgeProfilePendingEvents(groupId, profileKey);
     }
+
+    // Broadcast so other views (especially Modify Events) drop stale
+    // projected events sourced from the now-deleted template.
+    if (mainWindow) {
+      mainWindow.webContents.send("profiles:updated", { profiles });
+    }
   }
   return profiles;
 });
@@ -4016,6 +4022,39 @@ ipcMain.handle("automation:getStatus", async (_, payload) => {
   }
   const status = automationEngine.getAutomationStatus(groupId, profileKey);
   return { initialized: true, profileStatus: status };
+});
+
+ipcMain.handle("automation:commitProjected", async (_, payload) => {
+  if (!automationEngine.isInitialized()) {
+    return { ok: false, error: { message: "Automation not initialized" } };
+  }
+  return automationEngine.commitProjectedSlot(payload);
+});
+
+ipcMain.handle("automation:tombstoneProjected", async (_, payload) => {
+  if (!automationEngine.isInitialized()) {
+    return { ok: false, error: { message: "Automation not initialized" } };
+  }
+  return automationEngine.tombstoneProjectedSlot(payload);
+});
+
+ipcMain.handle("automation:projectFutureEvents", async (_, payload) => {
+  if (!automationEngine.isInitialized()) {
+    return { events: [] };
+  }
+  const { groupId, fromMs, toMs } = payload || {};
+  if (!groupId || !Number.isFinite(fromMs) || !Number.isFinite(toMs)) {
+    return { events: [] };
+  }
+  const projected = automationEngine.projectFutureEvents(groupId, fromMs, toMs);
+  // Resolve each projected event so the renderer gets the same shape it gets
+  // from pending:list (event + resolvedDetails). Pass the projected object
+  // directly since it's not in the pendingEvents array.
+  const events = projected.map(event => ({
+    ...event,
+    resolvedDetails: automationEngine.resolveEventDetails(event, profiles)
+  }));
+  return { events };
 });
 
 ipcMain.handle("automation:resolveEvent", async (_, payload) => {

@@ -545,9 +545,22 @@ function getMergedEvents() {
     return !slotKey || !realSlots.has(slotKey);
   });
 
+  // Defensive filter for projected events whose profile has been deleted
+  // since the last refresh — without this, stale entries cling to the cached
+  // pendingEvents until the next full refresh. Profile-delete now broadcasts
+  // profiles:updated which triggers a refresh, but this is a belt-and-
+  // suspenders safety net for any other state-sync gap.
+  const groupId = dom.modifyGroup?.value;
+  const profilesForGroup = groupId ? (state.profiles?.[groupId]?.profiles || {}) : {};
   const pendingEvents = state.modify.filters?.pending
     ? state.modify.pendingEvents
       .filter(p => !state.modify.optimisticEvents.has(p.id))
+      .filter(p => {
+        if (p.isProjected && p.profileKey && !profilesForGroup[p.profileKey]) {
+          return false; // Orphan projected event — profile was deleted.
+        }
+        return true;
+      })
       .map(p => ({
         ...p,
         isPending: true,
@@ -565,7 +578,8 @@ export function resetModifyFilters() {
     pending: true,
     standalone: true,
     modified: true,
-    series: {}
+    series: {},
+    templates: {}
   };
   // Sync UI checkboxes
   if (dom.modifyFilterPending) dom.modifyFilterPending.checked = true;
@@ -576,8 +590,73 @@ export function resetModifyFilters() {
   // Clear and hide the per-series checkbox group
   if (dom.modifyFilterSeriesGroup) dom.modifyFilterSeriesGroup.classList.add("is-hidden");
   if (dom.modifyFilterSeriesList) dom.modifyFilterSeriesList.innerHTML = "";
+  // Same for the per-template chips
+  if (dom.modifyFilterTemplatesGroup) dom.modifyFilterTemplatesGroup.classList.add("is-hidden");
+  if (dom.modifyFilterTemplatesList) dom.modifyFilterTemplatesList.innerHTML = "";
   // Keep state.modify.showPending in sync for legacy code paths
   state.modify.showPending = true;
+}
+
+// Build the per-template filter chip list. Templates are surfaced from any
+// pending/projected event that has a profileKey — so every committed and
+// projected automation event contributes to the visible chip set. Standalone
+// (manually-created) events have no profileKey and don't show up here.
+//
+// Per Phase D design: there's no per-card template badge, only this filter.
+// The filter is purely additive — unchecking a chip hides every event from
+// that template. State persists in state.modify.filters.templates.
+function populateTemplatesFilterOptions(groupId, pendingEvents) {
+  if (!dom.modifyFilterTemplatesGroup || !dom.modifyFilterTemplatesList) return;
+
+  const profileKeys = new Set();
+  (pendingEvents || []).forEach(p => {
+    if (p?.profileKey) profileKeys.add(p.profileKey);
+  });
+
+  if (profileKeys.size === 0) {
+    dom.modifyFilterTemplatesGroup.classList.add("is-hidden");
+    return;
+  }
+  dom.modifyFilterTemplatesGroup.classList.remove("is-hidden");
+
+  const profilesForGroup = state.profiles?.[groupId]?.profiles || {};
+
+  if (!state.modify.filters.templates) state.modify.filters.templates = {};
+  // New chips default to checked; entries for templates that no longer have
+  // any visible events get pruned so toggling old templates doesn't linger.
+  profileKeys.forEach(pk => {
+    if (state.modify.filters.templates[pk] === undefined) {
+      state.modify.filters.templates[pk] = true;
+    }
+  });
+  Object.keys(state.modify.filters.templates).forEach(pk => {
+    if (!profileKeys.has(pk)) delete state.modify.filters.templates[pk];
+  });
+
+  dom.modifyFilterTemplatesList.innerHTML = "";
+  Array.from(profileKeys).sort().forEach(profileKey => {
+    const profile = profilesForGroup[profileKey];
+    // displayName is what the user names a profile in the wizard. Fall back to
+    // profile.name (event-name field), then to the slug if neither resolves.
+    const label = (profile?.displayName?.trim())
+      || (profile?.name?.trim())
+      || profileKey;
+    const wrapper = document.createElement("label");
+    wrapper.className = "toggle";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.profileKey = profileKey;
+    input.checked = state.modify.filters.templates[profileKey] !== false;
+    input.addEventListener("change", () => {
+      state.modify.filters.templates[profileKey] = input.checked;
+      renderModifyEventGrid();
+    });
+    const span = document.createElement("span");
+    span.textContent = label;
+    wrapper.appendChild(input);
+    wrapper.appendChild(span);
+    dom.modifyFilterTemplatesList.appendChild(wrapper);
+  });
 }
 
 function populateSeriesFilterOptions(groupId, events) {
@@ -646,6 +725,7 @@ function renderModifyEventGrid() {
   const allMergedEvents = getMergedEvents();
   const filters = state.modify.filters || {};
   const seriesFilter = filters.series || {};
+  const templatesFilter = filters.templates || {};
   // Time range cutoff: only events starting within timeRangeDays from now
   const rangeDays = Number.isFinite(state.modify.timeRangeDays) ? state.modify.timeRangeDays : 30;
   const cutoffMs = Date.now() + rangeDays * 24 * 60 * 60 * 1000;
@@ -660,6 +740,13 @@ function renderModifyEventGrid() {
     }
     // Pending toggle (also captured by getMergedEvents but kept here for clarity)
     if (event.isPending && filters.pending === false) return false;
+    // Per-template filter chips (Phase D): a pending/projected event tied to
+    // an unchecked template is hidden. profileKey is what links these events
+    // to a template; standalone events have no profileKey and aren't gated
+    // by this filter.
+    if (event.isPending && event.profileKey && templatesFilter[event.profileKey] === false) {
+      return false;
+    }
     // Series occurrence: hide if its series is unchecked
     if (event.seriesId) {
       if (seriesFilter[event.seriesId] === false) return false;
@@ -1039,10 +1126,23 @@ async function handlePendingCancel(pendingEvent) {
     return;
   }
   try {
-    const result = await modifyApi.pendingAction({
-      pendingEventId: pendingEvent.id,
-      action: "cancel"
-    });
+    // Phase C of automation projection: projected (renderer-only) slots
+    // can't go through pending:action because they're not in
+    // pending-events.json. Route through tombstoneProjected instead so
+    // the engine knows never to regenerate this slot.
+    let result;
+    if (pendingEvent.isProjected && modifyApi?.tombstoneProjected) {
+      result = await modifyApi.tombstoneProjected({
+        groupId: pendingEvent.groupId,
+        profileKey: pendingEvent.profileKey,
+        eventStartsAt: pendingEvent.eventStartsAt,
+      });
+    } else {
+      result = await modifyApi.pendingAction({
+        pendingEventId: pendingEvent.id,
+        action: "cancel"
+      });
+    }
     if (!result?.ok) {
       showToast(result?.error?.message || t("modify.pending.cancelFailed"), true);
       return;
@@ -1157,11 +1257,26 @@ async function handlePendingSave() {
       webhookImagePath: dom.modifyWebhookImagePath?.value || ""
     };
 
-    const result = await modifyApi.pendingAction({
-      pendingEventId: pendingEvent.id,
-      action: "edit",
-      overrides: manualOverrides
-    });
+    // Phase B of automation projection: if the event being edited is a
+    // projected (renderer-only) slot, commit it first via commitProjected
+    // — that promotes it to a real pending event with the user's overrides
+    // applied at construction time. Existing committed events go through
+    // pending:action edit as before.
+    let result;
+    if (pendingEvent.isProjected && modifyApi?.commitProjected) {
+      result = await modifyApi.commitProjected({
+        groupId: pendingEvent.groupId,
+        profileKey: pendingEvent.profileKey,
+        eventStartsAt: pendingEvent.eventStartsAt,
+        overrides: manualOverrides,
+      });
+    } else {
+      result = await modifyApi.pendingAction({
+        pendingEventId: pendingEvent.id,
+        action: "edit",
+        overrides: manualOverrides
+      });
+    }
 
     if (!result?.ok) {
       showToast(result?.error?.message || t("modify.pending.editFailed"), true);
@@ -1824,15 +1939,30 @@ async function performRefresh(api, options = {}) {
   renderModifyEventGrid();
 
   try {
-    // Fetch series, real events, and pending events in parallel. Series load
-    // is required so populateSeriesFilterOptions can resolve human labels —
-    // without it, the filter shows fallback "Series (cal_xxxxxxxx)" IDs.
-    // This also covers single-group users (no group switch ever fires) and
-    // refresh-button presses where the group hasn't changed.
-    const [seriesResult, events, pendingResult] = await Promise.all([
+    // Fetch series, real events, pending events, and projected future events
+    // in parallel.
+    //
+    // Series load is required so populateSeriesFilterOptions can resolve human
+    // labels — without it, the filter shows fallback "Series (cal_xxxxxxxx)"
+    // IDs. This also covers single-group users (no group switch ever fires)
+    // and refresh-button presses where the group hasn't changed.
+    //
+    // Projection (Phase A): the engine generates pending events out to ~3
+    // months. When the user picks a longer view filter (e.g., 6 months, 1
+    // year), projection synthesizes additional pending-shaped events from
+    // template patterns past the engine's horizon. They render identically
+    // to scheduled pending events; only an isProjected flag differentiates
+    // for edit/delete routing later.
+    const rangeDays = Number.isFinite(state.modify.timeRangeDays) ? state.modify.timeRangeDays : 30;
+    const projFromMs = Date.now();
+    const projToMs = projFromMs + rangeDays * 24 * 60 * 60 * 1000;
+    const [seriesResult, events, pendingResult, projectedResult] = await Promise.all([
       modifyApi.seriesList ? modifyApi.seriesList({ groupId }).catch(() => null) : Promise.resolve(null),
       modifyApi.listGroupEvents({ groupId, upcomingOnly: true }),
-      modifyApi.getPendingEvents ? modifyApi.getPendingEvents({ groupId }) : Promise.resolve({ events: [], missedCount: 0 })
+      modifyApi.getPendingEvents ? modifyApi.getPendingEvents({ groupId }) : Promise.resolve({ events: [], missedCount: 0 }),
+      modifyApi.projectFutureEvents
+        ? modifyApi.projectFutureEvents({ groupId, fromMs: projFromMs, toMs: projToMs }).catch(() => ({ events: [] }))
+        : Promise.resolve({ events: [] })
     ]);
     if (seriesResult) {
       state.series[groupId] = seriesResult;
@@ -1855,13 +1985,22 @@ async function performRefresh(api, options = {}) {
     // Populate the series filter dropdown based on series visible in current events
     populateSeriesFilterOptions(groupId, filteredEvents);
 
-    // Process pending events with resolved details
+    // Process pending events with resolved details. Merge projected events
+    // into the same array — the renderer treats them identically. Order: real
+    // pending first, then projected. Both are sorted by scheduledPublishTime
+    // downstream in renderModifyEventGrid, so the merge order doesn't matter
+    // for display.
     const pendingEvents = pendingResult?.events || [];
+    const projectedEvents = projectedResult?.events || [];
+    const combinedPending = pendingEvents.concat(projectedEvents);
 
-    state.modify.pendingEvents = pendingEvents;
+    state.modify.pendingEvents = combinedPending;
     state.modify.missedCount = pendingResult?.missedCount || 0;
     state.modify.queuedCount = pendingResult?.queuedCount || 0;
-    reconcileOptimisticEvents(filteredEvents, pendingEvents, groupId);
+    // Refresh per-template filter chips off the merged pending set so chips
+    // appear for both committed and projected automation events.
+    populateTemplatesFilterOptions(groupId, combinedPending);
+    reconcileOptimisticEvents(filteredEvents, combinedPending, groupId);
 
     // Success - clear any refresh backoff
     if (options.bypassCache) {
@@ -1949,13 +2088,24 @@ export function initModifyEvents(api) {
   // Time range dropdown — persists across restarts via settings
   if (dom.modifyTimeRange) {
     dom.modifyTimeRange.addEventListener("change", () => {
+      const prevRangeDays = Number.isFinite(state.modify.timeRangeDays) ? state.modify.timeRangeDays : 30;
       const days = parseInt(dom.modifyTimeRange.value, 10);
-      state.modify.timeRangeDays = Number.isFinite(days) ? days : 90;
+      const newRangeDays = Number.isFinite(days) ? days : 90;
+      state.modify.timeRangeDays = newRangeDays;
       // Persist to settings so the choice survives restart
       if (modifyApi?.updateSettings) {
-        modifyApi.updateSettings({ modifyTimeRangeDays: state.modify.timeRangeDays }).catch(() => {});
+        modifyApi.updateSettings({ modifyTimeRangeDays: newRangeDays }).catch(() => {});
       }
-      renderModifyEventGrid();
+      // Expanding the range needs new projection data (the engine's
+      // hard-generated horizon plus what was projected last refresh covers
+      // only up to the previous toMs). Trigger a full refresh in that case.
+      // Narrowing is purely a re-render — already-fetched projections cover
+      // the smaller window.
+      if (newRangeDays > prevRangeDays) {
+        void refreshModifyEvents(modifyApi, { preserveScroll: true });
+      } else {
+        renderModifyEventGrid();
+      }
     });
   }
   // Filters button toggles the panel

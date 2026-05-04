@@ -2011,6 +2011,10 @@ import {
           renderPatternList();
           void renderProfileRoleRestrictions(api);
         }
+        // Modify view's pendingEvents may include projected events sourced
+        // from a now-deleted template — refresh it so projection re-runs
+        // against the updated profilesRef and stale entries disappear.
+        void refreshModifyEvents(api, { preserveScroll: true });
       });
     }
 

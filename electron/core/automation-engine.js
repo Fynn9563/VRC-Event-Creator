@@ -809,6 +809,288 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
   return newPendingEvents;
 }
 
+/**
+ * Project additional pending events from template patterns past the engine's
+ * generated horizon. Returns synthetic pending-event objects (status:
+ * "scheduled", isProjected: true) that the renderer can show alongside real
+ * pending events. Slot keys are deterministic (groupId + profileKey +
+ * eventStartTime) and match what the engine would generate when its horizon
+ * eventually catches up — so projected and committed entries align exactly.
+ *
+ * Excludes:
+ *  - Slots already in pendingEvents (engine already generated them).
+ *  - Slots in deletedEvents (user explicitly tombstoned them).
+ *  - (Published slots are tracked in publishedEventSlots when looked up via
+ *    pendingEvents — published events are kept in pendingEvents with
+ *    status="published" until cleanup, so the existingSlotKeys set covers
+ *    them too.)
+ *
+ * Respects the profile's count limit: stops projecting once the total
+ * projected-plus-existing count would exceed automation.repeatCount.
+ *
+ * @param {string} groupId - Group ID to project for
+ * @param {number} fromMs - Lower bound (exclusive) — events at or before this
+ *   millisecond are skipped (used to skip past events).
+ * @param {number} toMs - Upper bound (inclusive) — events past this are not
+ *   projected (matches the modify view's filter range).
+ * @returns {Array} Array of projected pending-event objects, each with
+ *   isProjected: true.
+ */
+function projectFutureEvents(groupId, fromMs, toMs) {
+  if (!groupId || !profilesRef || !Number.isFinite(fromMs) || !Number.isFinite(toMs)) {
+    return [];
+  }
+  if (toMs <= fromMs) return [];
+
+  const groupProfiles = profilesRef[groupId]?.profiles || {};
+  const projected = [];
+
+  // Pre-compute the slot-key blocklist for this group so we don't generate
+  // entries that would collide with already-generated/tombstoned ones.
+  const existingSlotKeys = new Set();
+  for (const e of pendingEvents) {
+    if (e.groupId === groupId && e.slotKey) existingSlotKeys.add(e.slotKey);
+  }
+  for (const d of deletedEvents) {
+    if (d.groupId === groupId && d.slotKey) existingSlotKeys.add(d.slotKey);
+  }
+
+  for (const [profileKey, profile] of Object.entries(groupProfiles)) {
+    if (!profile?.automation?.enabled) continue;
+    if (!Array.isArray(profile.patterns) || profile.patterns.length === 0) continue;
+
+    const automation = profile.automation;
+    const timezone = profile.timezone || "UTC";
+
+    // Translate the toMs upper bound into months-ahead for the date generator.
+    // Add 1 to round up so we don't miss events near the boundary.
+    const nowMs = Date.now();
+    const monthsAhead = Math.max(
+      1,
+      Math.ceil((toMs - nowMs) / (30 * 24 * 60 * 60 * 1000)) + 1
+    );
+
+    const dateOptions = generateDateOptionsFromPatterns(
+      profile.patterns,
+      monthsAhead,
+      timezone
+    );
+    if (!dateOptions.length) continue;
+
+    // Count limit prep: profileState.eventsCreated tracks past *published*
+    // events. Existing pending events for this profile (status=scheduled or
+    // missed) also count toward the cap once they publish. Mirror the
+    // engine's count math in calculatePendingEvents.
+    const profileStateKey = getProfileStateKey(groupId, profileKey);
+    const profileState = automationState?.profiles?.[profileStateKey] || { eventsCreated: 0 };
+    const existingPendingForProfile = pendingEvents.filter(
+      e => e.groupId === groupId && e.profileKey === profileKey && (e.status === "scheduled" || e.status === "missed" || e.status === "queued")
+    ).length;
+
+    let projectedSoFar = 0;
+    for (const dateOption of dateOptions) {
+      const eventStartTime = new Date(dateOption.iso);
+      const eventStartMs = eventStartTime.getTime();
+
+      if (eventStartMs <= fromMs) continue;
+      if (eventStartMs > toMs) continue;
+
+      const slotKey = buildPendingEventId(groupId, profileKey, eventStartTime.toISOString());
+      if (!slotKey || existingSlotKeys.has(slotKey)) continue;
+
+      // Honor the count cap if set.
+      if (automation.repeatMode === "count") {
+        const totalAfter = profileState.eventsCreated + existingPendingForProfile + projectedSoFar + 1;
+        if (totalAfter > automation.repeatCount) break;
+      }
+
+      const publishTime = calculatePublishTime(eventStartTime.toISOString(), profile);
+      if (!publishTime) continue;
+
+      projected.push({
+        id: slotKey,
+        slotKey,
+        groupId,
+        profileKey,
+        scheduledPublishTime: publishTime.toISOString(),
+        eventStartsAt: eventStartTime.toISOString(),
+        manualOverrides: null,
+        status: "scheduled",
+        missedAt: null,
+        isProjected: true,
+      });
+      projectedSoFar += 1;
+    }
+  }
+
+  return projected;
+}
+
+/**
+ * Promote a projected event slot into a real pending event (Phase B of
+ * automation projection). Called when the renderer's edit-save flow
+ * detects isProjected: true on the event being edited.
+ *
+ * Idempotent: if the slot is already committed, applies the new overrides
+ * to the existing entry instead of duplicating.
+ *
+ * Side effects:
+ *   - Pushes a new pending-event entry to the in-memory array.
+ *   - Persists to pending-events.json.
+ *   - Schedules the job so it'll actually publish at scheduledPublishTime.
+ *
+ * @param {object} payload - { groupId, profileKey, eventStartsAt, overrides? }
+ * @returns {object} { ok: true, pendingEventId, eventDetails } on success;
+ *   { ok: false, error: { message } } on failure.
+ */
+function commitProjectedSlot(payload) {
+  const { groupId, profileKey, eventStartsAt, overrides } = payload || {};
+  if (!groupId || !profileKey || !eventStartsAt) {
+    return { ok: false, error: { message: "Missing required fields (groupId, profileKey, eventStartsAt)." } };
+  }
+
+  const profile = profilesRef?.[groupId]?.profiles?.[profileKey];
+  if (!profile) {
+    return { ok: false, error: { message: "Profile not found." } };
+  }
+  if (!profile.automation?.enabled) {
+    return { ok: false, error: { message: "Profile automation is not enabled." } };
+  }
+
+  const eventStartTime = new Date(eventStartsAt);
+  if (Number.isNaN(eventStartTime.getTime())) {
+    return { ok: false, error: { message: "Invalid eventStartsAt." } };
+  }
+
+  const slotKey = buildPendingEventId(groupId, profileKey, eventStartTime.toISOString());
+  if (!slotKey) {
+    return { ok: false, error: { message: "Could not build slot key." } };
+  }
+
+  const sanitizedOverrides = overrides && typeof overrides === "object" ? overrides : null;
+
+  // Idempotency: if already committed, just apply the new overrides via the
+  // existing update path. Covers the case where two clients (or two tabs)
+  // race to commit the same projected slot.
+  const existing = pendingEvents.find(e => e.slotKey === slotKey || e.id === slotKey);
+  if (existing) {
+    if (sanitizedOverrides) {
+      const updateResult = updatePendingEventOverrides(existing.id, sanitizedOverrides);
+      if (!updateResult?.ok) {
+        return updateResult;
+      }
+    }
+    return {
+      ok: true,
+      pendingEventId: existing.id,
+      eventDetails: resolveEventDetails(existing.id),
+      alreadyCommitted: true,
+    };
+  }
+
+  const publishTime = calculatePublishTime(eventStartTime.toISOString(), profile);
+  if (!publishTime) {
+    return { ok: false, error: { message: "Could not compute publish time." } };
+  }
+
+  const pendingEvent = {
+    id: slotKey,
+    slotKey,
+    groupId,
+    profileKey,
+    scheduledPublishTime: publishTime.toISOString(),
+    eventStartsAt: eventStartTime.toISOString(),
+    manualOverrides: sanitizedOverrides,
+    status: "scheduled",
+    missedAt: null,
+  };
+
+  pendingEvents.push(pendingEvent);
+  savePendingEvents();
+  scheduleJob(pendingEvent);
+
+  return {
+    ok: true,
+    pendingEventId: slotKey,
+    eventDetails: resolveEventDetails(slotKey),
+    alreadyCommitted: false,
+  };
+}
+
+/**
+ * Tombstone a projected event slot so the engine never regenerates it
+ * (Phase C of automation projection). Called when the renderer's delete
+ * flow detects isProjected: true on the event being deleted.
+ *
+ * Idempotent: if the slot is already tombstoned, returns ok without
+ * adding a duplicate entry.
+ *
+ * If the slot is currently committed in pendingEvents, this delegates to
+ * the existing cancel path (handleMissedEvent action: "cancel") which
+ * already does the right thing — moves the entry to deletedEvents.
+ *
+ * @param {object} payload - { groupId, profileKey, eventStartsAt }
+ * @returns {object} { ok: true, slotKey, alreadyTombstoned } on success;
+ *   { ok: false, error: { message } } on failure.
+ */
+function tombstoneProjectedSlot(payload) {
+  const { groupId, profileKey, eventStartsAt } = payload || {};
+  if (!groupId || !profileKey || !eventStartsAt) {
+    return { ok: false, error: { message: "Missing required fields (groupId, profileKey, eventStartsAt)." } };
+  }
+
+  const eventStartTime = new Date(eventStartsAt);
+  if (Number.isNaN(eventStartTime.getTime())) {
+    return { ok: false, error: { message: "Invalid eventStartsAt." } };
+  }
+
+  const slotKey = buildPendingEventId(groupId, profileKey, eventStartTime.toISOString());
+  if (!slotKey) {
+    return { ok: false, error: { message: "Could not build slot key." } };
+  }
+
+  // Already tombstoned? No-op success.
+  const existingTombstone = deletedEvents.find(d => d.slotKey === slotKey || d.id === slotKey);
+  if (existingTombstone) {
+    return { ok: true, slotKey, alreadyTombstoned: true };
+  }
+
+  // If the slot has already been committed (e.g., engine caught up between
+  // projection and delete), delegate to the regular cancel path so we go
+  // through the same in-memory + on-disk transition as a normal pending
+  // event delete.
+  const existingCommitted = pendingEvents.find(e => e.slotKey === slotKey || e.id === slotKey);
+  if (existingCommitted) {
+    cancelJob(existingCommitted.id);
+    const idx = pendingEvents.indexOf(existingCommitted);
+    if (idx >= 0) {
+      const removed = pendingEvents.splice(idx, 1)[0];
+      removed.status = "deleted";
+      removed.deletedAt = new Date().toISOString();
+      deletedEvents.push(removed);
+    }
+    savePendingEvents();
+    return { ok: true, slotKey, alreadyTombstoned: false, viaCancel: true };
+  }
+
+  // Pure projected slot — add a synthetic tombstone entry. The engine's
+  // regenerate cycle skips slotKeys that appear in deletedEvents, so this
+  // is enough to prevent the slot from ever being recreated.
+  const tombstone = {
+    id: slotKey,
+    slotKey,
+    groupId,
+    profileKey,
+    eventStartsAt: eventStartTime.toISOString(),
+    status: "deleted",
+    deletedAt: new Date().toISOString(),
+  };
+  deletedEvents.push(tombstone);
+  savePendingEvents();
+
+  return { ok: true, slotKey, alreadyTombstoned: false };
+}
+
 function getRecheckIntervalMs(delayMs) {
   const ONE_DAY_MS = 24 * 60 * 60 * 1000;
   const EIGHT_HOURS_MS = 8 * 60 * 60 * 1000;
@@ -956,9 +1238,18 @@ function purgeProfilePendingEvents(groupId, profileKey) {
  * @param {object} profiles - Current profiles data (optional, uses stored ref if not provided)
  * @returns {object|null} Resolved event details or null if profile not found
  */
-function resolveEventDetails(pendingEventId, profiles = null) {
+function resolveEventDetails(pendingEventOrId, profiles = null) {
   const profilesData = profiles || profilesRef;
-  const pendingEvent = pendingEvents.find(e => e.id === pendingEventId);
+  // Accept either a pendingEventId (string) for committed events, or a
+  // pending-event-shaped object directly. Projected events (Phase A of
+  // automation projection) aren't stored in pendingEvents, so callers pass
+  // the synthetic projected object straight in.
+  let pendingEvent;
+  if (typeof pendingEventOrId === "string") {
+    pendingEvent = pendingEvents.find(e => e.id === pendingEventOrId);
+  } else if (pendingEventOrId && typeof pendingEventOrId === "object") {
+    pendingEvent = pendingEventOrId;
+  }
 
   if (!pendingEvent) {
     return null;
@@ -2086,6 +2377,9 @@ module.exports = {
   loadAutomationState,
   saveAutomationState,
   calculatePendingEvents,
+  projectFutureEvents,
+  commitProjectedSlot,
+  tombstoneProjectedSlot,
   scheduleJob,
   cancelJob,
   cancelAllJobs,

@@ -329,6 +329,8 @@ export const dom = {
   modifyFilterModified: document.getElementById("modify-filter-modified"),
   modifyFilterSeriesGroup: document.getElementById("modify-filter-series-group"),
   modifyFilterSeriesList: document.getElementById("modify-filter-series-list"),
+  modifyFilterTemplatesGroup: document.getElementById("modify-filter-templates-group"),
+  modifyFilterTemplatesList: document.getElementById("modify-filter-templates-list"),
   // Schedule selection helpers
   scheduleGroupHint: document.getElementById("schedule-group-hint"),
   // Schedule type filter chips

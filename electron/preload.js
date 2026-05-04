@@ -66,6 +66,9 @@ contextBridge.exposeInMainWorld("vrcEvent", {
   updatePendingSettings: payload => ipcRenderer.invoke("pending:updateSettings", payload),
   getAutomationStatus: payload => ipcRenderer.invoke("automation:getStatus", payload),
   resolveAutomationEvent: payload => ipcRenderer.invoke("automation:resolveEvent", payload),
+  projectFutureEvents: payload => ipcRenderer.invoke("automation:projectFutureEvents", payload),
+  commitProjected: payload => ipcRenderer.invoke("automation:commitProjected", payload),
+  tombstoneProjected: payload => ipcRenderer.invoke("automation:tombstoneProjected", payload),
   restoreDeletedEvents: payload => ipcRenderer.invoke("automation:restore", payload),
   getRestorableCount: payload => ipcRenderer.invoke("automation:getRestorableCount", payload),
   onAutomationMissed: callback => {
