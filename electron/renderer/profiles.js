@@ -1,11 +1,11 @@
 // Profile management module
-import { EVENT_DESCRIPTION_LIMIT, EVENT_NAME_LIMIT, TAG_LIMIT } from "./config.js";
+import { EVENT_DESCRIPTION_LIMIT, EVENT_NAME_LIMIT, TAG_LIMIT, LANGUAGES, PLATFORMS, MONTHS } from "./config.js";
 import { dom, state, setProfileEditConfirmed, getProfileEditConfirmed, getProfileWizard } from "./state.js";
-import { t } from "./i18n/index.js";
+import { t, getLanguageDisplayName } from "./i18n/index.js";
 import { enforceTagsInput, sanitizeText, formatDuration, normalizeDurationInput, parseDurationInput, formatDurationPreview, enforceGroupAccess } from "./utils.js";
 import { fetchGroupRoles, renderRoleList } from "./roles.js";
 import { applySeriesToWizard, showScheduleMode } from "./series.js";
-import { showToast } from "./ui.js";
+import { showToast, renderChecklist } from "./ui.js";
 
 let roleFetchToken = 0;
 let _discordApi = null;
@@ -64,6 +64,91 @@ export async function renderProfileRoleRestrictions(api) {
     empty.textContent = getRoleLabels().noRoles;
     dom.profileRoleList.appendChild(empty);
   }
+}
+
+export function renderProfileLanguageList() {
+  if (!dom.profileLanguageList) return;
+  renderChecklist(dom.profileLanguageList, LANGUAGES, state.profile.languages, {
+    max: 3,
+    filterText: dom.profileLanguageFilter?.value || "",
+    getLabel: item => getLanguageDisplayName(item.value, item.label),
+    onChange: next => {
+      state.profile.languages = next;
+      renderProfileLanguageList();
+      if (dom.profileLanguageHint) {
+        dom.profileLanguageHint.textContent = t("common.fields.languagesHint", { count: next.length });
+      }
+    }
+  });
+  if (dom.profileLanguageHint) {
+    dom.profileLanguageHint.textContent = t("common.fields.languagesHint", { count: state.profile.languages.length });
+  }
+}
+
+export function renderProfilePlatformList() {
+  if (!dom.profilePlatformList) return;
+  renderChecklist(dom.profilePlatformList, PLATFORMS, state.profile.platforms, {
+    onChange: next => {
+      state.profile.platforms = next;
+      renderProfilePlatformList();
+    }
+  });
+}
+
+function formatPatternLabel(pattern) {
+  const time = `${String(pattern.hour).padStart(2, "0")}:${String(pattern.minute).padStart(2, "0")}`;
+  if (pattern.type === "annual") {
+    const monthConfig = MONTHS.find(m => m.value === pattern.month);
+    const monthKey = monthConfig?.labelKey || `common.months.${pattern.month}`;
+    const translatedMonth = t(monthKey);
+    const monthLabel = translatedMonth === monthKey ? (monthConfig?.label || `Month ${pattern.month}`) : translatedMonth;
+    return t("profiles.patterns.format.annual", { month: monthLabel, day: pattern.day, time });
+  }
+  const weekdayKey = `common.weekdays.${pattern.weekday}`;
+  const translatedWeekday = t(weekdayKey);
+  const weekdayLabel = translatedWeekday === weekdayKey ? pattern.weekday : translatedWeekday;
+  if (pattern.type === "every") return t("profiles.patterns.format.every", { weekday: weekdayLabel, time });
+  if (pattern.type === "every-other") return t("profiles.patterns.format.everyOther", { weekday: weekdayLabel, time });
+  if (pattern.type === "last") return t("profiles.patterns.format.last", { weekday: weekdayLabel, time });
+  if (pattern.type === "nth") {
+    const ordinalKey = `profiles.patterns.ordinal${pattern.occurrence}`;
+    const ordinal = t(ordinalKey);
+    return t("profiles.patterns.format.nth", {
+      ordinal: ordinal === ordinalKey ? `${pattern.occurrence}` : ordinal,
+      weekday: weekdayLabel,
+      time
+    });
+  }
+  return t("profiles.patterns.format.every", { weekday: weekdayLabel, time });
+}
+
+export function renderPatternList() {
+  if (!dom.patternList) return;
+  dom.patternList.innerHTML = "";
+  if (!state.profile.patterns.length) {
+    const empty = document.createElement("div");
+    empty.className = "hint";
+    empty.textContent = t("profiles.patterns.noPatterns");
+    dom.patternList.appendChild(empty);
+    return;
+  }
+  state.profile.patterns.forEach((pattern, index) => {
+    const row = document.createElement("div");
+    row.className = "pattern-item";
+    const label = document.createElement("span");
+    label.textContent = formatPatternLabel(pattern);
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "ghost";
+    remove.textContent = t("profiles.patterns.removeButton");
+    remove.addEventListener("click", () => {
+      state.profile.patterns.splice(index, 1);
+      renderPatternList();
+    });
+    row.appendChild(label);
+    row.appendChild(remove);
+    dom.patternList.appendChild(row);
+  });
 }
 
 export function updateProfileDurationPreview() {
@@ -684,6 +769,14 @@ function _wlog(message) {
 export function handleProfileWizardStepChange({ current, next }) {
   _wlog(`step change current=${current} next=${next} selected=${dom.profileExisting?.value || ""} editConfirmed=${getProfileEditConfirmed()}`);
   if (next < current) {
+    // Returning from a later step rebuilds the list DOMs from state — so a
+    // fresh schedule that's been wiped from state.profile.* shows blank fields,
+    // not stale leftovers from a previously-edited template (the v1.0 invariant).
+    if (next === 0) {
+      renderProfileLanguageList();
+      renderProfilePlatformList();
+      renderPatternList();
+    }
     syncStep3Mode(next);
     return true;
   }
@@ -723,10 +816,20 @@ export function handleProfileWizardStepChange({ current, next }) {
           showScheduleMode("template", { lock: true });
         }
       }
+      // Repaint list DOMs from the just-loaded state.profile.* so step 3
+      // reflects the selected template/series instead of the previous one.
+      renderProfileLanguageList();
+      renderProfilePlatformList();
+      renderPatternList();
       setProfileEditConfirmed(true);
     } else if (!getProfileEditConfirmed()) {
       _wlog("no selection — resetting form (New flow)");
       resetProfileForm();
+      // Wipe DOM lists too — resetProfileForm clears state but the list DOM
+      // is rendered separately and used to keep stale rows from the prior edit.
+      renderProfileLanguageList();
+      renderProfilePlatformList();
+      renderPatternList();
       updateProfileActionButtons();
     }
   }
@@ -818,7 +921,7 @@ async function updateProfileTogglesVisibility(api) {
 // Handle new profile button
 export function handleProfileNew() {
   if (!dom.profileGroup.value) {
-    return { success: false, message: "Select a group first." };
+    return { success: false, message: t("profiles.selectGroupFirst") };
   }
 
   setProfileEditConfirmed(false);
@@ -837,7 +940,7 @@ export function handleProfileNew() {
 // Handle edit profile button
 export function handleProfileEdit() {
   if (!dom.profileExisting.value) {
-    return { success: false, message: "Select a profile to edit." };
+    return { success: false, message: t("profiles.selectProfileToEdit") };
   }
 
   setProfileEditConfirmed(true);
@@ -877,7 +980,7 @@ export function handleProfileAccessChange(api) {
 export async function handleProfileSave(api) {
   const groupId = dom.profileGroup.value;
   if (!groupId) {
-    return { success: false, message: "Select a group." };
+    return { success: false, message: t("common.errors.noGroup") };
   }
   enforceGroupAccess(dom.profileAccess, groupId);
 
@@ -904,7 +1007,7 @@ export async function handleProfileSave(api) {
   }
 
   if (!profileKey) {
-    return { success: false, message: "Profile key could not be generated." };
+    return { success: false, message: t("profiles.profileKeyGen") };
   }
 
   state.profile.currentKey = profileKey;
@@ -918,7 +1021,7 @@ export async function handleProfileSave(api) {
     : enforceTagsInput(dom.profileTags, TAG_LIMIT);
 
   if (state.profile.languages.length > 3) {
-    return { success: false, message: "Maximum 3 languages allowed." };
+    return { success: false, message: t("common.errors.maxLanguages") };
   }
 
   let duration = parseDurationInput(dom.profileDuration.value)?.minutes ?? null;
@@ -926,7 +1029,7 @@ export async function handleProfileSave(api) {
     duration = normalizeDurationInput(dom.profileDuration, 120);
   }
   if (!duration || duration < 1) {
-    return { success: false, message: "Duration must be a positive number." };
+    return { success: false, message: t("common.errors.durationError") };
   }
 
   const roleIds = dom.profileAccess.value === "group"
@@ -1000,7 +1103,7 @@ export async function handleProfileSave(api) {
 export async function handleProfileDelete(api) {
   const selected = dom.profileExisting.value;
   if (!selected) {
-    return { success: false, message: "No profile selected." };
+    return { success: false, message: t("profiles.noProfileSelected") };
   }
 
   const [groupId, profileKey] = selected.split("::");
@@ -1021,7 +1124,7 @@ export async function handleProfileDelete(api) {
   } catch (err) {
     return {
       success: false,
-      message: "Could not delete profile."
+      message: t("profiles.deleteFailed")
     };
   }
 }
@@ -1034,7 +1137,7 @@ export async function refreshProfiles(api) {
   } catch (err) {
     return {
       success: false,
-      message: "Failed to load profiles."
+      message: t("profiles.loadFailed")
     };
   }
 }
@@ -1044,13 +1147,13 @@ export async function handleProfileExportJson(api) {
   try {
     const selected = dom.profileExisting.value;
     if (!selected) {
-      return { success: false, message: "No profile selected to export." };
+      return { success: false, message: t("profiles.noProfileForExport") };
     }
 
     const [groupId, profileKey] = selected.split("::");
     const profile = state.profiles?.[groupId]?.profiles?.[profileKey];
     if (!profile) {
-      return { success: false, message: "Profile not found." };
+      return { success: false, message: t("profiles.profileNotFound") };
     }
 
     const exportData = {
@@ -1088,7 +1191,7 @@ export async function handleProfileExportJson(api) {
 
     const result = await api.exportProfileJson(exportData);
     if (!result) {
-      return { success: false, message: "Export failed." };
+      return { success: false, message: t("common.errors.exportFailed") };
     }
     if (result.cancelled) {
       return { success: false, cancelled: true };
@@ -1098,7 +1201,7 @@ export async function handleProfileExportJson(api) {
     }
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Export failed." };
+    return { success: false, message: err.message || t("common.errors.exportFailed") };
   }
 }
 
@@ -1107,7 +1210,7 @@ export async function handleProfileImportJson(api) {
   try {
     const result = await api.importProfileJson();
     if (!result) {
-      return { success: false, message: "Import failed." };
+      return { success: false, message: t("common.errors.importFailed") };
     }
     if (result.cancelled) {
       return { success: false, cancelled: true };
@@ -1118,14 +1221,14 @@ export async function handleProfileImportJson(api) {
     }
     return await applyImportedJsonToProfileForm(result.data, api);
   } catch (err) {
-    return { success: false, message: err.message || "Import failed." };
+    return { success: false, message: err.message || t("common.errors.importFailed") };
   }
 }
 
 // Apply imported JSON data to profile form
 async function applyImportedJsonToProfileForm(data, api) {
   if (!data || typeof data !== "object") {
-    return { success: false, message: "Invalid JSON data." };
+    return { success: false, message: t("common.errors.invalidJson") };
   }
 
   // Check if this looks like an event JSON instead of a profile JSON
@@ -1632,17 +1735,10 @@ async function loadDiscordGroupConfig(api) {
   if (dom.discordWebhookEnabledCheck) dom.discordWebhookEnabledCheck.checked = hasWebhook;
   if (dom.discordWebhookUrlField) dom.discordWebhookUrlField.classList.toggle("is-hidden", !hasWebhook);
   if (dom.discordWebhookTestBtn) dom.discordWebhookTestBtn.classList.toggle("is-hidden", !hasWebhook);
-  // Load kit status and customization fields
+  // The kit's presence reveals the customization fields below; nothing else
+  // about the kit is surfaced in the UI.
   const hasKit = await api.eckitHasKit(groupId);
   if (dom.eckitConfig) dom.eckitConfig.classList.toggle("is-hidden", !hasKit);
-  if (dom.eckitStatus) {
-    if (hasKit) {
-      const kit = await api.eckitGetKit(groupId);
-      dom.eckitStatus.textContent = `Kit active — issued to ${kit?.issuedTo || "Unknown"} (${kit?.issuedAt || ""})`;
-    } else {
-      dom.eckitStatus.textContent = "";
-    }
-  }
   // Load kit customization values from group data
   const groupData = (state.profiles || {})[groupId] || {};
   if (dom.eckitWebhookName) dom.eckitWebhookName.value = groupData.webhookDisplayName || "";

@@ -74,7 +74,7 @@ function generateIcsString({ title, description, startTime, endTime, location, u
  * "2026-05-15T19:00:00.000Z" → "20260515T190000Z"
  */
 function toIcsTimestamp(isoString) {
-  return isoString.replace(/[-:]/g, "").replace(/\.\d{3}/, "").replace(/Z$/, "Z");
+  return isoString.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
 /**

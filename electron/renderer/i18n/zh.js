@@ -18,6 +18,9 @@ export const zh = {
     loggingIn: "正在登录...",
     loginFailed: "登录失败。",
     sessionChecking: "正在检查会话...",
+    sessionCheckFailed: "会话检查失败。",
+    enterCredentials: "请输入用户名和密码。",
+    logoutFailed: "退出登录失败。",
     loginRequired: "需要登录。",
     loggedInAs: "已登录为 {name}。",
     loggedOut: "已退出登录。"
@@ -26,7 +29,8 @@ export const zh = {
     title: "双重验证代码",
     subtitle: "请输入认证代码",
     codeLabel: "代码",
-    submit: "提交"
+    submit: "提交",
+    enterCode: "请输入验证码。"
   },
   languageSetup: {
     title: "选择语言",
@@ -53,6 +57,9 @@ export const zh = {
     loadFailed: "无法加载图库。"
   },
   settings: {
+    dataDir: {
+      willChangeOnRestart: "数据目录将在下次重启时更改。请将 VRC_EVENT_DATA_DIR 环境变量设置为：{path}"
+    },
     theme: {
       title: "主题",
       description: "自定义应用外观。选择预设主题或手动调整。",
@@ -65,9 +72,24 @@ export const zh = {
       savedLabel: "已保存的主题",
       customGroupLabel: "自定义",
       customUnsaved: "自定义（未保存）",
+      customThemeFallback: "自定义主题",
       importButton: "导入主题",
       exportButton: "导出主题",
       openStudio: "打开主题工作室",
+      toasts: {
+        saveFailed: "无法保存主题。",
+        saved: "主题已保存：{name}",
+        selectSavedToDelete: "请选择要删除的已保存主题。",
+        confirmDelete: "删除主题「{name}」？",
+        deleteFailed: "无法删除主题。",
+        deleted: "主题已删除。",
+        importNotAvailable: "主题导入不可用。",
+        importFailed: "无法导入主题。",
+        imported: "主题已导入：{name}",
+        exportNotAvailable: "主题导出不可用。",
+        exportFailed: "无法导出主题。",
+        exported: "主题已导出。"
+      },
       studio: {
         title: "主题工作室",
         subtitle: "预览并微调应用外观。支持 #RRGGBBAA 自定义透明度。",
@@ -183,6 +205,7 @@ export const zh = {
     },
     eckit: {
       importButton: "导入套件",
+      imported: "套件已导入。",
       webhookName: "Webhook显示名称",
       webhookNamePlaceholder: "我的群组活动",
       embedColor: "嵌入颜色",
@@ -308,6 +331,9 @@ export const zh = {
     created: "活动已创建。",
     failed: "无法创建活动。",
     selectDateError: "请选择日期。",
+    failedToBuildDates: "无法生成日期选项。",
+    selectProfileOrManual: "请选择带模式的模板或使用手动日期/时间。",
+    cannotCreatePast: "无法创建过去的活动。所选时间已过。",
     updateRequired: "有可用更新。请先更新再创建活动。",
     featuredPermissionRevoked: "该群组不再有创建精选活动的权限。",
     groupFairPermissionRevoked: "该群组不再有将活动包含在群组集市中的权限。"
@@ -399,6 +425,14 @@ export const zh = {
     importSuccess: "已从 JSON 导入模板数据。",
     importWrongType: "这似乎是活动 JSON。请改用导入活动。",
     exportSuccess: "已将模板数据导出为 JSON。",
+    selectGroupFirst: "请先选择群组。",
+    selectProfileToEdit: "请选择要编辑的模板。",
+    profileKeyGen: "无法生成模板键。",
+    noProfileSelected: "未选择模板。",
+    deleteFailed: "无法删除模板。",
+    loadFailed: "无法加载模板。",
+    noProfileForExport: "未选择要导出的模板。",
+    profileNotFound: "未找到模板。",
     hints: {
       groupAccess: "选择具有日历权限的群组。",
       patternsInfo: "模式用于预生成即将到来的日期。"
@@ -503,6 +537,7 @@ export const zh = {
   },
   common: {
     syncing: "正在同步数据...",
+    syncSuccess: "同步成功。",
     ready: "就绪",
     error: "错误",
     offline: "离线",
@@ -578,7 +613,12 @@ export const zh = {
       maxLanguages: "最多可选择 3 种语言。",
       noGroup: "请选择群组。",
       requiredMultiple: "{fields} 为必填。",
-      requiredSingle: "{field} 为必填。"
+      requiredSingle: "{field} 为必填。",
+      refreshFailed: "无法加载模板或群组。",
+      invalidJson: "无效的 JSON 数据。",
+      importFailed: "导入失败。",
+      exportFailed: "导出失败。",
+      couldNotImportJson: "无法导入 JSON 文件。"
     },
     exportJson: "导出 JSON",
     importJson: "导入 JSON",

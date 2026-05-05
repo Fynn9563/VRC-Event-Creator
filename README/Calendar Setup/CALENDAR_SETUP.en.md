@@ -1,6 +1,6 @@
 # Calendar Integration Setup Guide
 
-This guide walks you through setting up calendar file (.ics) generation, Discord webhook posting, and Discord scheduled events in VRC Event Creator. These three features are fully independent — enable any combination that fits your workflow.
+This guide walks you through setting up calendar file (.ics) generation, Discord webhook posting, and Discord scheduled events in VRC Event Creator. These three features are fully independent: enable any combination that fits your workflow.
 
 ---
 
@@ -8,9 +8,9 @@ This guide walks you through setting up calendar file (.ics) generation, Discord
 
 VRC Event Creator offers three post-creation actions when you create or automate a VRChat event. Each is independently toggled per template and per event:
 
-- **Create .ics Calendar Invite** — Generates a standard `.ics` calendar file with optional reminders, auto-saved to a local directory
-- **Post Discord Webhook** — Posts an announcement to a Discord channel via webhook (with optional `.ics` attachment if calendar is also enabled)
-- **Create Discord Event** — Creates a scheduled event in your Discord server via bot
+- **Create .ics Calendar Invite:** Generates a standard `.ics` calendar file with optional reminders, auto-saved to a local directory
+- **Post Discord Webhook:** Posts an announcement to a Discord channel via webhook (with optional `.ics` attachment if calendar is also enabled)
+- **Create Discord Event:** Creates a scheduled event in your Discord server via bot
 
 When multiple features are enabled, they compose naturally:
 
@@ -43,12 +43,12 @@ Files save as `{directory}/{Group Name}/{Event Name - Date}.ics`. To change the 
 
 ## Step 2: Configure Discord Webhook (Optional)
 
-A webhook posts announcements to a specific Discord channel. This is independent of calendar files and Discord events — you can use it with or without either.
+A webhook posts announcements to a specific Discord channel. This is independent of calendar files and Discord events; you can use it with or without either.
 
 1. In Discord, right-click the channel you want announcements posted to
 2. Click **Edit Channel** > **Integrations** > **Webhooks** > **New Webhook**
 3. Copy the webhook URL
-4. In VRC Event Creator, go to **Settings** > **Discord Integration** > select your group
+4. In VRC Event Creator, open **Settings** > **Advanced Options** > **Enable Discord integration** and select your group in the panel that appears
 5. Check **"Enable Webhook"** and paste the webhook URL
 6. Click **Test Webhook** to verify, then **Save**
 
@@ -60,15 +60,12 @@ If a Discord scheduled event was also created, the webhook message includes the 
 
 ## Step 3: Configure Templates
 
-1. Go to **Templates** and edit (or create) a template
-2. In the **Basics** tab, you'll see up to three posting toggles (depending on what's configured):
-   - **Create .ics Calendar Invite** — visible when calendar file generation is enabled
-   - **Create Discord Event** — visible when Discord bot is configured for the group
-   - **Post Discord Webhook** — visible when a webhook URL is configured for the group
-3. Enable the ones you want for this template
-4. If calendar is enabled, the **Schedule** tab shows a **".ics Calendar Reminders"** card
-5. Check **"Enable .ics Calendar Reminders"** and add your preferred reminder intervals
-6. Save the template
+1. Go to **Manage Schedules** and edit (or create) a template
+2. In the **Schedule** step, the **"Create .ics Calendar Invite"** toggle appears when calendar file generation is enabled. Turning it on reveals the **".ics Calendar Reminders"** controls below, where you can add your preferred reminder intervals.
+3. In the **Audience** step, the announcement toggles appear depending on what's configured for the group:
+   - **"Create Discord Event":** visible when a Discord bot is configured for the group
+   - **"Post Discord Webhook":** visible when a webhook URL is configured for the group
+4. Enable whichever toggles fit this template, then save.
 
 Reminders use preset intervals compatible with all major calendar apps: 5 min, 10 min, 15 min, 30 min, 1 hour, 2 hours, 4 hours, 8 hours, 12 hours, 1 day, 2 days, 1 week.
 
@@ -107,7 +104,7 @@ Yes. The webhook, Discord events, and calendar files are fully independent. Any 
 
 ### Is the webhook URL sensitive?
 
-Yes — anyone with the webhook URL can post messages to that channel. Treat it like a password. It is encrypted and stored locally using your OS's secure storage.
+Yes. Anyone with the webhook URL can post messages to that channel, so treat it like a password. It is encrypted and stored locally using your OS's secure storage.
 
 ---
 

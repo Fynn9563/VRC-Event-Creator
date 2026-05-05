@@ -4,7 +4,7 @@ import { buildTimezones, ensureTimezoneOption, createTagInput, enforceTagsInput,
 import { ACCESS_TYPES, CATEGORIES, EVENT_DESCRIPTION_LIMIT, EVENT_NAME_LIMIT, LANGUAGES, PLATFORMS, TAG_LIMIT } from "./config.js";
 import { t, getLanguageDisplayName } from "./i18n/index.js";
 import { fetchGroupRoles, renderRoleList } from "./roles.js";
-import { isGroupDiscordConfigured, isGroupWebhookConfigured, isGroupKitActive, renderCalendarReminders, readCalendarRemindersFromDom, addCalendarReminderRow } from "./profiles.js";
+import { isGroupDiscordConfigured, isGroupWebhookConfigured, isGroupKitActive, renderCalendarReminders, readCalendarRemindersFromDom } from "./profiles.js";
 
 const HOLD_DURATION_MS = 2000;
 const MODIFY_RATE_LIMIT_KEYS = {
@@ -1051,8 +1051,26 @@ async function handlePendingPostNow(pendingEvent, button) {
     button.disabled = true;
   }
   try {
+    // Projected events live only in the renderer view — they aren't in the
+    // engine's pendingEvents array, so postNow's id lookup would fail.
+    // Materialize the slot first (mirrors the Phase B edit-flow promotion),
+    // then post the resulting real pending id.
+    let postId = pendingEvent.id;
+    if (pendingEvent.isProjected && modifyApi?.commitProjected) {
+      const commit = await modifyApi.commitProjected({
+        groupId: pendingEvent.groupId,
+        profileKey: pendingEvent.profileKey,
+        eventStartsAt: pendingEvent.eventStartsAt,
+        overrides: null,
+      });
+      if (!commit?.ok || !commit.pendingEventId) {
+        showToast(commit?.error?.message || t("modify.pending.postFailed"), true);
+        return;
+      }
+      postId = commit.pendingEventId;
+    }
     const result = await modifyApi.pendingAction({
-      pendingEventId: pendingEvent.id,
+      pendingEventId: postId,
       action: "postNow"
     });
     if (!result?.ok) {

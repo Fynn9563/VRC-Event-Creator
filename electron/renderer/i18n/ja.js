@@ -18,6 +18,9 @@ export const ja = {
     loggingIn: "ログイン中…",
     loginFailed: "ログインに失敗しました",
     sessionChecking: "セッションを確認中...",
+    sessionCheckFailed: "セッションの確認に失敗しました。",
+    enterCredentials: "ユーザー名とパスワードを入力してください。",
+    logoutFailed: "ログアウトに失敗しました。",
     loginRequired: "ログイン必須",
     loggedInAs: "{name} としてログイン中",
     loggedOut: "ログアウトしました。"
@@ -26,7 +29,8 @@ export const ja = {
     title: "2段階認証コード",
     subtitle: "認証コードを入力してください",
     codeLabel: "コード",
-    submit: "送信"
+    submit: "送信",
+    enterCode: "コードを入力してください。"
   },
     languageSetup: {
     title: "言語を選択",
@@ -53,6 +57,9 @@ export const ja = {
     loadFailed: "ギャラリーを読み込めませんでした。"
   },
   settings: {
+    dataDir: {
+      willChangeOnRestart: "データディレクトリは次回の再起動時に変更されます。VRC_EVENT_DATA_DIR 環境変数を次の値に設定してください: {path}"
+    },
     theme: {
       title: "テーマ",
       description: "アプリの外観をカスタマイズします。プリセットを選ぶか手動で調整してください。",
@@ -65,9 +72,24 @@ export const ja = {
       savedLabel: "保存済みテーマ",
       customGroupLabel: "カスタム",
       customUnsaved: "カスタム（未保存）",
+      customThemeFallback: "カスタムテーマ",
       importButton: "テーマをインポート",
       exportButton: "テーマをエクスポート",
       openStudio: "テーマスタジオを開く",
+      toasts: {
+        saveFailed: "テーマを保存できませんでした。",
+        saved: "テーマを保存しました: {name}",
+        selectSavedToDelete: "削除する保存済みテーマを選択してください。",
+        confirmDelete: "テーマ「{name}」を削除しますか？",
+        deleteFailed: "テーマを削除できませんでした。",
+        deleted: "テーマを削除しました。",
+        importNotAvailable: "テーマのインポートは利用できません。",
+        importFailed: "テーマをインポートできませんでした。",
+        imported: "テーマをインポートしました: {name}",
+        exportNotAvailable: "テーマのエクスポートは利用できません。",
+        exportFailed: "テーマをエクスポートできませんでした。",
+        exported: "テーマをエクスポートしました。"
+      },
       studio: {
         title: "テーマスタジオ",
         subtitle: "アプリの外観をプレビューして微調整します。#RRGGBBAA の透明度に対応しています。",
@@ -183,6 +205,7 @@ export const ja = {
     },
     eckit: {
       importButton: "キットをインポート",
+      imported: "キットをインポートしました。",
       webhookName: "Webhook表示名",
       webhookNamePlaceholder: "マイグループイベント",
       embedColor: "埋め込みカラー",
@@ -308,6 +331,9 @@ export const ja = {
     created: "イベントを作成しました。",
     failed: "イベントを作成できませんでした。",
     selectDateError: "日付を選択してください。",
+    failedToBuildDates: "日付候補の生成に失敗しました。",
+    selectProfileOrManual: "パターン付きのテンプレートを選択するか、手動で日付/時刻を入力してください。",
+    cannotCreatePast: "過去の日時にはイベントを作成できません。選択した時刻はすでに過ぎています。",
     updateRequired: "更新があります。イベントを作成する前に更新してください。",
     featuredPermissionRevoked: "このグループで注目イベントを作成する権限が失われました",
     groupFairPermissionRevoked: "このグル－プでグループフェアイベントを作成する権限が失われました"
@@ -399,6 +425,14 @@ export const ja = {
     importSuccess: "テンプレートデータを JSON からインポートしました。",
     importWrongType: "これはイベントの JSON のようです。代わりにイベントのインポートを使用してください。",
     exportSuccess: "テンプレートデータを JSON にエクスポートしました。",
+    selectGroupFirst: "先にグループを選択してください。",
+    selectProfileToEdit: "編集するテンプレートを選択してください。",
+    profileKeyGen: "テンプレートキーを生成できませんでした。",
+    noProfileSelected: "テンプレートが選択されていません。",
+    deleteFailed: "テンプレートを削除できませんでした。",
+    loadFailed: "テンプレートを読み込めませんでした。",
+    noProfileForExport: "エクスポートするテンプレートが選択されていません。",
+    profileNotFound: "テンプレートが見つかりません。",
     hints: {
       groupAccess: "カレンダー権限のあるグループを選択してください。",
       patternsInfo: "パターンは今後の日付を事前生成するために使用されます。"
@@ -503,6 +537,7 @@ export const ja = {
   },
   common: {
     syncing: "同期中...",
+    syncSuccess: "同期が完了しました。",
     ready: "準備完了",
     error: "エラー",
     offline: "オフライン",
@@ -578,7 +613,12 @@ export const ja = {
       maxLanguages: "最大3言語まで選択できます。",
       noGroup: "グループを選択してください。",
       requiredMultiple: "{fields} は必須です。",
-      requiredSingle: "{field} は必須です。"
+      requiredSingle: "{field} は必須です。",
+      refreshFailed: "テンプレートまたはグループの読み込みに失敗しました。",
+      invalidJson: "JSON データが無効です。",
+      importFailed: "インポートに失敗しました。",
+      exportFailed: "エクスポートに失敗しました。",
+      couldNotImportJson: "JSON ファイルをインポートできませんでした。"
     },
     exportJson: "JSON をエクスポート",
     importJson: "JSON をインポート",

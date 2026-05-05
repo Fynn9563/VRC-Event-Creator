@@ -1,6 +1,6 @@
 # Guía de configuración de la integración de calendario
 
-Esta guía te acompaña en la configuración de la generación de archivos de calendario (.ics), la publicación por webhook de Discord y los eventos programados de Discord en VRC Event Creator. Estas tres funciones son completamente independientes — activa cualquier combinación que se ajuste a tu flujo de trabajo.
+Esta guía te acompaña en la configuración de la generación de archivos de calendario (.ics), la publicación por webhook de Discord y los eventos programados de Discord en VRC Event Creator. Estas tres funciones son completamente independientes: activa cualquier combinación que se ajuste a tu flujo de trabajo.
 
 ---
 
@@ -8,9 +8,9 @@ Esta guía te acompaña en la configuración de la generación de archivos de ca
 
 VRC Event Creator ofrece tres acciones posteriores a la creación cuando creas o automatizas un evento de VRChat. Cada una se activa independientemente por plantilla y por evento:
 
-- **"Crear invitación de calendario .ics"** — Genera un archivo de calendario `.ics` estándar con recordatorios opcionales, guardado automáticamente en un directorio local
-- **"Publicar Webhook de Discord"** — Publica un anuncio en un canal de Discord mediante webhook (con archivo `.ics` adjunto opcional si el calendario también está activado)
-- **"Crear evento de Discord"** — Crea un evento programado en tu servidor de Discord mediante bot
+- **"Crear invitación de calendario .ics":** genera un archivo de calendario `.ics` estándar con recordatorios opcionales, guardado automáticamente en un directorio local
+- **"Publicar Webhook de Discord":** publica un anuncio en un canal de Discord mediante webhook (con archivo `.ics` adjunto opcional si el calendario también está activado)
+- **"Crear evento de Discord":** crea un evento programado en tu servidor de Discord mediante bot
 
 Cuando se activan varias funciones, se complementan naturalmente:
 
@@ -28,7 +28,7 @@ Cuando se activan varias funciones, se complementan naturalmente:
 
 ## Paso 1: Habilitar la generación de archivos de calendario
 
-1. Abre **Configuración** > **Configuración avanzada**
+1. Abre **Configuración** > **Opciones avanzadas**
 2. Activa **"Habilitar generación de archivos de calendario"**
 
 Esto hace que el interruptor **"Crear invitación de calendario .ics"** esté disponible en las plantillas y en la creación de eventos.
@@ -43,12 +43,12 @@ Los archivos se guardan como `{directorio}/{Nombre del grupo}/{Nombre del evento
 
 ## Paso 2: Configurar el webhook de Discord (opcional)
 
-Un webhook publica anuncios en un canal de Discord específico. Es independiente de los archivos de calendario y los eventos de Discord — puedes usarlo con o sin cualquiera de los dos.
+Un webhook publica anuncios en un canal de Discord específico. Es independiente de los archivos de calendario y los eventos de Discord; puedes usarlo con o sin cualquiera de los dos.
 
 1. En Discord, haz clic derecho en el canal donde quieres que se publiquen los anuncios
 2. Haz clic en **Editar canal** > **Integraciones** > **Webhooks** > **Nuevo webhook**
 3. Copia la URL del webhook
-4. En VRC Event Creator, ve a **Configuración** > **Integración con Discord** > selecciona tu grupo
+4. En VRC Event Creator, abre **Configuración** > **Opciones avanzadas** > **"Habilitar integración con Discord"** y selecciona tu grupo en el panel que aparece
 5. Activa **"Habilitar Webhook"** y pega la URL del webhook
 6. Haz clic en **Probar Webhook** para verificar, luego en **Guardar**
 
@@ -60,15 +60,12 @@ Si también se creó un evento de Discord, el mensaje del webhook incluye el enl
 
 ## Paso 3: Configurar plantillas
 
-1. Ve a **Gestionar plantillas** y edita (o crea) una plantilla
-2. En la pestaña **Básicos**, verás hasta tres interruptores de publicación (según la configuración):
-   - **"Crear invitación de calendario .ics"** — visible cuando la generación de archivos de calendario está habilitada
-   - **"Crear evento de Discord"** — visible cuando hay un bot de Discord configurado para el grupo
-   - **"Publicar Webhook de Discord"** — visible cuando hay una URL de webhook configurada para el grupo
-3. Activa los que desees para esta plantilla
-4. Si el calendario está habilitado, la pestaña **Horario** muestra una tarjeta **"Recordatorios de calendario .ics"**
-5. Activa **"Habilitar recordatorios de calendario .ics"** y agrega tus intervalos de recordatorio preferidos
-6. Guarda la plantilla
+1. Ve a **Gestionar planificaciones** y edita (o crea) una plantilla
+2. En el paso **Horario**, el interruptor **"Crear invitación de calendario .ics"** aparece cuando la generación de archivos de calendario está habilitada. Al activarlo se muestran los **"Recordatorios de calendario .ics"** debajo, donde puedes añadir los intervalos de recordatorio que prefieras
+3. En el paso **Audience**, los interruptores de anuncios aparecen según lo que esté configurado para el grupo:
+   - **"Crear evento de Discord":** visible cuando hay un bot de Discord configurado para el grupo
+   - **"Publicar Webhook de Discord":** visible cuando hay una URL de webhook configurada para el grupo
+4. Activa los que desees para esta plantilla y guarda
 
 Los recordatorios usan intervalos predefinidos compatibles con todas las aplicaciones de calendario principales: 5 min, 10 min, 15 min, 30 min, 1 hora, 2 horas, 4 horas, 8 horas, 12 horas, 1 día, 2 días, 1 semana.
 
@@ -107,7 +104,7 @@ Sí. El webhook, los eventos de Discord y los archivos de calendario son complet
 
 ### ¿La URL del webhook es confidencial?
 
-Sí — cualquier persona con la URL del webhook puede enviar mensajes a ese canal. Trátala como una contraseña. Se cifra y almacena localmente usando el almacenamiento seguro de tu sistema operativo.
+Sí. Cualquier persona con la URL del webhook puede enviar mensajes a ese canal, así que trátala como una contraseña. Se cifra y se almacena localmente usando el almacenamiento seguro de tu sistema operativo.
 
 ---
 
@@ -115,7 +112,7 @@ Sí — cualquier persona con la URL del webhook puede enviar mensajes a ese can
 
 | Problema | Solución |
 |---|---|
-| No se genera el archivo .ics | Verifica que "Habilitar generación de archivos de calendario" esté activado en la Configuración avanzada, y que "Crear invitación de calendario .ics" esté marcado en la plantilla o el evento |
+| No se genera el archivo .ics | Verifica que "Habilitar generación de archivos de calendario" esté activado en las Opciones avanzadas, y que "Crear invitación de calendario .ics" esté marcado en la plantilla o el evento |
 | El webhook no publica | Verifica la URL del webhook con "Probar Webhook" en la configuración de Discord. Comprueba que "Habilitar Webhook" esté activado para el grupo y que "Publicar Webhook de Discord" esté marcado en la plantilla |
 | El webhook publica pero sin .ics adjunto | "Crear invitación de calendario .ics" también debe estar habilitado para el evento. Sin esto, el webhook solo publica un embed o enlace de evento |
 | Los recordatorios no funcionan en Outlook | Outlook solo admite el primer recordatorio. La aplicación ordena el más largo primero para compatibilidad |

@@ -1,6 +1,6 @@
 # Installatiehandleiding kalenderintegratie
 
-Deze handleiding begeleidt je bij het instellen van kalenderbestand (.ics) generatie, Discord-webhook-berichten en Discord geplande evenementen in VRC Event Creator. Deze drie functies zijn volledig onafhankelijk — schakel elke combinatie in die bij je workflow past.
+Deze handleiding begeleidt je bij het instellen van kalenderbestand (.ics) generatie, Discord-webhook-berichten en Discord geplande evenementen in VRC Event Creator. Deze drie functies zijn volledig onafhankelijk: schakel elke combinatie in die bij je workflow past.
 
 ---
 
@@ -8,9 +8,9 @@ Deze handleiding begeleidt je bij het instellen van kalenderbestand (.ics) gener
 
 VRC Event Creator biedt drie acties na het aanmaken wanneer je een VRChat-evenement aanmaakt of automatiseert. Elk kan onafhankelijk per sjabloon en per evenement worden in- of uitgeschakeld:
 
-- **".ics kalenderuitnodiging maken"** — Genereert een standaard `.ics`-kalenderbestand met optionele herinneringen, automatisch opgeslagen in een lokale map
-- **"Discord-Webhook posten"** — Plaatst een aankondiging in een Discord-kanaal via webhook (met optionele `.ics`-bijlage als kalender ook is ingeschakeld)
-- **"Discord-evenement maken"** — Maakt een gepland evenement aan op je Discord-server via bot
+- **".ics kalenderuitnodiging maken":** genereert een standaard `.ics`-kalenderbestand met optionele herinneringen, automatisch opgeslagen in een lokale map
+- **"Discord-webhook plaatsen":** plaatst een aankondiging in een Discord-kanaal via webhook (met optionele `.ics`-bijlage als kalender ook is ingeschakeld)
+- **"Discord-evenement aanmaken":** maakt een gepland evenement aan op je Discord-server via bot
 
 Wanneer meerdere functies zijn ingeschakeld, werken ze automatisch samen:
 
@@ -28,7 +28,7 @@ Wanneer meerdere functies zijn ingeschakeld, werken ze automatisch samen:
 
 ## Stap 1: Kalenderbestand generatie inschakelen
 
-1. Open **Instellingen** > **Geavanceerde instellingen**
+1. Open **Instellingen** > **Geavanceerde opties**
 2. Vink **"Kalenderbestand generatie inschakelen"** aan
 
 Hierdoor wordt de schakelaar **".ics kalenderuitnodiging maken"** beschikbaar in sjablonen en bij het aanmaken van evenementen.
@@ -43,12 +43,12 @@ Bestanden worden opgeslagen als `{map}/{Groepsnaam}/{Evenementnaam - Datum}.ics`
 
 ## Stap 2: Discord-webhook configureren (optioneel)
 
-Een webhook plaatst aankondigingen in een specifiek Discord-kanaal. Dit is onafhankelijk van kalenderbestanden en Discord-evenementen — je kunt het met of zonder beide gebruiken.
+Een webhook plaatst aankondigingen in een specifiek Discord-kanaal. Dit is onafhankelijk van kalenderbestanden en Discord-evenementen; je kunt het met of zonder beide gebruiken.
 
 1. Klik in Discord met de rechtermuisknop op het kanaal waar je aankondigingen wilt plaatsen
 2. Klik op **Kanaal bewerken** > **Integraties** > **Webhooks** > **Nieuwe webhook**
 3. Kopieer de webhook-URL
-4. Ga in VRC Event Creator naar **Instellingen** > **Discord-integratie** > selecteer je groep
+4. Open in VRC Event Creator **Instellingen** > **Geavanceerde opties** > **"Discord-integratie inschakelen"** en kies je groep in het paneel dat verschijnt
 5. Vink **"Webhook inschakelen"** aan en plak de webhook-URL
 6. Klik op **Webhook Testen** om te verifiëren, en vervolgens op **Opslaan**
 
@@ -60,15 +60,12 @@ Als er ook een Discord gepland evenement is aangemaakt, bevat het webhook-berich
 
 ## Stap 3: Sjablonen configureren
 
-1. Ga naar **Sjablonen beheren** en bewerk (of maak) een sjabloon
-2. In het tabblad **Basis** zie je maximaal drie publicatieschakelaars (afhankelijk van de configuratie):
-   - **".ics kalenderuitnodiging maken"** — zichtbaar wanneer kalenderbestand generatie is ingeschakeld
-   - **"Discord-evenement maken"** — zichtbaar wanneer een Discord-bot is geconfigureerd voor de groep
-   - **"Discord-Webhook posten"** — zichtbaar wanneer een webhook-URL is geconfigureerd voor de groep
-3. Schakel de gewenste opties in voor dit sjabloon
-4. Als kalender is ingeschakeld, toont het tabblad **Schema** een kaart **".ics kalenderherinneringen"**
-5. Vink **".ics kalenderherinneringen inschakelen"** aan en voeg je gewenste herinneringsintervallen toe
-6. Sla het sjabloon op
+1. Ga naar **Roosters beheren** en bewerk (of maak) een sjabloon
+2. In de stap **Schema** verschijnt de schakelaar **".ics kalenderuitnodiging maken"** wanneer kalenderbestand generatie is ingeschakeld. Door hem aan te zetten verschijnen daaronder de **".ics kalenderherinneringen"**, waar je je gewenste herinneringsintervallen kunt toevoegen
+3. In de stap **Audience** verschijnen de aankondigingsschakelaars op basis van de configuratie van de groep:
+   - **"Discord-evenement aanmaken":** zichtbaar wanneer een Discord-bot is geconfigureerd voor de groep
+   - **"Discord-webhook plaatsen":** zichtbaar wanneer een webhook-URL is geconfigureerd voor de groep
+4. Schakel de gewenste opties in voor dit sjabloon en sla op
 
 Herinneringen gebruiken vooraf ingestelde intervallen die compatibel zijn met alle grote agenda-apps: 5 min, 10 min, 15 min, 30 min, 1 uur, 2 uur, 4 uur, 8 uur, 12 uur, 1 dag, 2 dagen, 1 week.
 
@@ -82,7 +79,7 @@ Bij het aanmaken van een evenement (handmatig of via automatisering):
 
 - De stap **Datum** toont **".ics kalenderuitnodiging maken"** (overgenomen van het sjabloon, overschrijfbaar)
 - Daaronder kun je met **".ics kalenderherinneringen inschakelen"** de herinneringen per evenement aanpassen
-- De stap **Details** toont **"Discord-evenement maken"** en **"Discord-Webhook posten"** als afzonderlijke schakelaars
+- De stap **Details** toont **"Discord-evenement aanmaken"** en **"Discord-webhook plaatsen"** als afzonderlijke schakelaars
 - Alle instellingen van het sjabloon kunnen per evenement worden overschreven
 
 ---
@@ -99,7 +96,7 @@ Meerdere herinneringen werken in Apple Calendar en Thunderbird. Outlook gebruikt
 
 ### Kan ik webhooks gebruiken zonder kalenderbestanden?
 
-Ja. De webhook plaatst een embed met evenementdetails zelfs wanneer kalenderbestand generatie is uitgeschakeld. Schakel "Discord-Webhook posten" in bij je sjabloon zonder ".ics kalenderuitnodiging maken" in te schakelen.
+Ja. De webhook plaatst een embed met evenementdetails zelfs wanneer kalenderbestand generatie is uitgeschakeld. Schakel "Discord-webhook plaatsen" in bij je sjabloon zonder ".ics kalenderuitnodiging maken" in te schakelen.
 
 ### Kan ik webhooks gebruiken zonder Discord-evenement aanmaak?
 
@@ -107,7 +104,7 @@ Ja. De webhook, Discord-evenementen en kalenderbestanden zijn volledig onafhanke
 
 ### Is de webhook-URL vertrouwelijk?
 
-Ja — iedereen met de webhook-URL kan berichten in dat kanaal plaatsen. Behandel het als een wachtwoord. Het wordt versleuteld en lokaal opgeslagen via de beveiligde opslag van je besturingssysteem.
+Ja. Iedereen met de webhook-URL kan berichten in dat kanaal plaatsen, dus behandel het als een wachtwoord. Het wordt versleuteld en lokaal opgeslagen via de beveiligde opslag van je besturingssysteem.
 
 ---
 
@@ -115,8 +112,8 @@ Ja — iedereen met de webhook-URL kan berichten in dat kanaal plaatsen. Behande
 
 | Probleem | Oplossing |
 |---|---|
-| Geen .ics-bestand gegenereerd | Controleer of "Kalenderbestand generatie inschakelen" is ingeschakeld in de Geavanceerde instellingen, en of ".ics kalenderuitnodiging maken" is aangevinkt in het sjabloon of evenement |
-| Webhook plaatst niet | Verifieer de webhook-URL met "Webhook Testen" in de Discord-instellingen. Controleer of "Webhook inschakelen" is ingeschakeld voor de groep en "Discord-Webhook posten" is aangevinkt in het sjabloon |
+| Geen .ics-bestand gegenereerd | Controleer of "Kalenderbestand generatie inschakelen" is ingeschakeld in de Geavanceerde opties, en of ".ics kalenderuitnodiging maken" is aangevinkt in het sjabloon of evenement |
+| Webhook plaatst niet | Verifieer de webhook-URL met "Webhook Testen" in de Discord-instellingen. Controleer of "Webhook inschakelen" is ingeschakeld voor de groep en "Discord-webhook plaatsen" is aangevinkt in het sjabloon |
 | Webhook plaatst maar zonder .ics bijlage | ".ics kalenderuitnodiging maken" moet ook zijn ingeschakeld voor het evenement. Zonder dit plaatst de webhook alleen een embed of evenementlink |
 | Herinneringen werken niet in Outlook | Outlook ondersteunt alleen de eerste herinnering. De app sorteert de langste als eerste voor compatibiliteit |
 | Herinneringen werken niet in Google Calendar | Google Calendar negeert aangepaste herinneringen bij .ics-import. Stel herinneringen handmatig in na het importeren |

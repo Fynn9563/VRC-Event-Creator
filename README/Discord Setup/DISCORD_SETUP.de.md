@@ -6,7 +6,7 @@ Diese Anleitung führt dich durch die Einrichtung der Discord-Integration für V
 
 ## Überblick
 
-Die Integration nutzt einen **Discord-Bot**, den du selbst erstellst und kontrollierst. Er benötigt nur eine einzige Berechtigung: **Events erstellen**. Er liest keine Nachrichten, betritt keine Sprachkanäle und tut auch sonst nichts. Dein Bot-Token wird verschlüsselt und lokal gespeichert — es wird ausschließlich an die Discord-API gesendet, um Events zu erstellen.
+Die Integration nutzt einen **Discord-Bot**, den du selbst erstellst und kontrollierst. Er benötigt nur eine einzige Berechtigung: **Events erstellen**. Er liest keine Nachrichten, betritt keine Sprachkanäle und tut auch sonst nichts. Dein Bot-Token wird verschlüsselt und lokal gespeichert und ausschließlich an die Discord-API gesendet, um Events zu erstellen.
 
 Jede VRChat-Gruppe kann mit einem Discord-Server verknüpft werden. Du kannst denselben Bot für mehrere Gruppen/Server verwenden oder separate Bots nutzen.
 
@@ -22,8 +22,8 @@ Jede VRChat-Gruppe kann mit einem Discord-Server verknüpft werden. Du kannst de
 
 1. Klicke in der linken Seitenleiste auf **„Bot"**
 2. Klicke auf **„Reset Token"** (oder **„Copy"**, falls der Token noch sichtbar ist)
-3. **Kopiere den Token sofort** — du kannst ihn danach nicht mehr einsehen
-4. Lass die Privileged Gateway Intents deaktiviert — der Bot benötigt keine
+3. **Kopiere den Token sofort.** Du kannst ihn danach nicht mehr einsehen
+4. Lass die Privileged Gateway Intents deaktiviert. Der Bot benötigt keine
 
 > **Halte deinen Bot-Token geheim.** Jeder, der den Token hat, kann in deinem Namen handeln. Solltest du ihn versehentlich teilen, setze ihn sofort im Developer Portal zurück.
 
@@ -35,7 +35,7 @@ Jede VRChat-Gruppe kann mit einem Discord-Server verknüpft werden. Du kannst de
 4. Aktiviere unter **Bot Permissions** das Kontrollkästchen **`Create Events`**
 5. Kopiere die generierte URL unten, öffne sie im Browser, wähle deinen Server aus und autorisiere den Bot
 
-Der Bot erscheint in deiner Mitgliederliste, bleibt aber offline — er muss nicht „laufen." Die App kommuniziert direkt über den Token mit der Discord-API.
+Der Bot erscheint in deiner Mitgliederliste, bleibt aber offline. Er muss nicht „laufen": die App kommuniziert direkt über den Token mit der Discord-API.
 
 ## Schritt 4: Server-ID herausfinden
 
@@ -45,10 +45,10 @@ Der Bot erscheint in deiner Mitgliederliste, bleibt aber offline — er muss nic
 ## Schritt 5: In VRC Event Creator konfigurieren
 
 1. Öffne **Einstellungen** > **Erweiterte Optionen** > aktiviere **„Discord-Integration aktivieren"**
-2. Wähle die VRChat-Gruppe aus, die du verknüpfen möchtest, gib deinen Bot-Token und die Server-ID ein und speichere
+2. Im darunter eingeblendeten Panel wählst du die VRChat-Gruppe aus, die du verknüpfen möchtest, gibst deinen Bot-Token und die Server-ID ein und speicherst
 3. Nutze **„Bot-Token überprüfen"**, um sicherzustellen, dass der Token funktioniert
 
-Jede Event-Vorlage hat im Reiter „Basics" einen **„Mit Discord synchronisieren"**-Schalter. Dieser ist standardmäßig aktiviert, wenn die Discord-Integration aktiv ist. Du kannst ihn für Events deaktivieren, die nicht auf Discord gepostet werden sollen.
+Jede Vorlage hat im Schritt **Audience** einen Schalter **„Discord-Event erstellen"**, daneben **„Discord-Webhook posten"**, falls für die Gruppe eine Webhook-URL hinterlegt ist. Beide sind unabhängig: aktiviere pro Vorlage eine beliebige Kombination und überschreibe sie pro Event in der Event-Erstellungs-Ansicht.
 
 **Die Discord-Synchronisierung blockiert niemals die VRChat-Event-Erstellung.** Sollte auf der Discord-Seite etwas schiefgehen, wird dein VRChat-Event trotzdem ganz normal erstellt.
 
@@ -64,7 +64,7 @@ Ja, solange er die Berechtigung **Events erstellen** auf dem Zielserver hat.
 
 Jede Person, die Events erstellt, braucht den Bot-Token auf ihrem Rechner. Möglichkeiten:
 - **Token mit vertrauenswürdigen Teammitgliedern teilen**
-- **Eine Person verwaltet die Discord-Synchronisierung**, während andere „Mit Discord synchronisieren" deaktivieren
+- **Eine Person verwaltet die Discord-Synchronisierung**, während andere **„Discord-Event erstellen"** deaktivieren
 - **Separate Bots** pro Teammitglied erstellen
 
 ### Ist mein Bot-Token sicher?
@@ -85,4 +85,4 @@ Nein, die App erstellt sie nur. Verwalte Discord-Events direkt in Discord.
 | „Bot hat keine Berechtigung, Events zu erstellen" | Lade den Bot erneut mit der Berechtigung „Events erstellen" ein, oder füge sie über Servereinstellungen > Rollen hinzu |
 | „Discord-Server nicht gefunden" | Überprüfe die Server-ID (Rechtsklick auf Server > Server-ID kopieren) |
 | „Discord-Ratenlimit erreicht" | Warte eine Minute und versuche es erneut |
-| Events wurden in VRChat erstellt, aber nicht in Discord | Prüfe, ob „Mit Discord synchronisieren" aktiviert ist und die Gruppe einen gültigen Bot-Token + Server-ID hat |
+| Events wurden in VRChat erstellt, aber nicht in Discord | Prüfe, ob „Discord-Event erstellen" aktiviert ist und die Gruppe einen gültigen Bot-Token + Server-ID hat |

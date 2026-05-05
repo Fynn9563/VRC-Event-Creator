@@ -18,6 +18,9 @@ export const de = {
     loggingIn: "Anmeldung...",
     loginFailed: "Anmeldung fehlgeschlagen.",
     sessionChecking: "Sitzung wird überprüft...",
+    sessionCheckFailed: "Sitzungsprüfung fehlgeschlagen.",
+    enterCredentials: "Benutzername und Passwort eingeben.",
+    logoutFailed: "Abmeldung fehlgeschlagen.",
     loginRequired: "Anmeldung erforderlich.",
     loggedInAs: "Angemeldet als {name}.",
     loggedOut: "Abgemeldet."
@@ -26,7 +29,8 @@ export const de = {
     title: "Zwei-Faktor-Code",
     subtitle: "Geben Sie Ihren Authentifizierungscode ein",
     codeLabel: "Bestätigungscode",
-    submit: "Senden"
+    submit: "Senden",
+    enterCode: "Gib deinen Code ein."
   },
   languageSetup: {
     title: "Sprache wählen",
@@ -53,6 +57,9 @@ export const de = {
     loadFailed: "Galerie konnte nicht geladen werden."
   },
   settings: {
+    dataDir: {
+      willChangeOnRestart: "Das Datenverzeichnis wird beim nächsten Neustart geändert. Bitte setze die Umgebungsvariable VRC_EVENT_DATA_DIR auf: {path}"
+    },
     theme: {
       title: "Thema",
       description: "Passen Sie das Erscheinungsbild der Anwendung an. Wählen Sie ein Preset oder passen Sie manuell an.",
@@ -65,9 +72,24 @@ export const de = {
       savedLabel: "Gespeicherte Themes",
       customGroupLabel: "Benutzerdefiniert",
       customUnsaved: "Benutzerdefiniert (ungespeichert)",
+      customThemeFallback: "Benutzerdefiniertes Theme",
       importButton: "Theme importieren",
       exportButton: "Theme exportieren",
       openStudio: "Theme Studio öffnen",
+      toasts: {
+        saveFailed: "Theme konnte nicht gespeichert werden.",
+        saved: "Theme gespeichert: {name}",
+        selectSavedToDelete: "Wähle ein gespeichertes Theme zum Löschen aus.",
+        confirmDelete: "Theme \"{name}\" löschen?",
+        deleteFailed: "Theme konnte nicht gelöscht werden.",
+        deleted: "Theme gelöscht.",
+        importNotAvailable: "Theme-Import nicht verfügbar.",
+        importFailed: "Theme konnte nicht importiert werden.",
+        imported: "Theme importiert: {name}",
+        exportNotAvailable: "Theme-Export nicht verfügbar.",
+        exportFailed: "Theme konnte nicht exportiert werden.",
+        exported: "Theme exportiert."
+      },
       studio: {
         title: "Theme-Studio",
         subtitle: "Vorschau und Feintuning des App-Designs. Unterstützt #RRGGBBAA für benutzerdefinierte Transparenzen.",
@@ -183,6 +205,7 @@ export const de = {
     },
     eckit: {
       importButton: "Kit importieren",
+      imported: "Kit importiert.",
       webhookName: "Webhook-Anzeigename",
       webhookNamePlaceholder: "Meine Gruppen-Events",
       embedColor: "Embed-Farbe",
@@ -308,6 +331,9 @@ export const de = {
     created: "Event erstellt.",
     failed: "Event konnte nicht erstellt werden.",
     selectDateError: "Datum auswählen.",
+    failedToBuildDates: "Datumsoptionen konnten nicht erstellt werden.",
+    selectProfileOrManual: "Wähle eine Vorlage mit Mustern oder verwende manuelles Datum/Uhrzeit.",
+    cannotCreatePast: "Event kann nicht in der Vergangenheit erstellt werden. Die ausgewählte Zeit liegt bereits zurück.",
     updateRequired: "Update verfügbar. Bitte aktualisieren, bevor du Events erstellst.",
     featuredPermissionRevoked: "Diese Gruppe hat keine Berechtigung mehr, hervorgehobene Events zu erstellen.",
     groupFairPermissionRevoked: "Diese Gruppe hat keine Berechtigung mehr, Events in die Gruppenmesse aufzunehmen."
@@ -399,6 +425,14 @@ export const de = {
     importSuccess: "Vorlagendaten aus JSON importiert.",
     importWrongType: "Dies scheint ein Event-JSON zu sein. Bitte stattdessen Event importieren verwenden.",
     exportSuccess: "Vorlagendaten nach JSON exportiert.",
+    selectGroupFirst: "Zuerst eine Gruppe auswählen.",
+    selectProfileToEdit: "Vorlage zum Bearbeiten auswählen.",
+    profileKeyGen: "Vorlagenschlüssel konnte nicht erzeugt werden.",
+    noProfileSelected: "Keine Vorlage ausgewählt.",
+    deleteFailed: "Vorlage konnte nicht gelöscht werden.",
+    loadFailed: "Vorlagen konnten nicht geladen werden.",
+    noProfileForExport: "Keine Vorlage zum Exportieren ausgewählt.",
+    profileNotFound: "Vorlage nicht gefunden.",
     hints: {
       groupAccess: "Wähle eine Gruppe mit Kalenderzugriff.",
       patternsInfo: "Muster werden verwendet, um kommende Termine vorab zu erzeugen."
@@ -503,6 +537,7 @@ export const de = {
   },
   common: {
     syncing: "Daten werden synchronisiert...",
+    syncSuccess: "Erfolgreich synchronisiert.",
     ready: "Bereit",
     error: "Fehler",
     offline: "Nicht verbunden",
@@ -578,7 +613,12 @@ export const de = {
       maxLanguages: "Maximal 3 Sprachen erlaubt.",
       noGroup: "Gruppe auswählen.",
       requiredMultiple: "{fields} sind erforderlich.",
-      requiredSingle: "{field} ist erforderlich."
+      requiredSingle: "{field} ist erforderlich.",
+      refreshFailed: "Vorlagen oder Gruppen konnten nicht geladen werden.",
+      invalidJson: "Ungültige JSON-Daten.",
+      importFailed: "Import fehlgeschlagen.",
+      exportFailed: "Export fehlgeschlagen.",
+      couldNotImportJson: "JSON-Datei konnte nicht importiert werden."
     },
     exportJson: "JSON exportieren",
     importJson: "JSON importieren",

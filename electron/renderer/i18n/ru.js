@@ -18,6 +18,9 @@ export const ru = {
     loggingIn: "Вход...",
     loginFailed: "Ошибка входа.",
     sessionChecking: "Проверка сессии...",
+    sessionCheckFailed: "Не удалось проверить сессию.",
+    enterCredentials: "Введите имя пользователя и пароль.",
+    logoutFailed: "Не удалось выйти.",
     loginRequired: "Требуется вход.",
     loggedInAs: "Вход выполнен как {name}.",
     loggedOut: "Вы вышли."
@@ -26,7 +29,8 @@ export const ru = {
     title: "Двухфакторный код",
     subtitle: "Введите код аутентификации",
     codeLabel: "Код",
-    submit: "Отправить"
+    submit: "Отправить",
+    enterCode: "Введите ваш код."
   },
   languageSetup: {
     title: "Выбор языка",
@@ -53,6 +57,9 @@ export const ru = {
     loadFailed: "Не удалось загрузить галерею."
   },
   settings: {
+    dataDir: {
+      willChangeOnRestart: "Папка данных изменится при следующем запуске. Установите переменную окружения VRC_EVENT_DATA_DIR равной: {path}"
+    },
     theme: {
       title: "Тема",
       description: "Настройте внешний вид приложения. Выберите пресет или настройте вручную.",
@@ -65,9 +72,24 @@ export const ru = {
       savedLabel: "Сохраненные темы",
       customGroupLabel: "Пользовательские",
       customUnsaved: "Пользовательская (несохраненная)",
+      customThemeFallback: "Пользовательская тема",
       importButton: "Импорт темы",
       exportButton: "Экспорт темы",
       openStudio: "Открыть студию темы",
+      toasts: {
+        saveFailed: "Не удалось сохранить тему.",
+        saved: "Тема сохранена: {name}",
+        selectSavedToDelete: "Выберите сохранённую тему для удаления.",
+        confirmDelete: "Удалить тему «{name}»?",
+        deleteFailed: "Не удалось удалить тему.",
+        deleted: "Тема удалена.",
+        importNotAvailable: "Импорт темы недоступен.",
+        importFailed: "Не удалось импортировать тему.",
+        imported: "Тема импортирована: {name}",
+        exportNotAvailable: "Экспорт темы недоступен.",
+        exportFailed: "Не удалось экспортировать тему.",
+        exported: "Тема экспортирована."
+      },
       studio: {
         title: "Студия темы",
         subtitle: "Просмотрите и настройте внешний вид приложения. Поддерживает #RRGGBBAA для прозрачности.",
@@ -183,6 +205,7 @@ export const ru = {
     },
     eckit: {
       importButton: "Импортировать кит",
+      imported: "Кит импортирован.",
       webhookName: "Отображаемое имя вебхука",
       webhookNamePlaceholder: "События моей группы",
       embedColor: "Цвет вставки",
@@ -308,6 +331,9 @@ export const ru = {
     created: "Событие создано.",
     failed: "Не удалось создать событие.",
     selectDateError: "Выберите дату.",
+    failedToBuildDates: "Не удалось построить варианты дат.",
+    selectProfileOrManual: "Выберите шаблон с шаблонами или используйте ручную дату/время.",
+    cannotCreatePast: "Нельзя создать событие в прошлом. Выбранное время уже прошло.",
     updateRequired: "Доступно обновление. Пожалуйста, обновите приложение перед созданием событий.",
     featuredPermissionRevoked: "У этой группы больше нет разрешения создавать избранные события.",
     groupFairPermissionRevoked: "У этой группы больше нет разрешения включать события в групповую ярмарку."
@@ -399,6 +425,14 @@ export const ru = {
     importSuccess: "Данные шаблона импортированы из JSON.",
     importWrongType: "Похоже, это JSON события. Пожалуйста, используйте импорт события.",
     exportSuccess: "Данные шаблона экспортированы в JSON.",
+    selectGroupFirst: "Сначала выберите группу.",
+    selectProfileToEdit: "Выберите шаблон для редактирования.",
+    profileKeyGen: "Не удалось сгенерировать ключ шаблона.",
+    noProfileSelected: "Шаблон не выбран.",
+    deleteFailed: "Не удалось удалить шаблон.",
+    loadFailed: "Не удалось загрузить шаблоны.",
+    noProfileForExport: "Не выбран шаблон для экспорта.",
+    profileNotFound: "Шаблон не найден.",
     hints: {
       groupAccess: "Выберите группу с доступом к календарю.",
       patternsInfo: "Шаблоны используются для предварительного создания дат."
@@ -503,6 +537,7 @@ export const ru = {
   },
   common: {
     syncing: "Синхронизация данных...",
+    syncSuccess: "Синхронизация выполнена.",
     ready: "Готово",
     error: "Ошибка",
     offline: "Офлайн",
@@ -578,7 +613,12 @@ export const ru = {
       maxLanguages: "Можно выбрать не более 3 языков.",
       noGroup: "Выберите группу.",
       requiredMultiple: "{fields} обязательны.",
-      requiredSingle: "{field} обязателен."
+      requiredSingle: "{field} обязателен.",
+      refreshFailed: "Не удалось загрузить шаблоны или группы.",
+      invalidJson: "Неверные данные JSON.",
+      importFailed: "Импорт не удался.",
+      exportFailed: "Экспорт не удался.",
+      couldNotImportJson: "Не удалось импортировать файл JSON."
     },
     exportJson: "Экспорт JSON",
     importJson: "Импорт JSON",

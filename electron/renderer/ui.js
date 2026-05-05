@@ -609,7 +609,7 @@ export async function handleThemePresetSave() {
 
   const result = await saveThemePreset({ key: targetKey, name: targetName, colors });
   if (!result || !Array.isArray(result.presets)) {
-    showToast("Could not save theme.", true);
+    showToast(t("settings.theme.toasts.saveFailed"), true);
     return;
   }
   setThemeFilePresets(result.presets);
@@ -622,23 +622,23 @@ export async function handleThemePresetSave() {
   applyTheme(colors);
   updatePresetActions(selected);
   void saveThemeStore();
-  showToast(`Theme saved: ${targetName}`);
+  showToast(t("settings.theme.toasts.saved", { name: targetName }));
 }
 
 export async function handleThemePresetDelete() {
   const selected = resolvePresetKey(dom.settingsTheme.value);
   if (!isFilePreset(selected)) {
-    showToast("Select a saved theme to delete.", true);
+    showToast(t("settings.theme.toasts.selectSavedToDelete"), true);
     return;
   }
   const label = getPresetLabel(selected) || selected;
-  const confirmed = window.confirm(`Delete the "${label}" theme?`);
+  const confirmed = window.confirm(t("settings.theme.toasts.confirmDelete", { name: label }));
   if (!confirmed) {
     return;
   }
   const result = await deleteThemePreset(selected);
   if (!result || !Array.isArray(result.presets)) {
-    showToast("Could not delete theme.", true);
+    showToast(t("settings.theme.toasts.deleteFailed"), true);
     return;
   }
   setThemeFilePresets(result.presets);
@@ -649,12 +649,12 @@ export async function handleThemePresetDelete() {
   syncThemeControls(colors);
   updatePresetActions("default");
   void saveThemeStore();
-  showToast("Theme deleted.");
+  showToast(t("settings.theme.toasts.deleted"));
 }
 
 export async function handleThemePresetImport() {
   if (!themeApi?.importThemePreset) {
-    showToast("Theme import not available.", true);
+    showToast(t("settings.theme.toasts.importNotAvailable"), true);
     return;
   }
   const result = await themeApi.importThemePreset();
@@ -662,7 +662,7 @@ export async function handleThemePresetImport() {
     return;
   }
   if (!result.ok || !Array.isArray(result.presets)) {
-    showToast("Could not import theme.", true);
+    showToast(t("settings.theme.toasts.importFailed"), true);
     return;
   }
   setThemeFilePresets(result.presets);
@@ -674,17 +674,17 @@ export async function handleThemePresetImport() {
   applyTheme(colors);
   updatePresetActions(selected);
   void saveThemeStore();
-  showToast(`Theme imported: ${getPresetLabel(selected)}`);
+  showToast(t("settings.theme.toasts.imported", { name: getPresetLabel(selected) }));
 }
 
 export async function handleThemePresetExport() {
   if (!themeApi?.exportThemePreset) {
-    showToast("Theme export not available.", true);
+    showToast(t("settings.theme.toasts.exportNotAvailable"), true);
     return;
   }
   const selected = resolvePresetKey(dom.settingsTheme.value);
   const label = selected === "custom"
-    ? (dom.themePresetName?.value || "").trim() || "Custom Theme"
+    ? (dom.themePresetName?.value || "").trim() || t("settings.theme.customThemeFallback")
     : getPresetLabel(selected);
   const colors = selected === "custom" ? getThemeFromControls() : getPresetColors(selected);
   const result = await themeApi.exportThemePreset({ name: label, colors });
@@ -692,10 +692,10 @@ export async function handleThemePresetExport() {
     return;
   }
   if (!result.ok) {
-    showToast("Could not export theme.", true);
+    showToast(t("settings.theme.toasts.exportFailed"), true);
     return;
   }
-  showToast("Theme exported.");
+  showToast(t("settings.theme.toasts.exported"));
 }
 
 function isValidHex(value) {

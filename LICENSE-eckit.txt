@@ -1,0 +1,106 @@
+EC Kit License — Version 1.0
+Effective: 2026-05-05
+
+By purchasing and using an EC Kit ("the Kit") in conjunction with VRChat
+Event Creator ("the Software"), you ("the Licensee") agree to these terms.
+
+1. NATURE OF PURCHASE
+   The Software is open-source under the MIT License and is freely
+   available at the project's official GitHub repository. Users who
+   build the Software from source can configure all of its features,
+   including those nominally gated by a Kit, without purchasing a Kit.
+   The EC Kit exists as a convenience for users running the official
+   precompiled distribution, and as a way to financially support the
+   author. Purchasing a Kit is voluntary; it does not grant access to
+   features that would otherwise be unavailable to a user willing to
+   build the Software themselves, and it does not constitute a service
+   contract or guarantee of any specific level of future development.
+   The author may, at their sole discretion, provide ongoing maintenance
+   such as bug fixes, translation updates, and reactive changes required
+   to maintain compatibility with third-party services (e.g., VRChat,
+   Discord), but is under no obligation to add new features.
+
+2. WHAT YOU GET
+   This license grants you a perpetual, non-exclusive, non-transferable
+   right to use the Kit's unlock features within the Software, for the
+   specific VRChat group identified by the group ID embedded in the Kit
+   (the "Designated Group").
+
+3. PERMITTED USES
+   You may:
+   (a) Use the Kit to enable customization features for the Designated
+       Group, including but not limited to webhook display name, avatar,
+       embed color, custom messages, and image attachments.
+   (b) Share the Kit file with members of the Designated Group's staff
+       team. Each staff member with access to the Designated Group may
+       independently use the Kit's features when posting events for that
+       group.
+   (c) Continue using the Kit indefinitely, subject to your continued
+       access to the Designated Group within VRChat.
+
+4. RESTRICTIONS
+   You may not:
+   (a) Use the Kit, or attempt to use it, for any group other than the
+       Designated Group. The Kit is cryptographically bound to a single
+       group and will not verify against any other group ID.
+   (b) Resell, sublicense, redistribute, or otherwise transfer the Kit
+       outside the Designated Group's staff team.
+   (c) Modify, reverse-engineer, decompile, or otherwise attempt to
+       derive the source of the Kit's signing mechanism.
+   (d) Remove, alter, or forge the cryptographic signature on the Kit.
+
+5. REFUNDS
+   Refunds are processed through Ko-fi's standard refund policy. Once a
+   Kit has been generated and downloaded, the redemption is considered
+   complete. Refund eligibility after redemption is at Ko-fi's and the
+   author's discretion.
+
+6. NO WARRANTY
+   THE KIT AND THE SOFTWARE ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
+   KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+   The author makes no guarantees about future availability, compatibility,
+   or feature parity of the Kit's unlocked features. Future versions of
+   the Software may modify, add, or remove features that the Kit unlocks.
+
+7. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+   INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING
+   BUT NOT LIMITED TO LOSS OF DATA, LOSS OF GROUP ACCESS, LOSS OF
+   COMMUNITY MEMBERS, OR SERVICE INTERRUPTION) ARISING FROM THE USE OR
+   INABILITY TO USE THE KIT OR THE SOFTWARE, EVEN IF ADVISED OF THE
+   POSSIBILITY OF SUCH DAMAGES. The total liability of the author shall
+   not exceed the amount paid by the Licensee for the Kit.
+
+8. THIRD-PARTY SERVICES
+   The Software, the Kit, and their unlocked features may interact with
+   VRChat, Discord, and other third-party services. The author is not
+   affiliated with, endorsed by, or sponsored by VRChat Inc., Discord
+   Inc., or any other third party. Use of those services is governed by
+   their respective terms.
+
+9. CRYPTOGRAPHIC INTEGRITY
+   The Kit is signed using Ed25519 cryptographic signatures. The Licensee
+   acknowledges that:
+   (a) Tampering with the Kit will invalidate its signature and prevent
+       use within the Software.
+   (b) The author retains custody of the signing key and reserves the
+       right to rotate the keypair in the event of compromise. Such
+       rotation may invalidate Kits issued prior to the rotation; in
+       such an event, affected Licensees will be issued replacement
+       Kits at no additional cost.
+
+10. CHANGES TO TERMS
+    These terms apply to the version of the Kit License referenced by
+    your Kit at the time of purchase. The author may publish revised
+    versions of the Kit License for future purchases, but such revisions
+    will not retroactively modify the terms applicable to Kits already
+    issued under prior versions.
+
+11. SEVERABILITY
+    If any provision of these terms is found unenforceable, the
+    remaining provisions shall continue in full force and effect.
+
+12. CONTACT
+    For questions regarding this license, contact the author through
+    the Software's official GitHub repository or Ko-fi page.

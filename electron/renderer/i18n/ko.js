@@ -18,6 +18,9 @@ export const ko = {
     loggingIn: "로그인 중...",
     loginFailed: "로그인 실패.",
     sessionChecking: "세션 확인 중...",
+    sessionCheckFailed: "세션 확인 실패.",
+    enterCredentials: "사용자 이름과 비밀번호를 입력하세요.",
+    logoutFailed: "로그아웃 실패.",
     loginRequired: "로그인이 필요합니다.",
     loggedInAs: "{name}로 로그인됨.",
     loggedOut: "로그아웃됨."
@@ -26,7 +29,8 @@ export const ko = {
     title: "2단계 코드",
     subtitle: "인증 코드를 입력하세요",
     codeLabel: "코드",
-    submit: "제출"
+    submit: "제출",
+    enterCode: "코드를 입력하세요."
   },
   languageSetup: {
     title: "언어 선택",
@@ -53,6 +57,9 @@ export const ko = {
     loadFailed: "갤러리를 불러올 수 없습니다."
   },
   settings: {
+    dataDir: {
+      willChangeOnRestart: "데이터 디렉토리는 다음 재시작 시 변경됩니다. VRC_EVENT_DATA_DIR 환경 변수를 다음으로 설정해 주세요: {path}"
+    },
     theme: {
       title: "테마",
       description: "앱의 외형을 사용자 지정하세요. 프리셋을 선택하거나 수동으로 조정하세요.",
@@ -65,9 +72,24 @@ export const ko = {
       savedLabel: "저장된 테마",
       customGroupLabel: "사용자 지정",
       customUnsaved: "사용자 지정(미저장)",
+      customThemeFallback: "사용자 지정 테마",
       importButton: "테마 가져오기",
       exportButton: "테마 내보내기",
       openStudio: "테마 스튜디오 열기",
+      toasts: {
+        saveFailed: "테마를 저장할 수 없습니다.",
+        saved: "테마 저장됨: {name}",
+        selectSavedToDelete: "삭제할 저장된 테마를 선택하세요.",
+        confirmDelete: "\"{name}\" 테마를 삭제할까요?",
+        deleteFailed: "테마를 삭제할 수 없습니다.",
+        deleted: "테마가 삭제되었습니다.",
+        importNotAvailable: "테마 가져오기를 사용할 수 없습니다.",
+        importFailed: "테마를 가져올 수 없습니다.",
+        imported: "테마 가져옴: {name}",
+        exportNotAvailable: "테마 내보내기를 사용할 수 없습니다.",
+        exportFailed: "테마를 내보낼 수 없습니다.",
+        exported: "테마를 내보냈습니다."
+      },
       studio: {
         title: "테마 스튜디오",
         subtitle: "앱의 외형을 미리 보고 조정하세요. #RRGGBBAA 투명도 지원.",
@@ -183,6 +205,7 @@ export const ko = {
     },
     eckit: {
       importButton: "키트 가져오기",
+      imported: "키트를 가져왔습니다.",
       webhookName: "Webhook 표시 이름",
       webhookNamePlaceholder: "내 그룹 이벤트",
       embedColor: "임베드 색상",
@@ -308,6 +331,9 @@ export const ko = {
     created: "이벤트가 생성되었습니다.",
     failed: "이벤트를 만들 수 없습니다.",
     selectDateError: "날짜를 선택하세요.",
+    failedToBuildDates: "날짜 옵션을 생성하지 못했습니다.",
+    selectProfileOrManual: "패턴이 있는 템플릿을 선택하거나 수동 날짜/시간을 사용하세요.",
+    cannotCreatePast: "과거 시간에는 이벤트를 만들 수 없습니다. 선택한 시간이 이미 지났습니다.",
     updateRequired: "업데이트가 있습니다. 이벤트를 만들기 전에 업데이트하세요.",
     featuredPermissionRevoked: "이 그룹은 더 이상 주목 이벤트를 생성할 권한이 없습니다.",
     groupFairPermissionRevoked: "이 그룹은 더 이상 그룹 페어에 이벤트를 포함할 권한이 없습니다."
@@ -399,6 +425,14 @@ export const ko = {
     importSuccess: "JSON에서 템플릿 데이터를 가져왔습니다.",
     importWrongType: "이벤트 JSON으로 보입니다. 대신 이벤트 가져오기를 사용하세요.",
     exportSuccess: "템플릿 데이터를 JSON으로 내보냈습니다.",
+    selectGroupFirst: "먼저 그룹을 선택하세요.",
+    selectProfileToEdit: "수정할 템플릿을 선택하세요.",
+    profileKeyGen: "템플릿 키를 생성할 수 없습니다.",
+    noProfileSelected: "선택된 템플릿이 없습니다.",
+    deleteFailed: "템플릿을 삭제할 수 없습니다.",
+    loadFailed: "템플릿을 불러올 수 없습니다.",
+    noProfileForExport: "내보낼 템플릿이 선택되지 않았습니다.",
+    profileNotFound: "템플릿을 찾을 수 없습니다.",
     hints: {
       groupAccess: "캘린더 접근 권한이 있는 그룹을 선택하세요.",
       patternsInfo: "패턴은 예정 날짜를 미리 생성하는 데 사용됩니다."
@@ -503,6 +537,7 @@ export const ko = {
   },
   common: {
     syncing: "데이터 동기화 중...",
+    syncSuccess: "동기화 완료.",
     ready: "준비됨",
     error: "오류",
     offline: "오프라인",
@@ -578,7 +613,12 @@ export const ko = {
       maxLanguages: "최대 3개 언어까지 선택할 수 있습니다.",
       noGroup: "그룹을 선택하세요.",
       requiredMultiple: "{fields}은(는) 필수입니다.",
-      requiredSingle: "{field}은(는) 필수입니다."
+      requiredSingle: "{field}은(는) 필수입니다.",
+      refreshFailed: "템플릿 또는 그룹을 불러오지 못했습니다.",
+      invalidJson: "잘못된 JSON 데이터입니다.",
+      importFailed: "가져오기에 실패했습니다.",
+      exportFailed: "내보내기에 실패했습니다.",
+      couldNotImportJson: "JSON 파일을 가져올 수 없습니다."
     },
     exportJson: "JSON 내보내기",
     importJson: "JSON 가져오기",

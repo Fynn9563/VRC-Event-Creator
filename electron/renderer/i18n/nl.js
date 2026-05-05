@@ -18,6 +18,9 @@ export const nl = {
     loggingIn: "Bezig met inloggen...",
     loginFailed: "Inloggen mislukt.",
     sessionChecking: "Sessie controleren...",
+    sessionCheckFailed: "Sessiecontrole mislukt.",
+    enterCredentials: "Voer gebruikersnaam en wachtwoord in.",
+    logoutFailed: "Uitloggen mislukt.",
     loginRequired: "Inloggen vereist.",
     loggedInAs: "Ingelogd als {name}.",
     loggedOut: "Uitgelogd."
@@ -26,7 +29,8 @@ export const nl = {
     title: "Twee-factorcode",
     subtitle: "Voer je authenticatiecode in",
     codeLabel: "Code",
-    submit: "Verzenden"
+    submit: "Verzenden",
+    enterCode: "Voer je code in."
   },
   languageSetup: {
     title: "Taal kiezen",
@@ -53,6 +57,9 @@ export const nl = {
     loadFailed: "Kon galerij niet laden."
   },
   settings: {
+    dataDir: {
+      willChangeOnRestart: "De gegevensmap wordt gewijzigd bij de volgende herstart. Stel de omgevingsvariabele VRC_EVENT_DATA_DIR in op: {path}"
+    },
     theme: {
       title: "Thema",
       description: "Pas het uiterlijk van de app aan. Selecteer een preset of stel handmatig in.",
@@ -65,9 +72,24 @@ export const nl = {
       savedLabel: "Opgeslagen thema's",
       customGroupLabel: "Aangepast",
       customUnsaved: "Aangepast (niet opgeslagen)",
+      customThemeFallback: "Aangepast thema",
       importButton: "Thema importeren",
       exportButton: "Thema exporteren",
       openStudio: "Thema-studio openen",
+      toasts: {
+        saveFailed: "Kon thema niet opslaan.",
+        saved: "Thema opgeslagen: {name}",
+        selectSavedToDelete: "Selecteer een opgeslagen thema om te verwijderen.",
+        confirmDelete: "Het thema \"{name}\" verwijderen?",
+        deleteFailed: "Kon thema niet verwijderen.",
+        deleted: "Thema verwijderd.",
+        importNotAvailable: "Thema importeren niet beschikbaar.",
+        importFailed: "Kon thema niet importeren.",
+        imported: "Thema geïmporteerd: {name}",
+        exportNotAvailable: "Thema exporteren niet beschikbaar.",
+        exportFailed: "Kon thema niet exporteren.",
+        exported: "Thema geëxporteerd."
+      },
       studio: {
         title: "Thema-studio",
         subtitle: "Bekijk een voorbeeld en verfijn het uiterlijk van de app. Ondersteunt #RRGGBBAA voor aangepaste transparantie.",
@@ -183,6 +205,7 @@ export const nl = {
     },
     eckit: {
       importButton: "Kit Importeren",
+      imported: "Kit geïmporteerd.",
       webhookName: "Webhook Weergavenaam",
       webhookNamePlaceholder: "Mijn Groep Evenementen",
       embedColor: "Embed Kleur",
@@ -308,6 +331,9 @@ export const nl = {
     created: "Evenement aangemaakt.",
     failed: "Kon evenement niet aanmaken.",
     selectDateError: "Selecteer een datum.",
+    failedToBuildDates: "Kon datumopties niet opbouwen.",
+    selectProfileOrManual: "Selecteer een sjabloon met patronen of gebruik handmatige datum/tijd.",
+    cannotCreatePast: "Kan geen evenement in het verleden aanmaken. De geselecteerde tijd is al voorbij.",
     updateRequired: "Update beschikbaar. Werk bij voordat je evenementen aanmaakt.",
     featuredPermissionRevoked: "Deze groep heeft geen toestemming meer om uitgelichte evenementen te maken.",
     groupFairPermissionRevoked: "Deze groep heeft geen toestemming meer om evenementen op te nemen in de Groepsbeurs."
@@ -399,6 +425,14 @@ export const nl = {
     importSuccess: "Sjabloongegevens geïmporteerd uit JSON.",
     importWrongType: "Dit lijkt een evenement-JSON te zijn. Gebruik in plaats daarvan Evenement importeren.",
     exportSuccess: "Sjabloongegevens geëxporteerd naar JSON.",
+    selectGroupFirst: "Selecteer eerst een groep.",
+    selectProfileToEdit: "Selecteer een sjabloon om te bewerken.",
+    profileKeyGen: "Sjabloonsleutel kon niet worden gegenereerd.",
+    noProfileSelected: "Geen sjabloon geselecteerd.",
+    deleteFailed: "Kon sjabloon niet verwijderen.",
+    loadFailed: "Kon sjablonen niet laden.",
+    noProfileForExport: "Geen sjabloon geselecteerd om te exporteren.",
+    profileNotFound: "Sjabloon niet gevonden.",
     hints: {
       groupAccess: "Kies een groep met kalendertoegang.",
       patternsInfo: "Patronen worden gebruikt om aankomende datums vooraf te genereren."
@@ -503,6 +537,7 @@ export const nl = {
   },
   common: {
     syncing: "Gegevens synchroniseren...",
+    syncSuccess: "Synchronisatie geslaagd.",
     ready: "Gereed",
     error: "Fout",
     offline: "Offline",
@@ -578,7 +613,12 @@ export const nl = {
       maxLanguages: "Maximaal 3 talen toegestaan.",
       noGroup: "Selecteer een groep.",
       requiredMultiple: "{fields} zijn verplicht.",
-      requiredSingle: "{field} is verplicht."
+      requiredSingle: "{field} is verplicht.",
+      refreshFailed: "Kon sjablonen of groepen niet laden.",
+      invalidJson: "Ongeldige JSON-gegevens.",
+      importFailed: "Importeren mislukt.",
+      exportFailed: "Exporteren mislukt.",
+      couldNotImportJson: "Kon JSON-bestand niet importeren."
     },
     exportJson: "JSON exporteren",
     importJson: "JSON importeren",

@@ -3,6 +3,7 @@
 import { TAG_LIMIT, TAG_TEXT_LIMIT } from "./config.js";
 import { state } from "./state.js";
 import { showToast } from "./ui.js";
+import { t } from "./i18n/index.js";
 
 export async function handleOpenDataDir(api) {
   await api.openDataDir();
@@ -11,7 +12,7 @@ export async function handleOpenDataDir(api) {
 export async function handleChangeDataDir(api) {
   const selectedPath = await api.selectDataDir();
   if (selectedPath) {
-    showToast("Data directory will change on next restart. Please set VRC_EVENT_DATA_DIR environment variable to: " + selectedPath, false);
+    showToast(t("settings.dataDir.willChangeOnRestart", { path: selectedPath }), false);
   }
 }
 

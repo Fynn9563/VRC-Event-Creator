@@ -63,7 +63,6 @@ function initDebugLog() {
 const finalizeDebugLog = debugModule.finalize;
 const debugLog = debugModule.log;
 const debugApiCall = debugModule.apiCall;
-const normalizeVersion = debugModule.normalizeVersion;
 const compareVersions = debugModule.compareVersions;
 
 const debugApiResponse = debugModule.apiResponse;
@@ -2108,17 +2107,27 @@ ipcMain.handle("eckit:selectImage", async () => {
   });
   if (result.canceled || !result.filePaths?.length) return { ok: false, cancelled: true };
   const filePath = result.filePaths[0];
+  let fd;
   try {
-    const stat = fs.statSync(filePath);
-    if (stat.size > 8 * 1024 * 1024) {
-      return { ok: false, error: "File must be under 8 MB." };
+    // Open + fstat + read against a single FD so the size check and read
+    // operate on the same inode — closes the TOCTOU window between
+    // checking the size and reading the file.
+    fd = fs.openSync(filePath, "r");
+    const stat = fs.fstatSync(fd);
+    if (stat.size > 25 * 1024 * 1024) {
+      return { ok: false, error: "File must be under 25 MB." };
     }
-    // Copy to app data so the image persists even if the original is moved/deleted
     if (!WEBHOOK_IMAGES_DIR) {
       debugLog("eckit:selectImage", "WEBHOOK_IMAGES_DIR not initialized");
       return { ok: true, filePath };
     }
-    const buffer = fs.readFileSync(filePath);
+    const buffer = Buffer.alloc(stat.size);
+    let bytesRead = 0;
+    while (bytesRead < stat.size) {
+      const n = fs.readSync(fd, buffer, bytesRead, stat.size - bytesRead, bytesRead);
+      if (n <= 0) break;
+      bytesRead += n;
+    }
     fs.mkdirSync(WEBHOOK_IMAGES_DIR, { recursive: true });
     const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16);
     const ext = path.extname(filePath).toLowerCase() || ".png";
@@ -2128,6 +2137,10 @@ ipcMain.handle("eckit:selectImage", async () => {
   } catch (err) {
     debugLog("eckit:selectImage", "Error copying image:", err.message);
     return { ok: false, error: `Could not read file: ${err.message}` };
+  } finally {
+    if (fd !== undefined) {
+      try { fs.closeSync(fd); } catch { /* best-effort */ }
+    }
   }
 });
 
@@ -2138,7 +2151,7 @@ ipcMain.handle("eckit:import", async () => {
   if (!mainWindow) return { ok: false, error: "No window." };
   const result = await dialog.showOpenDialog(mainWindow, {
     title: "Import Webhook Kit",
-    filters: [{ name: "EC Kit", extensions: ["eckit"] }],
+    filters: [{ name: "EC Kit", extensions: ["eckit", "zip"] }],
     properties: ["openFile"]
   });
   if (result.canceled || !result.filePaths?.length) return { ok: false, cancelled: true };
@@ -2324,6 +2337,10 @@ ipcMain.handle("groups:list", async (_, options) => {
   debugApiResponse("getUserGroups", groupsResponse);
   const limitedGroups = groupsResponse.data || [];
   const enriched = [];
+  // Track whether every getGroup permission lookup in this pass succeeded.
+  // If any failed, we can't trust the resulting "known groups" set — applying
+  // it would suspend/cancel automation jobs based on bad data.
+  let permissionLookupsClean = true;
   for (const group of limitedGroups) {
     const groupId = group.groupId || group.id;
     if (groupId && group.iconId) groupIconCache.set(groupId, group.iconId);
@@ -2335,6 +2352,7 @@ ipcMain.handle("groups:list", async (_, options) => {
     let privacy = groupPrivacyCache.get(groupId);
     const hasPermissions = Array.isArray(permissions);
     const hasPrivacy = privacy !== undefined;
+    let lookupFailed = false;
     if (!hasPermissions || !hasPrivacy) {
       try {
         debugApiCall("getGroup", { groupId });
@@ -2350,31 +2368,42 @@ ipcMain.handle("groups:list", async (_, options) => {
         groupTagsCache.set(groupId, tags);
       } catch (err) {
         debugApiResponse("getGroup", null, err);
+        lookupFailed = true;
+        permissionLookupsClean = false;
         if (!hasPermissions) {
           permissions = [];
         }
       }
-      groupPermissionCache.set(groupId, permissions);
-      if (privacy !== undefined) {
-        groupPrivacyCache.set(groupId, privacy);
+      // Only cache successful results — caching [] from a failed lookup
+      // would make the bad answer sticky for the rest of the session.
+      if (!lookupFailed) {
+        groupPermissionCache.set(groupId, permissions);
+        if (privacy !== undefined) {
+          groupPrivacyCache.set(groupId, privacy);
+        }
       }
     }
     const canManageCalendar =
       permissions.includes("*") || permissions.includes("group-calendar-manage");
     enriched.push({ ...group, groupId, canManageCalendar, privacy: privacy ?? group.privacy });
   }
-  if (automationEngine.isInitialized()) {
+  // Only apply the known-group filter when we have a definitive answer for
+  // every group. A partial answer can wrongly suspend automation jobs for
+  // groups the user actually still manages (e.g. one getGroup hit a 429).
+  if (automationEngine.isInitialized() && permissionLookupsClean) {
     const knownGroupIds = enriched
       .filter(group => group.canManageCalendar)
       .map(group => group.groupId)
       .filter(Boolean);
-    const pruneResult = automationEngine.setKnownGroupIds(knownGroupIds);
-    if (pruneResult.removedPending || pruneResult.removedDeleted) {
+    const result = automationEngine.setKnownGroupIds(knownGroupIds);
+    if (result.suspended || result.resumed) {
       debugLog(
         "Automation",
-        `Pruned ${pruneResult.removedPending} pending + ${pruneResult.removedDeleted} deleted for unknown groups`
+        `Group filter changed: suspended ${result.suspended || 0}, resumed ${result.resumed || 0}`
       );
     }
+  } else if (automationEngine.isInitialized() && !permissionLookupsClean) {
+    debugLog("Automation", "Skipped group filter update — permission lookup had failures");
   }
   return enriched;
 });

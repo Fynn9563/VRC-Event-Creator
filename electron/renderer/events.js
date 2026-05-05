@@ -698,7 +698,7 @@ export async function updateDateOptions(api, profile) {
     return { success: true };
   } catch (err) {
     dom.eventDateHint.textContent = t("events.dateHints.loadFailed");
-    return { success: false, message: "Failed to build date options." };
+    return { success: false, message: t("events.failedToBuildDates") };
   }
 }
 
@@ -904,7 +904,7 @@ export async function handleEventCreate(api) {
   let manualTime = null;
   if (dateSource === "pattern") {
     if (!profile) {
-      return { success: false, message: "Select a profile with patterns or use manual date/time." };
+      return { success: false, message: t("events.selectProfileOrManual") };
     }
     selectedDateIso = dom.eventDateOption.value;
     if (!selectedDateIso) {
@@ -913,7 +913,7 @@ export async function handleEventCreate(api) {
     // Validate pattern date is not in the past
     const patternDateTime = new Date(selectedDateIso);
     if (patternDateTime < new Date()) {
-      return { success: false, message: "Cannot create event in the past. Selected time has already passed." };
+      return { success: false, message: t("events.cannotCreatePast") };
     }
   } else {
     manualDate = dom.eventManualDate.value;
@@ -929,7 +929,7 @@ export async function handleEventCreate(api) {
     const manualDateTime = new Date(`${manualDate}T${manualTime}`);
     const now = new Date();
     if (manualDateTime < now) {
-      return { success: false, message: "Cannot create event in the past. Selected time has already passed." };
+      return { success: false, message: t("events.cannotCreatePast") };
     }
   }
   let durationMinutes = parseDurationInput(dom.eventDuration.value)?.minutes ?? null;
@@ -939,7 +939,7 @@ export async function handleEventCreate(api) {
     updateEventDurationPreview();
   }
   if (!durationMinutes || durationMinutes < 1) {
-    return { success: false, message: "Duration must be a positive number." };
+    return { success: false, message: t("common.errors.durationError") };
   }
   const timezone = dom.eventTimezone.value || profile?.timezone || buildTimezones().systemTz;
   const title = sanitizeText(dom.eventName.value, {
@@ -978,7 +978,7 @@ export async function handleEventCreate(api) {
     eventData.roleIds = (state.event.roleIds || []).filter(id => typeof id === "string" && id.trim());
   }
   if (eventData.languages.length > 3) {
-    return { success: false, message: "Maximum 3 languages allowed." };
+    return { success: false, message: t("common.errors.maxLanguages") };
   }
   if (!eventData.title) {
     return { success: false, message: t("common.errors.requiredSingle", { field: t("common.fields.eventName") }) };
@@ -1241,12 +1241,12 @@ const VALID_ACCESS_TYPES = ["public", "group"];
 
 export async function applyImportedJsonToEventForm(data, api) {
   if (!data || typeof data !== "object") {
-    return { success: false, message: "Invalid JSON data." };
+    return { success: false, message: t("common.errors.invalidJson") };
   }
 
   // Check if this looks like a profile JSON instead of an event JSON
   if (data.displayName !== undefined || data.patterns !== undefined || data.automation !== undefined) {
-    return { success: false, message: t("events.importWrongType") || "This appears to be a profile JSON. Please use Import Profile instead." };
+    return { success: false, message: t("events.importWrongType") };
   }
 
   // Handle image - check if imageId exists in user's gallery first, otherwise upload base64
@@ -1402,18 +1402,18 @@ export async function handleEventImportJson(api) {
   try {
     const result = await api.importEventJson();
     if (!result) {
-      return { success: false, message: "Import failed." };
+      return { success: false, message: t("common.errors.importFailed") };
     }
     if (result.cancelled) {
       return { success: false, cancelled: true };
     }
     if (!result.ok) {
-      const errorMessage = result.error?.message || "Could not import JSON file.";
+      const errorMessage = result.error?.message || t("common.errors.couldNotImportJson");
       return { success: false, message: errorMessage };
     }
     return await applyImportedJsonToEventForm(result.data, api);
   } catch (err) {
-    return { success: false, message: err.message || "Import failed." };
+    return { success: false, message: err.message || t("common.errors.importFailed") };
   }
 }
 
@@ -1458,7 +1458,7 @@ export async function handleEventExportJson(api) {
 
     const result = await api.exportEventJson(exportData);
     if (!result) {
-      return { success: false, message: "Export failed." };
+      return { success: false, message: t("common.errors.exportFailed") };
     }
     if (result.cancelled) {
       return { success: false, cancelled: true };
@@ -1468,7 +1468,7 @@ export async function handleEventExportJson(api) {
     }
     return { success: true };
   } catch (err) {
-    return { success: false, message: err.message || "Export failed." };
+    return { success: false, message: err.message || t("common.errors.exportFailed") };
   }
 }
 

@@ -132,6 +132,21 @@ export async function setLanguage(langCode) {
   }
 }
 
+// Tracks missing/non-string keys so we only warn once per key per session
+// instead of spamming the console every render. The set is also exposed on
+// `window.__missingI18nKeys` (when window exists) so devs can dump the full
+// list with one console statement during a session.
+const missingKeyWarnings = new Set();
+if (typeof window !== "undefined") {
+  window.__missingI18nKeys = missingKeyWarnings;
+}
+
+function warnMissingKey(keyPath, reason) {
+  if (missingKeyWarnings.has(keyPath)) return;
+  missingKeyWarnings.add(keyPath);
+  console.warn(`[i18n] ${reason}: "${keyPath}"`);
+}
+
 /**
  * Get a translation string by key path
  * @param {string} keyPath - Dot-notation key path (e.g., "auth.title")
@@ -146,13 +161,13 @@ export function t(keyPath, vars = {}) {
     if (value && typeof value === "object") {
       value = value[key];
     } else {
-      console.warn(`Translation key "${keyPath}" not found`);
+      warnMissingKey(keyPath, "missing key");
       return keyPath;
     }
   }
 
   if (typeof value !== "string") {
-    console.warn(`Translation key "${keyPath}" is not a string`);
+    warnMissingKey(keyPath, "non-string value at key");
     return keyPath;
   }
 

@@ -281,7 +281,6 @@ export const dom = {
   // EC Kit elements
   eckitImportBtn: document.getElementById("eckit-import-btn"),
   eckitConfig: document.getElementById("eckit-config"),
-  eckitStatus: document.getElementById("eckit-status"),
   eckitWebhookName: document.getElementById("eckit-webhook-name"),
   eckitEmbedColor: document.getElementById("eckit-embed-color"),
   eckitEmbedColorHex: document.getElementById("eckit-embed-color-hex"),

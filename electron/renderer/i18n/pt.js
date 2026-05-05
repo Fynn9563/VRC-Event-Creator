@@ -18,6 +18,9 @@ export const pt = {
     loggingIn: "Entrando...",
     loginFailed: "Falha ao entrar.",
     sessionChecking: "Verificando sessão...",
+    sessionCheckFailed: "Falha ao verificar a sessão.",
+    enterCredentials: "Digite o nome de usuário e a senha.",
+    logoutFailed: "Falha ao sair.",
     loginRequired: "Login necessário.",
     loggedInAs: "Conectado como {name}.",
     loggedOut: "Desconectado."
@@ -26,7 +29,8 @@ export const pt = {
     title: "Código de dois fatores",
     subtitle: "Digite seu código de autenticação",
     codeLabel: "Código",
-    submit: "Enviar"
+    submit: "Enviar",
+    enterCode: "Digite seu código."
   },
   languageSetup: {
     title: "Escolher idioma",
@@ -53,6 +57,9 @@ export const pt = {
     loadFailed: "Não foi possível carregar a galeria."
   },
   settings: {
+    dataDir: {
+      willChangeOnRestart: "O diretório de dados será alterado na próxima reinicialização. Defina a variável de ambiente VRC_EVENT_DATA_DIR para: {path}"
+    },
     theme: {
       title: "Tema",
       description: "Personalize a aparência do app. Selecione um preset ou ajuste manualmente.",
@@ -65,9 +72,24 @@ export const pt = {
       savedLabel: "Temas salvos",
       customGroupLabel: "Personalizado",
       customUnsaved: "Personalizado (não salvo)",
+      customThemeFallback: "Tema personalizado",
       importButton: "Importar tema",
       exportButton: "Exportar tema",
       openStudio: "Abrir Estúdio de Tema",
+      toasts: {
+        saveFailed: "Não foi possível salvar o tema.",
+        saved: "Tema salvo: {name}",
+        selectSavedToDelete: "Selecione um tema salvo para excluir.",
+        confirmDelete: "Excluir o tema \"{name}\"?",
+        deleteFailed: "Não foi possível excluir o tema.",
+        deleted: "Tema excluído.",
+        importNotAvailable: "Importação de tema indisponível.",
+        importFailed: "Não foi possível importar o tema.",
+        imported: "Tema importado: {name}",
+        exportNotAvailable: "Exportação de tema indisponível.",
+        exportFailed: "Não foi possível exportar o tema.",
+        exported: "Tema exportado."
+      },
       studio: {
         title: "Estúdio de Tema",
         subtitle: "Visualize e ajuste a aparência do app. Suporta #RRGGBBAA para transparências personalizadas.",
@@ -183,6 +205,7 @@ export const pt = {
     },
     eckit: {
       importButton: "Importar Kit",
+      imported: "Kit importado.",
       webhookName: "Nome do Webhook",
       webhookNamePlaceholder: "Eventos do Meu Grupo",
       embedColor: "Cor do Embed",
@@ -308,6 +331,9 @@ export const pt = {
     created: "Evento criado.",
     failed: "Não foi possível criar o evento.",
     selectDateError: "Selecione uma data.",
+    failedToBuildDates: "Falha ao gerar opções de data.",
+    selectProfileOrManual: "Selecione um modelo com padrões ou use data/hora manual.",
+    cannotCreatePast: "Não é possível criar evento no passado. O horário selecionado já passou.",
     updateRequired: "Atualização disponível. Atualize antes de criar eventos.",
     featuredPermissionRevoked: "Este grupo não tem mais permissão para criar eventos em destaque.",
     groupFairPermissionRevoked: "Este grupo não tem mais permissão para incluir eventos na Feira de Grupos."
@@ -399,6 +425,14 @@ export const pt = {
     importSuccess: "Dados do modelo importados do JSON.",
     importWrongType: "Isto parece ser um JSON de evento. Use Importar evento em vez disso.",
     exportSuccess: "Dados do modelo exportados para JSON.",
+    selectGroupFirst: "Selecione um grupo primeiro.",
+    selectProfileToEdit: "Selecione um modelo para editar.",
+    profileKeyGen: "Não foi possível gerar a chave do modelo.",
+    noProfileSelected: "Nenhum modelo selecionado.",
+    deleteFailed: "Não foi possível excluir o modelo.",
+    loadFailed: "Falha ao carregar modelos.",
+    noProfileForExport: "Nenhum modelo selecionado para exportar.",
+    profileNotFound: "Modelo não encontrado.",
     hints: {
       groupAccess: "Escolha um grupo com acesso ao calendário.",
       patternsInfo: "Padrões são usados para pré-gerar datas futuras."
@@ -503,6 +537,7 @@ export const pt = {
   },
   common: {
     syncing: "Sincronizando dados...",
+    syncSuccess: "Sincronizado com sucesso.",
     ready: "Pronto",
     error: "Erro",
     offline: "Offline",
@@ -578,7 +613,12 @@ export const pt = {
       maxLanguages: "No máximo 3 idiomas permitidos.",
       noGroup: "Selecione um grupo.",
       requiredMultiple: "{fields} são obrigatórios.",
-      requiredSingle: "{field} é obrigatório."
+      requiredSingle: "{field} é obrigatório.",
+      refreshFailed: "Falha ao carregar modelos ou grupos.",
+      invalidJson: "Dados JSON inválidos.",
+      importFailed: "Falha na importação.",
+      exportFailed: "Falha na exportação.",
+      couldNotImportJson: "Não foi possível importar o arquivo JSON."
     },
     exportJson: "Exportar JSON",
     importJson: "Importar JSON",

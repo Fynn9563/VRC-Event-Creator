@@ -1,6 +1,6 @@
 # Guia de configuração da integração de calendário
 
-Este guia orienta você na configuração da geração de arquivos de calendário (.ics), publicação por webhook do Discord e eventos agendados do Discord no VRC Event Creator. Essas três funcionalidades são totalmente independentes — ative qualquer combinação que se adeque ao seu fluxo de trabalho.
+Este guia orienta você na configuração da geração de arquivos de calendário (.ics), publicação por webhook do Discord e eventos agendados do Discord no VRC Event Creator. Essas três funcionalidades são totalmente independentes: ative qualquer combinação que se adeque ao seu fluxo de trabalho.
 
 ---
 
@@ -8,9 +8,9 @@ Este guia orienta você na configuração da geração de arquivos de calendári
 
 O VRC Event Creator oferece três ações pós-criação quando você cria ou automatiza um evento do VRChat. Cada uma pode ser ativada independentemente por modelo e por evento:
 
-- **"Criar convite de calendário .ics"** — Gera um arquivo de calendário `.ics` padrão com lembretes opcionais, salvo automaticamente em um diretório local
-- **"Publicar Webhook do Discord"** — Publica um anúncio em um canal do Discord via webhook (com arquivo `.ics` anexado opcional se o calendário também estiver ativado)
-- **"Criar evento no Discord"** — Cria um evento agendado no seu servidor Discord via bot
+- **"Criar convite de calendário .ics":** gera um arquivo de calendário `.ics` padrão com lembretes opcionais, salvo automaticamente em um diretório local
+- **"Postar webhook do Discord":** publica um anúncio em um canal do Discord via webhook (com arquivo `.ics` anexado opcional se o calendário também estiver ativado)
+- **"Criar evento do Discord":** cria um evento agendado no seu servidor Discord via bot
 
 Quando várias funcionalidades estão ativadas, elas se complementam naturalmente:
 
@@ -28,7 +28,7 @@ Quando várias funcionalidades estão ativadas, elas se complementam naturalment
 
 ## Etapa 1: Ativar a geração de arquivos de calendário
 
-1. Abra **Configurações** > **Configurações avançadas**
+1. Abra **Configurações** > **Opções avançadas**
 2. Marque **"Ativar geração de arquivos de calendário"**
 
 Isso torna o botão **"Criar convite de calendário .ics"** disponível nos modelos e na criação de eventos.
@@ -43,12 +43,12 @@ Os arquivos são salvos como `{diretório}/{Nome do grupo}/{Nome do evento - Dat
 
 ## Etapa 2: Configurar o webhook do Discord (opcional)
 
-Um webhook publica anúncios em um canal específico do Discord. É independente dos arquivos de calendário e dos eventos do Discord — você pode usá-lo com ou sem qualquer um deles.
+Um webhook publica anúncios em um canal específico do Discord. É independente dos arquivos de calendário e dos eventos do Discord; você pode usá-lo com ou sem qualquer um deles.
 
 1. No Discord, clique com o botão direito no canal onde deseja que os anúncios sejam publicados
 2. Clique em **Editar canal** > **Integrações** > **Webhooks** > **Novo webhook**
 3. Copie a URL do webhook
-4. No VRC Event Creator, vá em **Configurações** > **Integração com Discord** > selecione seu grupo
+4. No VRC Event Creator, abra **Configurações** > **Opções avançadas** > **"Ativar integração com o Discord"** e selecione seu grupo no painel exibido
 5. Marque **"Ativar Webhook"** e cole a URL do webhook
 6. Clique em **Testar Webhook** para verificar, depois em **Salvar**
 
@@ -60,15 +60,12 @@ Se um evento agendado do Discord também foi criado, a mensagem do webhook inclu
 
 ## Etapa 3: Configurar modelos
 
-1. Vá em **Gerenciar Modelos** e edite (ou crie) um modelo
-2. Na aba **Básico**, você verá até três botões de publicação (dependendo da configuração):
-   - **"Criar convite de calendário .ics"** — visível quando a geração de arquivos de calendário está ativada
-   - **"Criar evento no Discord"** — visível quando um bot do Discord está configurado para o grupo
-   - **"Publicar Webhook do Discord"** — visível quando uma URL de webhook está configurada para o grupo
-3. Ative os que deseja para este modelo
-4. Se o calendário estiver ativado, a aba **Agenda** mostra um cartão **"Lembretes de calendário .ics"**
-5. Marque **"Ativar lembretes de calendário .ics"** e adicione seus intervalos de lembrete preferidos
-6. Salve o modelo
+1. Vá em **Gerenciar agendamentos** e edite (ou crie) um modelo
+2. Na etapa **Agenda**, o botão **"Criar convite de calendário .ics"** aparece quando a geração de arquivos de calendário está ativada. Ao ativá-lo, surgem os **"Lembretes de calendário .ics"** logo abaixo, onde você pode adicionar os intervalos de lembrete que preferir
+3. Na etapa **Audience**, os botões de anúncios aparecem conforme a configuração do grupo:
+   - **"Criar evento do Discord":** visível quando um bot do Discord está configurado para o grupo
+   - **"Postar webhook do Discord":** visível quando uma URL de webhook está configurada para o grupo
+4. Ative os que deseja para este modelo e salve
 
 Os lembretes usam intervalos predefinidos compatíveis com todos os principais aplicativos de calendário: 5 min, 10 min, 15 min, 30 min, 1 hora, 2 horas, 4 horas, 8 horas, 12 horas, 1 dia, 2 dias, 1 semana.
 
@@ -82,7 +79,7 @@ Ao criar um evento (manualmente ou por automação):
 
 - A etapa **Data** mostra **"Criar convite de calendário .ics"** (herdado do modelo, pode ser alterado)
 - Abaixo, **"Ativar lembretes de calendário .ics"** permite personalizar lembretes por evento
-- A etapa **Detalhes** mostra **"Criar evento no Discord"** e **"Publicar Webhook do Discord"** como botões separados
+- A etapa **Detalhes** mostra **"Criar evento do Discord"** e **"Postar webhook do Discord"** como botões separados
 - Todas as configurações do modelo podem ser alteradas por evento
 
 ---
@@ -99,7 +96,7 @@ Múltiplos lembretes funcionam no Apple Calendar e no Thunderbird. O Outlook usa
 
 ### Posso usar webhooks sem arquivos de calendário?
 
-Sim. O webhook publica um embed com detalhes do evento mesmo quando a geração de arquivos de calendário está desativada. Ative "Publicar Webhook do Discord" no seu modelo sem ativar "Criar convite de calendário .ics".
+Sim. O webhook publica um embed com detalhes do evento mesmo quando a geração de arquivos de calendário está desativada. Ative "Postar webhook do Discord" no seu modelo sem ativar "Criar convite de calendário .ics".
 
 ### Posso usar webhooks sem a criação de eventos do Discord?
 
@@ -107,7 +104,7 @@ Sim. O webhook, os eventos do Discord e os arquivos de calendário são totalmen
 
 ### A URL do webhook é confidencial?
 
-Sim — qualquer pessoa com a URL do webhook pode enviar mensagens para esse canal. Trate-a como uma senha. Ela é criptografada e armazenada localmente usando o armazenamento seguro do seu sistema operacional.
+Sim. Qualquer pessoa com a URL do webhook pode enviar mensagens para esse canal, então trate-a como uma senha. Ela é criptografada e armazenada localmente usando o armazenamento seguro do seu sistema operacional.
 
 ---
 
@@ -115,8 +112,8 @@ Sim — qualquer pessoa com a URL do webhook pode enviar mensagens para esse can
 
 | Problema | Solução |
 |---|---|
-| Nenhum arquivo .ics gerado | Verifique se "Ativar geração de arquivos de calendário" está ativado nas Configurações avançadas, e se "Criar convite de calendário .ics" está marcado no modelo ou evento |
-| Webhook não publica | Verifique a URL do webhook com "Testar Webhook" nas configurações do Discord. Confirme que "Ativar Webhook" está ativado para o grupo e "Publicar Webhook do Discord" está marcado no modelo |
+| Nenhum arquivo .ics gerado | Verifique se "Ativar geração de arquivos de calendário" está ativado nas Opções avançadas, e se "Criar convite de calendário .ics" está marcado no modelo ou evento |
+| Webhook não publica | Verifique a URL do webhook com "Testar Webhook" nas configurações do Discord. Confirme que "Ativar Webhook" está ativado para o grupo e "Postar webhook do Discord" está marcado no modelo |
 | Webhook publica mas sem .ics anexado | "Criar convite de calendário .ics" também deve estar ativado para o evento. Sem isso, o webhook publica apenas um embed ou link de evento |
 | Lembretes não funcionam no Outlook | O Outlook suporta apenas o primeiro lembrete. O aplicativo ordena o mais longo primeiro para compatibilidade |
 | Lembretes não funcionam no Google Calendar | O Google Calendar ignora lembretes personalizados na importação de .ics. Configure lembretes manualmente após a importação |

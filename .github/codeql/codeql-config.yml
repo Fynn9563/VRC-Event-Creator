@@ -3,10 +3,18 @@ name: "CodeQL config"
 queries:
   - uses: security-and-quality
 
+# Don't analyze generated artifacts, internal dev tooling, or the built distribution.
+paths-ignore:
+  - .dev/**
+  - dist/**
+  - out/**
+  - owasp-report/**
+  - node_modules/**
+
 # Suppress specific instances of http-to-file-access that have been manually reviewed and validated
 query-filters:
   - exclude:
       id: js/http-to-file-access
-      # Suppress warnings for validated file writes in main.js
-      # - writeDebugLog: Data sanitized via JSON.stringify replacer
+      # Suppress warnings for validated file writes:
+      # - debug-log.js writeDebugLog: data sanitized via JSON.stringify replacer
       # - downloadGalleryImage: URL allowlist, content-type, size, and magic byte validation

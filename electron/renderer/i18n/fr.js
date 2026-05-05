@@ -18,6 +18,9 @@ export const fr = {
     loggingIn: "Connexion...",
     loginFailed: "Échec de la connexion.",
     sessionChecking: "Vérification de la session...",
+    sessionCheckFailed: "Échec de la vérification de la session.",
+    enterCredentials: "Entrez votre nom d'utilisateur et votre mot de passe.",
+    logoutFailed: "Échec de la déconnexion.",
     loginRequired: "Connexion requise.",
     loggedInAs: "Connecté en tant que {name}.",
     loggedOut: "Déconnecté."
@@ -26,7 +29,8 @@ export const fr = {
     title: "Code d'authentification à deux facteurs",
     subtitle: "Entrez votre code d'authentification",
     codeLabel: "Code de vérification",
-    submit: "Envoyer"
+    submit: "Envoyer",
+    enterCode: "Entrez votre code."
   },
   languageSetup: {
     title: "Choisir la langue",
@@ -65,9 +69,24 @@ export const fr = {
       savedLabel: "Thèmes enregistrés",
       customGroupLabel: "Personnalisé",
       customUnsaved: "Personnalisé (non enregistré)",
+      customThemeFallback: "Thème personnalisé",
       importButton: "Importer un thème",
       exportButton: "Exporter le thème",
       openStudio: "Ouvrir le studio de thèmes",
+      toasts: {
+        saveFailed: "Impossible d'enregistrer le thème.",
+        saved: "Thème enregistré : {name}",
+        selectSavedToDelete: "Sélectionnez un thème enregistré à supprimer.",
+        confirmDelete: "Supprimer le thème « {name} » ?",
+        deleteFailed: "Impossible de supprimer le thème.",
+        deleted: "Thème supprimé.",
+        importNotAvailable: "L'importation de thème n'est pas disponible.",
+        importFailed: "Impossible d'importer le thème.",
+        imported: "Thème importé : {name}",
+        exportNotAvailable: "L'exportation de thème n'est pas disponible.",
+        exportFailed: "Impossible d'exporter le thème.",
+        exported: "Thème exporté."
+      },
       studio: {
         title: "Studio de thème",
         subtitle: "Prévisualisez et ajustez l'apparence de l'application. Prend en charge #RRGGBBAA pour les transparences personnalisées.",
@@ -183,6 +202,7 @@ export const fr = {
     },
     eckit: {
       importButton: "Importer le Kit",
+      imported: "Kit importé.",
       webhookName: "Nom du Webhook",
       webhookNamePlaceholder: "Événements de Mon Groupe",
       embedColor: "Couleur de l'Embed",
@@ -199,6 +219,9 @@ export const fr = {
     saved: "Paramètres enregistrés.",
     featuredVerification: {
       permissionDenied: "Ce groupe n'est pas autorisé à créer des événements en vedette."
+    },
+    dataDir: {
+      willChangeOnRestart: "Le dossier de données changera au prochain redémarrage. Veuillez définir la variable d'environnement VRC_EVENT_DATA_DIR sur : {path}"
     }
   },
   demo: {
@@ -308,6 +331,9 @@ export const fr = {
     created: "Événement créé.",
     failed: "Impossible de créer l'événement.",
     selectDateError: "Sélectionnez une date.",
+    failedToBuildDates: "Impossible de générer les options de date.",
+    selectProfileOrManual: "Sélectionnez un modèle avec des motifs ou utilisez la date/heure manuelle.",
+    cannotCreatePast: "Impossible de créer un événement dans le passé. L'heure sélectionnée est déjà passée.",
     updateRequired: "Mise à jour disponible. Mettez à jour avant de créer des événements.",
     featuredPermissionRevoked: "Ce groupe n'a plus la permission de créer des événements en vedette.",
     groupFairPermissionRevoked: "Ce groupe n'a plus la permission d'inclure des événements dans la Foire des Groupes."
@@ -399,6 +425,14 @@ export const fr = {
     importSuccess: "Données du modèle importées depuis JSON.",
     importWrongType: "Ceci semble être un JSON d'événement. Veuillez utiliser Importer un événement à la place.",
     exportSuccess: "Données du modèle exportées vers JSON.",
+    selectGroupFirst: "Sélectionnez d'abord un groupe.",
+    selectProfileToEdit: "Sélectionnez un modèle à modifier.",
+    profileKeyGen: "Impossible de générer la clé du modèle.",
+    noProfileSelected: "Aucun modèle sélectionné.",
+    deleteFailed: "Impossible de supprimer le modèle.",
+    loadFailed: "Impossible de charger les modèles.",
+    noProfileForExport: "Aucun modèle sélectionné à exporter.",
+    profileNotFound: "Modèle introuvable.",
     hints: {
       groupAccess: "Choisissez un groupe avec accès au calendrier.",
       patternsInfo: "Les modèles servent à pré-générer les dates à venir."
@@ -503,6 +537,7 @@ export const fr = {
   },
   common: {
     syncing: "Synchronisation des données...",
+    syncSuccess: "Synchronisation réussie.",
     ready: "Prêt",
     error: "Erreur",
     offline: "Hors ligne",
@@ -578,7 +613,12 @@ export const fr = {
       maxLanguages: "Maximum 3 langues autorisées.",
       noGroup: "Sélectionnez un groupe.",
       requiredMultiple: "{fields} sont requis.",
-      requiredSingle: "{field} est requis."
+      requiredSingle: "{field} est requis.",
+      refreshFailed: "Impossible de charger les modèles ou les groupes.",
+      invalidJson: "Données JSON invalides.",
+      importFailed: "Échec de l'importation.",
+      exportFailed: "Échec de l'exportation.",
+      couldNotImportJson: "Impossible d'importer le fichier JSON."
     },
     exportJson: "Exporter JSON",
     importJson: "Importer JSON",

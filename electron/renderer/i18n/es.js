@@ -18,6 +18,9 @@ export const es = {
     loggingIn: "Iniciando sesión...",
     loginFailed: "Error al iniciar sesión.",
     sessionChecking: "Comprobando la sesión...",
+    sessionCheckFailed: "Error al comprobar la sesión.",
+    enterCredentials: "Introduce el usuario y la contraseña.",
+    logoutFailed: "Error al cerrar sesión.",
     loginRequired: "Se requiere iniciar sesión.",
     loggedInAs: "Conectado como {name}.",
     loggedOut: "Sesión cerrada."
@@ -26,7 +29,8 @@ export const es = {
     title: "Código de doble factor",
     subtitle: "Introduce tu código de autenticación",
     codeLabel: "Código",
-    submit: "Enviar"
+    submit: "Enviar",
+    enterCode: "Introduce tu código."
   },
   languageSetup: {
     title: "Elegir idioma",
@@ -53,6 +57,9 @@ export const es = {
     loadFailed: "No se pudo cargar la galería."
   },
   settings: {
+    dataDir: {
+      willChangeOnRestart: "El directorio de datos cambiará en el próximo reinicio. Establece la variable de entorno VRC_EVENT_DATA_DIR a: {path}"
+    },
     theme: {
       title: "Tema",
       description: "Personaliza la apariencia de la aplicación. Selecciona un preset o ajusta manualmente.",
@@ -65,9 +72,24 @@ export const es = {
       savedLabel: "Temas guardados",
       customGroupLabel: "Personalizado",
       customUnsaved: "Personalizado (sin guardar)",
+      customThemeFallback: "Tema personalizado",
       importButton: "Importar tema",
       exportButton: "Exportar tema",
       openStudio: "Abrir Theme Studio",
+      toasts: {
+        saveFailed: "No se pudo guardar el tema.",
+        saved: "Tema guardado: {name}",
+        selectSavedToDelete: "Selecciona un tema guardado para eliminar.",
+        confirmDelete: "¿Eliminar el tema \"{name}\"?",
+        deleteFailed: "No se pudo eliminar el tema.",
+        deleted: "Tema eliminado.",
+        importNotAvailable: "Importación de temas no disponible.",
+        importFailed: "No se pudo importar el tema.",
+        imported: "Tema importado: {name}",
+        exportNotAvailable: "Exportación de temas no disponible.",
+        exportFailed: "No se pudo exportar el tema.",
+        exported: "Tema exportado."
+      },
       studio: {
         title: "Estudio de temas",
         subtitle: "Previsualiza y ajusta la apariencia de la app. Compatible con #RRGGBBAA para transparencias personalizadas.",
@@ -183,6 +205,7 @@ export const es = {
     },
     eckit: {
       importButton: "Importar Kit",
+      imported: "Kit importado.",
       webhookName: "Nombre del Webhook",
       webhookNamePlaceholder: "Eventos de Mi Grupo",
       embedColor: "Color del Embed",
@@ -308,6 +331,9 @@ export const es = {
     created: "Evento creado.",
     failed: "No se pudo crear el evento.",
     selectDateError: "Selecciona una fecha.",
+    failedToBuildDates: "No se pudieron generar las opciones de fecha.",
+    selectProfileOrManual: "Selecciona una plantilla con patrones o usa fecha/hora manual.",
+    cannotCreatePast: "No se puede crear un evento en el pasado. La hora seleccionada ya ha pasado.",
     updateRequired: "Actualización disponible. Actualiza antes de crear eventos.",
     featuredPermissionRevoked: "Este grupo ya no tiene permiso para crear eventos destacados.",
     groupFairPermissionRevoked: "Este grupo ya no tiene permiso para incluir eventos en la Feria de Grupos."
@@ -399,6 +425,14 @@ export const es = {
     importSuccess: "Datos de la plantilla importados desde JSON.",
     importWrongType: "Esto parece ser un JSON de evento. Usa Importar evento en su lugar.",
     exportSuccess: "Datos de la plantilla exportados a JSON.",
+    selectGroupFirst: "Selecciona un grupo primero.",
+    selectProfileToEdit: "Selecciona una plantilla para editar.",
+    profileKeyGen: "No se pudo generar la clave de la plantilla.",
+    noProfileSelected: "No hay plantilla seleccionada.",
+    deleteFailed: "No se pudo eliminar la plantilla.",
+    loadFailed: "No se pudieron cargar las plantillas.",
+    noProfileForExport: "No hay plantilla seleccionada para exportar.",
+    profileNotFound: "Plantilla no encontrada.",
     hints: {
       groupAccess: "Elige un grupo con acceso al calendario.",
       patternsInfo: "Los patrones se usan para generar fechas próximas."
@@ -503,6 +537,7 @@ export const es = {
   },
   common: {
     syncing: "Sincronizando datos...",
+    syncSuccess: "Sincronizado correctamente.",
     ready: "Listo",
     error: "Error",
     offline: "Desconectado",
@@ -578,7 +613,12 @@ export const es = {
       maxLanguages: "Máximo 3 idiomas permitidos.",
       noGroup: "Selecciona un grupo.",
       requiredMultiple: "{fields} son obligatorios.",
-      requiredSingle: "{field} es obligatorio."
+      requiredSingle: "{field} es obligatorio.",
+      refreshFailed: "No se pudieron cargar las plantillas o los grupos.",
+      invalidJson: "Datos JSON no válidos.",
+      importFailed: "Error al importar.",
+      exportFailed: "Error al exportar.",
+      couldNotImportJson: "No se pudo importar el archivo JSON."
     },
     exportJson: "Exportar JSON",
     importJson: "Importar JSON",

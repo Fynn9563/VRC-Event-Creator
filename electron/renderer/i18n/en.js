@@ -152,6 +152,9 @@ export const en = {
     loggingIn: "Logging in...",
     loginFailed: "Login failed.",
     sessionChecking: "Checking session...",
+    sessionCheckFailed: "Session check failed.",
+    enterCredentials: "Enter username and password.",
+    logoutFailed: "Logout failed.",
     loginRequired: "Login required.",
     loggedInAs: "Logged in as {name}.",
     loggedOut: "Logged out."
@@ -160,7 +163,8 @@ export const en = {
     title: "Two-Factor Code",
     subtitle: "Enter your authentication code",
     codeLabel: "Code",
-    submit: "Submit"
+    submit: "Submit",
+    enterCode: "Enter your code."
   },
   languageSetup: {
     title: "Choose Language",
@@ -190,6 +194,9 @@ export const en = {
     featuredVerification: {
       permissionDenied: "This group is not permitted to create featured events."
     },
+    dataDir: {
+      willChangeOnRestart: "Data directory will change on next restart. Please set VRC_EVENT_DATA_DIR environment variable to: {path}"
+    },
     theme: {
       title: "Theme",
       description: "Customize the appearance of the app. Select a preset or adjust manually.",
@@ -202,9 +209,24 @@ export const en = {
       savedLabel: "Saved Themes",
       customGroupLabel: "Custom",
       customUnsaved: "Custom (unsaved)",
+      customThemeFallback: "Custom Theme",
       importButton: "Import Theme",
       exportButton: "Export Theme",
       openStudio: "Open Theme Studio",
+      toasts: {
+        saveFailed: "Could not save theme.",
+        saved: "Theme saved: {name}",
+        selectSavedToDelete: "Select a saved theme to delete.",
+        confirmDelete: "Delete the \"{name}\" theme?",
+        deleteFailed: "Could not delete theme.",
+        deleted: "Theme deleted.",
+        importNotAvailable: "Theme import not available.",
+        importFailed: "Could not import theme.",
+        imported: "Theme imported: {name}",
+        exportNotAvailable: "Theme export not available.",
+        exportFailed: "Could not export theme.",
+        exported: "Theme exported."
+      },
       studio: {
         title: "Theme Studio",
         subtitle: "Preview and fine-tune the appearance of the app. Supports #RRGGBBAA for custom transparencies.",
@@ -320,6 +342,7 @@ export const en = {
     },
     eckit: {
       importButton: "Import Kit",
+      imported: "Kit imported.",
       webhookName: "Webhook Display Name",
       webhookNamePlaceholder: "My Group Events",
       embedColor: "Embed Color",
@@ -442,6 +465,9 @@ export const en = {
     created: "Event created.",
     failed: "Could not create event.",
     selectDateError: "Select a date.",
+    failedToBuildDates: "Failed to build date options.",
+    selectProfileOrManual: "Select a template with patterns or use manual date/time.",
+    cannotCreatePast: "Cannot create event in the past. Selected time has already passed.",
     updateRequired: "Update available. Please update before creating events.",
     featuredPermissionRevoked: "This group no longer has permission to create featured events.",
     groupFairPermissionRevoked: "This group no longer has permission to include events in the Group Fair."
@@ -533,6 +559,14 @@ export const en = {
     importSuccess: "Template data imported from JSON.",
     importWrongType: "This appears to be an event JSON. Please use Import Event instead.",
     exportSuccess: "Template data exported to JSON.",
+    selectGroupFirst: "Select a group first.",
+    selectProfileToEdit: "Select a template to edit.",
+    profileKeyGen: "Template key could not be generated.",
+    noProfileSelected: "No template selected.",
+    deleteFailed: "Could not delete template.",
+    loadFailed: "Failed to load templates.",
+    noProfileForExport: "No template selected to export.",
+    profileNotFound: "Template not found.",
     hints: {
       groupAccess: "Choose a group with calendar access.",
       patternsInfo: "Patterns are used to pre-generate upcoming dates."
@@ -637,6 +671,7 @@ export const en = {
   },
   common: {
     syncing: "Syncing data...",
+    syncSuccess: "Synced successfully.",
     ready: "Ready",
     error: "Error",
     offline: "Offline",
@@ -667,7 +702,12 @@ export const en = {
       requiredSingle: "{field} is required.",
       requiredMultiple: "{fields} are required.",
       maxLanguages: "Maximum 3 languages allowed.",
-      durationError: "Duration must be a positive number."
+      durationError: "Duration must be a positive number.",
+      refreshFailed: "Failed to load profiles or groups.",
+      invalidJson: "Invalid JSON data.",
+      importFailed: "Import failed.",
+      exportFailed: "Export failed.",
+      couldNotImportJson: "Could not import JSON file."
     },
     section: {
       scheduleSelection: "Schedule Selection"

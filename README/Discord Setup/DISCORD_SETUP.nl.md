@@ -6,7 +6,7 @@ Deze handleiding begeleidt je bij het instellen van de Discord-integratie voor V
 
 ## Overzicht
 
-De integratie maakt gebruik van een **Discord-bot** die je zelf aanmaakt en beheert. De bot heeft slechts één machtiging nodig: **Evenementen aanmaken**. De bot leest geen berichten, neemt niet deel aan spraakkanalen en doet verder niets anders. Je bot-token wordt versleuteld en lokaal opgeslagen — het wordt nergens naartoe verstuurd, behalve naar de Discord-API bij het aanmaken van evenementen.
+De integratie maakt gebruik van een **Discord-bot** die je zelf aanmaakt en beheert. De bot heeft slechts één machtiging nodig: **Evenementen aanmaken**. De bot leest geen berichten, neemt niet deel aan spraakkanalen en doet verder niets anders. Je bot-token wordt versleuteld en lokaal opgeslagen, en wordt nergens naartoe verstuurd, behalve naar de Discord-API bij het aanmaken van evenementen.
 
 Elke VRChat-groep kan aan één Discord-server worden gekoppeld. Je kunt dezelfde bot hergebruiken voor meerdere groepen/servers, of aparte bots gebruiken.
 
@@ -22,8 +22,8 @@ Elke VRChat-groep kan aan één Discord-server worden gekoppeld. Je kunt dezelfd
 
 1. Klik op **"Bot"** in de linkerzijbalk
 2. Klik op **"Reset Token"** (of **"Copy"** als het token nog zichtbaar is)
-3. **Kopieer het token onmiddellijk** — je kunt het daarna niet meer inzien
-4. Laat Privileged Gateway Intents uitgeschakeld — de bot heeft deze niet nodig
+3. **Kopieer het token onmiddellijk.** Je kunt het daarna niet meer inzien
+4. Laat Privileged Gateway Intents uitgeschakeld. De bot heeft deze niet nodig
 
 > **Houd je bot-token geheim.** Iedereen met het token kan handelen als jouw bot. Als je het per ongeluk deelt, reset het dan direct in het Developer Portal.
 
@@ -35,7 +35,7 @@ Elke VRChat-groep kan aan één Discord-server worden gekoppeld. Je kunt dezelfd
 4. Vink onder **Bot Permissions** het vakje **`Create Events`** aan
 5. Kopieer de gegenereerde URL onderaan, open deze in je browser, selecteer je server en autoriseer
 
-De bot verschijnt in je ledenlijst maar blijft offline — de bot hoeft niet te "draaien." De app communiceert rechtstreeks met de Discord-API via het token.
+De bot verschijnt in je ledenlijst maar blijft offline. De bot hoeft niet te "draaien": de app communiceert rechtstreeks met de Discord-API via het token.
 
 ## Stap 4: Je server-ID opzoeken
 
@@ -45,10 +45,10 @@ De bot verschijnt in je ledenlijst maar blijft offline — de bot hoeft niet te 
 ## Stap 5: Configureren in VRC Event Creator
 
 1. Open **Instellingen** > **Geavanceerde opties** > vink **"Discord-integratie inschakelen"** aan
-2. Selecteer de VRChat-groep die je wilt koppelen, voer je bot-token en server-ID in en sla op
+2. Kies in het paneel dat eronder verschijnt de VRChat-groep die je wilt koppelen, voer je bot-token en server-ID in en sla op
 3. Gebruik **"Bot-token verifiëren"** om te bevestigen dat het token werkt
 
-Elke evenementsjabloon heeft een **"Synchroniseren met Discord"**-schakelaar in het tabblad Basics. Deze is standaard ingeschakeld wanneer de Discord-integratie actief is. Je kunt de schakelaar uitschakelen voor evenementen die je niet op Discord wilt plaatsen.
+Elk sjabloon heeft in de stap **Audience** een schakelaar **"Discord-evenement aanmaken"**, met daarnaast **"Discord-webhook plaatsen"** als er voor de groep een webhook-URL is ingesteld. Deze schakelaars zijn onafhankelijk: zet per sjabloon een willekeurige combinatie aan, en overschrijf ze per evenement in het Aanmaken-evenement-scherm.
 
 **Discord-synchronisatie blokkeert nooit het aanmaken van VRChat-evenementen.** Als er iets misgaat aan de Discord-kant, wordt je VRChat-evenement gewoon normaal aangemaakt.
 
@@ -64,7 +64,7 @@ Ja, zolang de bot de machtiging **Evenementen aanmaken** heeft op de betreffende
 
 Iedereen die evenementen aanmaakt, heeft het bot-token op zijn of haar computer nodig. Opties:
 - **Deel het token** met vertrouwde teamleden
-- **Laat één persoon de Discord-synchronisatie beheren** terwijl anderen "Synchroniseren met Discord" uitschakelen
+- **Laat één persoon de Discord-synchronisatie beheren** terwijl anderen **"Discord-evenement aanmaken"** uitschakelen
 - **Maak aparte bots** per teamlid
 
 ### Is mijn bot-token veilig?
@@ -85,4 +85,4 @@ Nee, de app maakt ze alleen aan. Beheer Discord-evenementen rechtstreeks in Disc
 | "Bot heeft geen machtiging om evenementen aan te maken" | Nodig de bot opnieuw uit met de machtiging Evenementen aanmaken, of voeg deze toe via Serverinstellingen > Rollen |
 | "Discord-server niet gevonden" | Controleer de server-ID (rechtermuisknop op server > Server-ID kopiëren) |
 | "Discord-snelheidslimiet bereikt" | Wacht een minuut en probeer het opnieuw |
-| Evenementen aangemaakt in VRChat maar niet in Discord | Controleer of "Synchroniseren met Discord" is ingeschakeld en de groep een geldig bot-token + server-ID heeft |
+| Evenementen aangemaakt in VRChat maar niet in Discord | Controleer of "Discord-evenement aanmaken" is ingeschakeld en de groep een geldig bot-token + server-ID heeft |

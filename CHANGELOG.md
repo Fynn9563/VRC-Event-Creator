@@ -2,12 +2,25 @@
 
 All notable changes to VRChat Event Creator will be documented in this file.
 
-## [1.2.0] - 2026-04-29
+## [1.2.0] - 2026-05-05
 
 ### Added
-- **Calendar Integration** — Generate .ics calendar invite files with configurable reminders when VRChat events are created
+- **Native VRChat recurring series** — first-class support for VRChat's server-side recurring events alongside EC's existing template flow
+  - New unified **Manage Schedules** tab covering both templates and series, with a type picker in the wizard's Schedule step
+  - Frequency model matching VRChat's: Daily / Weekly / Monthly / Yearly / Weekdays / Weekends / Custom (with interval, days-of-week, end-after-N or end-by-date conditions)
+  - Local series store survives app restarts and rate-limit cooldowns; `series.json` and `pending-rasterize.json` join the user-data files
+  - Series creation can fan out announcements (Discord events / webhook / .ics) for the recurrence as a whole
+  - Edit-after-start flow: recurrence rule changes regenerate the series (delete + recreate) so future occurrences reflect the new rule while history is preserved
+  - Persistent rasterize queue retries series creation that hit a 429
+- **Automation event projection** — Modify Events filter ranges past 3 months now show projected future events from each enabled-automation template up to the chosen window
+  - Renderer projects from template patterns past the engine's hard horizon; events render identically to scheduled pending events with no per-card visual distinction
+  - Editing a projected event silently commits it to disk before applying overrides; deleting tombstones the slot so the engine never recreates it
+  - Slot keys are deterministic (group + profile key + start time), so projected entries align cleanly when the engine eventually catches up
+- **Modify Events filters panel** — collapsible filter section with toggles for pending events, standalone events, modified occurrences, per-series chips, and per-template chips
+- **Time-range dropdown** — show events for the next 7 days through 1 year, persisted across restarts
+- **Calendar integration** — generate .ics calendar invite files with configurable reminders when VRChat events are created
   - Per-template and per-event "Create .ics Calendar Invite" toggle with reminder configuration
-  - Preset reminder intervals (5min to 1 week) compatible with Outlook, Apple Calendar, and other clients
+  - Preset reminder intervals (5 min to 1 week) compatible with Outlook, Apple Calendar, Thunderbird, and other clients
   - Reminders sorted longest-first for best compatibility with single-reminder clients
   - Discord webhook delivery: posts a rich embed with event details, banner image, group icon, and .ics file attachment
   - Discord embed uses unix timestamps (each viewer sees their local timezone) and language-agnostic emoji labels
@@ -15,13 +28,15 @@ All notable changes to VRChat Event Creator will be documented in this file.
   - Local save dialog for manual .ics export
   - Deterministic ICS UIDs for update-safe re-delivery
   - Per-group webhook URL configuration with test/verify button (encrypted storage)
-- **EC Kit** — Webhook identity customization for groups with an active license
+- **EC Kit** — webhook identity customization for groups with an active license
   - Custom webhook display name, avatar URL, and embed color per group
-  - Per-template and per-event custom webhook message textarea and image attachment
+  - Per-template and per-event custom webhook message textarea and image/audio/video attachment (up to 25 MB)
   - Pending automated events can have custom message/image edited before posting
   - Ed25519 signed license verification (offline, public key in app)
-  - Import button in Discord Integration per-group settings
-- Calendar integration setting under Advanced Settings
+  - Import button in Discord Integration per-group settings; importer accepts either the delivered ZIP (auto-extracts) or a bare `.eckit` file
+  - Self-service purchase flow via Ko-fi shop with automated kit issuance through a Cloudflare Worker (transaction verification, signing, ZIP delivery, claim page)
+  - Bundled `LICENSE-eckit.txt` documenting voluntary-purchase / no-service-contract terms
+- Calendar integration setting under Advanced Options
 - Translations for all new strings across all 10 supported languages
 
 ### Changed
@@ -34,8 +49,37 @@ All notable changes to VRChat Event Creator will be documented in this file.
   - Kit custom message/image fields now depend only on the webhook toggle being enabled
 - "Sync to Discord" renamed to "Create Discord Event" across all languages
 - Webhook URL field in Discord settings now visible when Discord integration is enabled (previously required calendar)
+- "Manage Templates" renamed to "Manage Schedules" to cover both templates and native series
+- Resync now bypasses the in-memory group-permission cache so VRChat-side role changes (e.g., granting calendar permissions to a role) surface without an app restart
+- Modify Events series badges contrast improved on event cards
 - Calendar setup guides rewritten for all 10 languages to reflect the decoupled architecture
 - Linux build now uses .ico icon (electron-builder auto-converts to PNG)
+- i18n parity sweep: 612 keys aligned across all 10 locales, 44 dead keys pruned, hardcoded English strings wired through `t()`
+
+### Fixed
+- Automation timing input no longer silently clamps to a 30-minute minimum — the engine honors the user's configured offset (form already documented this; engine now matches)
+- Editing a saved template repopulates the pattern list, language list, and platform list in the Schedule and Audience steps (previously only state was loaded; the DOM render helpers weren't called from the wizard transition)
+- Modify Events series filter chips show human-readable series labels instead of fallback "Series (cal_xxxxxxxx)" IDs on initial load
+- Time-range dropdown expansion now re-fetches projected events; narrowing remains a re-render
+- Stale projected events from a deleted template are dropped from the Modify Events grid
+- Removed a stray no-op `.replace(/Z$/, "Z")` from the ICS timestamp formatter
+
+### Security
+- Renderer sandbox enabled (`sandbox: true`) — sandboxed renderer cannot escalate to Node even if a renderer-side vulnerability is exploited
+- Filename sanitizer with path-traversal guards on all `.ics` save paths; preserves Japanese, Cyrillic, and accented characters in folder names (the prior whitelist stripped non-ASCII)
+- Webhook display-name validator rejects "discord" / "clyde" / "@everyone" / "@here", caps at 80 chars, strips control characters
+- `shell.openExternal` URL allowlist (http/https/mailto only); path-shaped inputs route to `shell.openPath`
+- `setWindowOpenHandler` returns deny by default
+- JSON import schema validator on `events:importJson` and `profiles:importJson` IPC handlers — strict whitelist + type coercion, rejects `__proto__` pollution attempts, caps every string and array length
+- TOCTOU mitigation on file-system reads — kit imports and webhook attachment selection now `openSync` + `fstatSync` + `readSync` against a single file descriptor, eliminating the size-check / read race window
+- Hard size caps on EC Kit imports: 256 KB source file, 64 KB extracted `.eckit` content, with `maxOutputLength` guard against DEFLATE bombs in the ZIP path
+- Group ID format validation (`^grp_[0-9a-fA-F-]{36}$`) on kit import as defense-in-depth against destination-filename path traversal even with a valid signature
+
+### Internal
+- Dependency upgrades: electron 39.2.7 → 41.5.0, electron-builder 24.13.3 → 26.8.1, vrchat SDK 2.20.5 → 2.21.7. Net npm audit count: 18 → 1 (lodash false positive accepted).
+- Module extraction for testability: `core/normalize-settings.js`, `core/debug-log.js`, `core/theme-store.js`, `core/gallery-cache.js`, `core/eckit.js`, `core/filename-sanitizer.js`, `core/import-validator.js`, `renderer/series-recurrence.js`
+- Vitest + Playwright test infrastructure: 332 unit tests across 14 files, 20 Playwright E2E tests including auth-bypassed flows via env-gated VRChat SDK stub. IPC symmetry static-analysis suite verifies preload↔main wiring.
+- Removed unused imports flagged by CodeQL: `normalizeVersion` (main.js), `populateSeriesTimezoneDropdown` and `refreshRasterizeStatus` (renderer/app.js), `addCalendarReminderRow` (renderer/modify.js)
 
 ## [1.1.3] - 2026-03-08
 

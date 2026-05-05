@@ -1,12 +1,12 @@
 // Main application entry point - imports and wires modular components
 
-import { CATEGORIES, ACCESS_TYPES, LANGUAGES, PLATFORMS, DATE_MODES, PATTERN_TYPES, WEEKDAYS, MONTHS, TAG_LIMIT } from "./config.js";
+import { CATEGORIES, ACCESS_TYPES, DATE_MODES, PATTERN_TYPES, WEEKDAYS, MONTHS, TAG_LIMIT } from "./config.js";
 import { dom, state, setEventWizard, setProfileWizard, getProfileWizard, getProfileEditConfirmed, setProfileEditConfirmed } from "./state.js";
-import { setStatus, setFootMeta, showToast, setAuthState, setUpdateAvailable, setUpdateProgress, refreshStatusPill, showView, renderSelect, renderChecklist, setupWizard, bindWindowControls, initThemeControls, loadTheme, handleThemeChange, handleThemeReset, handleThemePresetSave, handleThemePresetDelete, handleThemePresetImport, handleThemePresetExport, syncThemeLocalization } from "./ui.js";
-import { initI18n, setLanguage, getCurrentLanguage, getLanguageOptions, applyTranslations, t, getLanguageDisplayName } from "./i18n/index.js";
+import { setStatus, setFootMeta, showToast, setAuthState, setUpdateAvailable, setUpdateProgress, refreshStatusPill, showView, renderSelect, setupWizard, bindWindowControls, initThemeControls, loadTheme, handleThemeChange, handleThemeReset, handleThemePresetSave, handleThemePresetDelete, handleThemePresetImport, handleThemePresetExport, syncThemeLocalization } from "./ui.js";
+import { initI18n, setLanguage, getCurrentLanguage, getLanguageOptions, applyTranslations, t } from "./i18n/index.js";
 import { createTagInput, handleOpenDataDir, handleChangeDataDir, buildTimezones, normalizeDurationInput, sanitizeDurationInputValue, enforceGroupAccess, getTodayDateString, getMaxEventDateString, parseDurationInput, getTimeZoneAbbr } from "./utils.js";
 import { checkSession, handleLogin, handleLoginClose, handleLogout, handleSettingsSave } from "./auth.js";
-import { resetProfileForm, applyProfileToForm, renderProfileList, updateProfileActionButtons, handleProfileNew, handleProfileEdit, handleProfileDelete, handleProfileSelection, handleProfileGroupChange, handleProfileSave, updateProfileDurationPreview, handleProfileAccessChange, renderProfileRoleRestrictions, validateAndCorrectAutomationOffset, handleProfileImportJson, handleProfileExportJson, updateDiscordVisibility, renderDiscordGroupSelect, initDiscordUI, updateCalendarVisibility, renderCalendarReminders, readCalendarRemindersFromDom, addCalendarReminderRow, handleProfileWizardStepChange as profilesHandleProfileWizardStepChange } from "./profiles.js";
+import { resetProfileForm, applyProfileToForm, renderProfileList, updateProfileActionButtons, handleProfileNew, handleProfileEdit, handleProfileDelete, handleProfileSelection, handleProfileGroupChange, handleProfileSave, updateProfileDurationPreview, handleProfileAccessChange, renderProfileRoleRestrictions, renderProfileLanguageList, renderProfilePlatformList, renderPatternList, validateAndCorrectAutomationOffset, handleProfileImportJson, handleProfileExportJson, updateDiscordVisibility, renderDiscordGroupSelect, initDiscordUI, updateCalendarVisibility, renderCalendarReminders, readCalendarRemindersFromDom, addCalendarReminderRow, handleProfileWizardStepChange as profilesHandleProfileWizardStepChange } from "./profiles.js";
 import { syncDateInputs, applyManualEventDefaults, handleEventGroupChange, handleEventProfileChange, handleEventCreate, handleEventAccessChange, renderEventRoleRestrictions, renderEventLanguageList, renderEventProfileOptions, renderEventPlatformList, updateDateOptions, refreshUpcomingEventCount, renderUpcomingEventCountLabel, updateEventDurationPreview, handleEventImportJson, handleEventExportJson, updateAdvancedSettingsVisibility, updateImportExportVisibility } from "./events.js";
 import { initGalleryPicker, openGalleryPicker } from "./gallery.js";
 import { initModifyEvents, initModifySelects, refreshModifyEvents, syncModifyLocalization, updateModifyDurationPreview, updateModifyCalendarRemindersVisibility, updateModifyWebhookVisibility, resetModifyFilters } from "./modify.js";
@@ -23,11 +23,9 @@ import {
   updateSeriesFrequencyVisibility,
   updateSeriesEndVisibility,
   updateSeriesDurationPreview,
-  populateSeriesTimezoneDropdown,
   setRecurrenceFieldsLocked,
   inspectSeriesOccurrences,
-  initRasterizeStatusIndicator,
-  refreshRasterizeStatus
+  initRasterizeStatusIndicator
 } from "./series.js";
 
 (() => {
@@ -259,7 +257,7 @@ import {
       initialSyncComplete = true;
       return true;
     } catch (err) {
-      showToast("Failed to load profiles or groups.", true);
+      showToast(t("common.errors.refreshFailed"), true);
       setFootMeta(t("common.error"));
     }
     return false;
@@ -272,102 +270,20 @@ import {
     resyncInProgress = true;
     if (dom.statusPill) {
       dom.statusPill.dataset.hover = "resync";
-      dom.statusPill.textContent = "Syncing...";
+      dom.statusPill.textContent = t("common.syncing");
       dom.statusPill.disabled = true;
       dom.statusPill.setAttribute("aria-disabled", "true");
     }
     const ok = await refreshData({ preserveSelection: true, force: true });
     void checkForUpdates();
     if (ok) {
-      showToast("Synced successfully.");
+      showToast(t("common.syncSuccess"));
     }
     resyncInProgress = false;
     if (dom.statusPill) {
       delete dom.statusPill.dataset.hover;
     }
     refreshStatusPill();
-  }
-
-  function renderProfileLanguageList() {
-    renderChecklist(dom.profileLanguageList, LANGUAGES, state.profile.languages, {
-      max: 3,
-      filterText: dom.profileLanguageFilter.value,
-      getLabel: item => getLanguageDisplayName(item.value, item.label),
-      onChange: next => {
-        state.profile.languages = next;
-        renderProfileLanguageList();
-        dom.profileLanguageHint.textContent = t("common.fields.languagesHint", { count: next.length });
-      }
-    });
-    dom.profileLanguageHint.textContent = t("common.fields.languagesHint", { count: state.profile.languages.length });
-  }
-
-  function renderProfilePlatformList() {
-    renderChecklist(dom.profilePlatformList, PLATFORMS, state.profile.platforms, {
-      onChange: next => {
-        state.profile.platforms = next;
-        renderProfilePlatformList();
-      }
-    });
-  }
-
-  function renderPatternList() {
-    dom.patternList.innerHTML = "";
-    if (!state.profile.patterns.length) {
-      const empty = document.createElement("div");
-      empty.className = "hint";
-      empty.textContent = t("profiles.patterns.noPatterns");
-      dom.patternList.appendChild(empty);
-      return;
-    }
-    state.profile.patterns.forEach((pattern, index) => {
-      const row = document.createElement("div");
-      row.className = "pattern-item";
-      const label = document.createElement("span");
-      label.textContent = formatPatternLabel(pattern);
-      const remove = document.createElement("button");
-      remove.type = "button";
-      remove.className = "ghost";
-      remove.textContent = t("profiles.patterns.removeButton");
-      remove.addEventListener("click", () => {
-        state.profile.patterns.splice(index, 1);
-        renderPatternList();
-      });
-      row.appendChild(label);
-      row.appendChild(remove);
-      dom.patternList.appendChild(row);
-    });
-  }
-
-  function formatPatternLabel(pattern) {
-    const time = `${String(pattern.hour).padStart(2, "0")}:${String(pattern.minute).padStart(2, "0")}`;
-
-    // Handle annual pattern type
-    if (pattern.type === "annual") {
-      const monthConfig = MONTHS.find(m => m.value === pattern.month);
-      const monthKey = monthConfig?.labelKey || `common.months.${pattern.month}`;
-      const translatedMonth = t(monthKey);
-      const monthLabel = translatedMonth === monthKey ? (monthConfig?.label || `Month ${pattern.month}`) : translatedMonth;
-      return t("profiles.patterns.format.annual", { month: monthLabel, day: pattern.day, time });
-    }
-
-    // Handle weekday-based patterns
-    const weekdayKey = `common.weekdays.${pattern.weekday}`;
-    const translatedWeekday = t(weekdayKey);
-    const weekdayLabel = translatedWeekday === weekdayKey ? pattern.weekday : translatedWeekday;
-    if (pattern.type === "every") return t("profiles.patterns.format.every", { weekday: weekdayLabel, time });
-    if (pattern.type === "every-other") return t("profiles.patterns.format.everyOther", { weekday: weekdayLabel, time });
-    if (pattern.type === "last") return t("profiles.patterns.format.last", { weekday: weekdayLabel, time });
-    if (pattern.type === "nth") {
-      const ordinalKey = `profiles.patterns.ordinal${pattern.occurrence}`;
-      const ordinal = t(ordinalKey);
-      return t("profiles.patterns.format.nth", {
-        ordinal: ordinal === ordinalKey ? `${pattern.occurrence}` : ordinal,
-        weekday: weekdayLabel,
-        time
-      });
-    }
-    return t("profiles.patterns.format.every", { weekday: weekdayLabel, time });
   }
 
   function refreshLocalizedUi() {
@@ -1374,7 +1290,10 @@ import {
         const result = await api.eckitImport();
         if (result.cancelled) return;
         if (result.ok) {
-          showToast(`Kit activated for ${result.issuedTo || "group"}`);
+          // Visible feedback is the customization fields appearing below the
+          // import button. The toast is a brief confirmation only — no kit
+          // metadata surfaced.
+          showToast(t("settings.eckit.imported"));
           // Refresh kit state so isGroupKitActive() picks up the new kit
           state.kitGroupIds = await api.eckitGetKitGroupIds().catch(() => []);
           // Reload current group config to show kit fields
@@ -1898,7 +1817,7 @@ import {
         }
       });
     }
-    dom.twoFactorForm.addEventListener("submit", e => { e.preventDefault(); const code = dom.twoFactorCode.value.trim(); if (!code) { showToast("Enter your code.", true); return; } api.submitTwoFactor(code); dom.twoFactorCode.value = ""; dom.twoFactorOverlay.classList.add("is-hidden"); });
+    dom.twoFactorForm.addEventListener("submit", e => { e.preventDefault(); const code = dom.twoFactorCode.value.trim(); if (!code) { showToast(t("twoFactor.enterCode"), true); return; } api.submitTwoFactor(code); dom.twoFactorCode.value = ""; dom.twoFactorOverlay.classList.add("is-hidden"); });
     bindWindowControls(windowControls);
   }
 

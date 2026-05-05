@@ -20,7 +20,7 @@ export async function checkSession(api, refreshDataFn) {
       return;
     }
   } catch (err) {
-    showToast("Session check failed.", true);
+    showToast(t("auth.sessionCheckFailed"), true);
   }
   setAuthState(false);
   setStatus(t("auth.loginRequired"));
@@ -97,7 +97,7 @@ export async function handleLogin(event, api, refreshDataFn) {
   dom.loginUsername.value = username;
   dom.loginPassword.value = password;
   if (!username || !password) {
-    showToast("Enter username and password.", true);
+    showToast(t("auth.enterCredentials"), true);
     return;
   }
   setStatus(t("auth.loggingIn"));
@@ -108,7 +108,7 @@ export async function handleLogin(event, api, refreshDataFn) {
       await onLoginSuccess(api, result.user, refreshDataFn);
     }
   } catch (err) {
-    showToast(err?.message || "Login failed.", true);
+    showToast(err?.message || t("auth.loginFailed"), true);
     setStatus(t("auth.loginFailed"));
   }
 }
@@ -121,7 +121,7 @@ export async function handleLogout(api) {
   try {
     await api.logout();
   } catch (err) {
-    showToast("Logout failed.", true);
+    showToast(t("auth.logoutFailed"), true);
   }
   state.user = null;
   setAuthState(false);

@@ -72,34 +72,53 @@ function getOrCreateProfileState(profileStateKey) {
   return next;
 }
 
+// Update the active-group filter without destroying pending data. When a
+// group falls outside the known set (account switch, transient permission
+// loss, etc.) we suspend its scheduled jobs but keep the events in memory
+// and on disk — re-entering the known set re-schedules them. Account-swap
+// scenarios used to silently nuke an automation queue here; that's exactly
+// the failure mode this guards against.
 function setKnownGroupIds(groupIds) {
   if (!Array.isArray(groupIds)) {
     knownGroupIds = null;
-    return { ok: true, removedPending: 0, removedDeleted: 0 };
+    // Filter cleared — any scheduled event without a live job gets one back.
+    let resumed = 0;
+    for (const event of pendingEvents) {
+      if (event.status === "scheduled" && !scheduledJobs.has(event.id)) {
+        scheduleJob(event);
+        resumed += 1;
+      }
+    }
+    if (resumed) {
+      debugLogFn("Automation", `Cleared known-group filter, resumed ${resumed} scheduled job(s)`);
+    }
+    return { ok: true, removedPending: 0, removedDeleted: 0, suspended: 0, resumed };
   }
 
   knownGroupIds = new Set(groupIds.filter(Boolean));
-  const removedPending = pendingEvents.filter(event => !isKnownGroupId(event.groupId));
-  removedPending.forEach(event => cancelJob(event.id));
 
-  const pendingBefore = pendingEvents.length;
-  const deletedBefore = deletedEvents.length;
-
-  if (removedPending.length) {
-    pendingEvents = pendingEvents.filter(event => isKnownGroupId(event.groupId));
-  }
-  if (deletedEvents.length) {
-    deletedEvents = deletedEvents.filter(event => isKnownGroupId(event.groupId));
-  }
-
-  const removedPendingCount = pendingBefore - pendingEvents.length;
-  const removedDeletedCount = deletedBefore - deletedEvents.length;
-  if (removedPendingCount || removedDeletedCount) {
-    savePendingEvents();
-    debugLogFn("Automation", `Pruned ${removedPendingCount} pending + ${removedDeletedCount} deleted for unknown groups`);
+  let suspended = 0;
+  let resumed = 0;
+  for (const event of pendingEvents) {
+    const known = isKnownGroupId(event.groupId);
+    const hasJob = scheduledJobs.has(event.id);
+    if (!known && hasJob) {
+      cancelJob(event.id);
+      suspended += 1;
+    } else if (known && event.status === "scheduled" && !hasJob) {
+      scheduleJob(event);
+      resumed += 1;
+    }
   }
 
-  return { ok: true, removedPending: removedPendingCount, removedDeleted: removedDeletedCount };
+  if (suspended || resumed) {
+    debugLogFn("Automation", `Group filter applied: suspended ${suspended}, resumed ${resumed}`);
+  }
+
+  // Pending data and deleted-event tombstones are preserved across filter
+  // changes. Returning removed* as 0 keeps the existing log line in main.js
+  // a no-op for this path.
+  return { ok: true, removedPending: 0, removedDeleted: 0, suspended, resumed };
 }
 
 function parseEventStartMs(value) {
