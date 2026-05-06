@@ -52,7 +52,7 @@ VRChatには独自の繰り返しイベント機能（シリーズ）があり�
 
 - **Discord：** VRChatイベントの作成と同時にDiscordスケジュールイベントを自動作成します。Discordボットの作成およびサーバーへの招待が必要となります。（[設定ガイド](Discord%20Setup/DISCORD_SETUP.ja.md)）
 - **カレンダー：** リマインダー付きの`.ics`ファイルを生成し、Discord webhookでの送信またはローカルへの自動保存が可能です。（[設定ガイド](Calendar%20Setup/CALENDAR_SETUP.ja.md)）
-- **EC Kit**（有料ライセンス）：グループごとにwebhookの表示名・アバター・埋め込みカラーをカスタマイズでき、イベントごとのカスタムメッセージや画像添付にも対応します。（[Ko-fi](https://ko-fi.com/s/0735ce5375) ・ [ライセンス](https://eckit-worker.cynacedia.workers.dev/license/v1.0)）
+- **EC Kit**（有料ライセンス）：グループごとにwebhookの表示名・アバター・埋め込みカラーをカスタマイズでき、イベントごとのカスタムメッセージや画像添付にも対応します。（[Ko-fi](https://ko-fi.com/s/0735ce5375) ・ [ライセンス](https://eckit.cynacedia.dev/license/v1.0)）
 
 ## ダウンロード
 - リリース: https://github.com/Cynacedia/VRC-Event-Creator/releases

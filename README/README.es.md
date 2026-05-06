@@ -53,7 +53,7 @@ Están desactivadas por defecto y cada una requiere su propia configuración. Un
 
 - **Discord:** crea automáticamente eventos programados de Discord junto con los eventos de VRChat. Requiere crear un bot de Discord e invitarlo a tu servidor. ([Guía de configuración](Discord%20Setup/DISCORD_SETUP.es.md))
 - **Calendario:** genera archivos `.ics` con recordatorios, entregados por webhook de Discord o guardados localmente. ([Guía de configuración](Calendar%20Setup/CALENDAR_SETUP.es.md))
-- **EC Kit** (licencia de pago): personalización de la identidad del webhook por grupo (nombre mostrado, avatar, color del embed) y mensajes personalizados con imágenes adjuntas por evento. ([Ko-fi](https://ko-fi.com/s/0735ce5375) · [Licencia](https://eckit-worker.cynacedia.workers.dev/license/v1.0))
+- **EC Kit** (licencia de pago): personalización de la identidad del webhook por grupo (nombre mostrado, avatar, color del embed) y mensajes personalizados con imágenes adjuntas por evento. ([Ko-fi](https://ko-fi.com/s/0735ce5375) · [Licencia](https://eckit.cynacedia.dev/license/v1.0))
 
 ## Descarga
 - Versiones: https://github.com/Cynacedia/VRC-Event-Creator/releases

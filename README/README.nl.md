@@ -53,7 +53,7 @@ Standaard uitgeschakeld; elk vraagt om eigen instellingen. Eenmaal ingesteld is 
 
 - **Discord:** maakt automatisch geplande Discord-evenementen aan naast VRChat-evenementen. Vereist het maken van een Discord-bot en deze uitnodigen op je server. ([Setup-handleiding](Discord%20Setup/DISCORD_SETUP.nl.md))
 - **Kalender:** genereert `.ics`-bestanden met herinneringen, te bezorgen via een Discord-webhook of lokaal opgeslagen. ([Setup-handleiding](Calendar%20Setup/CALENDAR_SETUP.nl.md))
-- **EC Kit** (betaalde licentie): aanpassen van de webhook-identiteit per groep (weergavenaam, avatar, embed-kleur), plus aangepaste berichten en bijgevoegde afbeeldingen per evenement. ([Ko-fi](https://ko-fi.com/s/0735ce5375) · [Licentie](https://eckit-worker.cynacedia.workers.dev/license/v1.0))
+- **EC Kit** (betaalde licentie): aanpassen van de webhook-identiteit per groep (weergavenaam, avatar, embed-kleur), plus aangepaste berichten en bijgevoegde afbeeldingen per evenement. ([Ko-fi](https://ko-fi.com/s/0735ce5375) · [Licentie](https://eckit.cynacedia.dev/license/v1.0))
 
 ## Download
 - Releases: https://github.com/Cynacedia/VRC-Event-Creator/releases

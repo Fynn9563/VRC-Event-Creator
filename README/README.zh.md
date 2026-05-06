@@ -54,7 +54,7 @@ VRChat 自带了原生的周期性活动（系列）功能，适合稳定重复�
 
 - **Discord：** 在创建 VRChat 活动的同时，自动创建 Discord 预定活动。需要先创建 Discord 机器人并邀请到你的服务器。（[配置指南](Discord%20Setup/DISCORD_SETUP.zh.md)）
 - **日历：** 生成带提醒的 `.ics` 文件，可通过 Discord webhook 投递，或自动保存到本地。（[配置指南](Calendar%20Setup/CALENDAR_SETUP.zh.md)）
-- **EC Kit**（付费许可）：按群组自定义 webhook 的显示名称、头像和嵌入颜色，并支持按活动添加自定义消息与图片附件。（[Ko-fi](https://ko-fi.com/s/0735ce5375) · [许可证](https://eckit-worker.cynacedia.workers.dev/license/v1.0)）
+- **EC Kit**（付费许可）：按群组自定义 webhook 的显示名称、头像和嵌入颜色，并支持按活动添加自定义消息与图片附件。（[Ko-fi](https://ko-fi.com/s/0735ce5375) · [许可证](https://eckit.cynacedia.dev/license/v1.0)）
 
 ## 下载
 - 发布版：https://github.com/Cynacedia/VRC-Event-Creator/releases

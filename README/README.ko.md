@@ -55,7 +55,7 @@ VRChat에는 자체적인 반복 이벤트 기능(시리즈)이 있으며, 안�
 
 - **Discord:** VRChat 이벤트와 함께 Discord 예정된 이벤트를 자동으로 생성합니다. Discord 봇을 만들어 서버에 초대해야 합니다. ([설정 가이드](Discord%20Setup/DISCORD_SETUP.ko.md))
 - **캘린더:** 알림이 포함된 `.ics` 파일을 생성하여 Discord 웹훅으로 전송하거나 로컬에 자동 저장할 수 있습니다. ([설정 가이드](Calendar%20Setup/CALENDAR_SETUP.ko.md))
-- **EC Kit** (유료 라이선스): 그룹별로 웹훅의 표시 이름, 아바타, 임베드 색상을 사용자 지정할 수 있으며, 이벤트별 사용자 지정 메시지와 이미지 첨부도 가능합니다. ([Ko-fi](https://ko-fi.com/s/0735ce5375) · [라이선스](https://eckit-worker.cynacedia.workers.dev/license/v1.0))
+- **EC Kit** (유료 라이선스): 그룹별로 웹훅의 표시 이름, 아바타, 임베드 색상을 사용자 지정할 수 있으며, 이벤트별 사용자 지정 메시지와 이미지 첨부도 가능합니다. ([Ko-fi](https://ko-fi.com/s/0735ce5375) · [라이선스](https://eckit.cynacedia.dev/license/v1.0))
 
 ## 다운로드
 - 릴리스: https://github.com/Cynacedia/VRC-Event-Creator/releases
