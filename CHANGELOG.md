@@ -54,7 +54,6 @@ All notable changes to VRChat Event Creator will be documented in this file.
 - Resync now bypasses the in-memory group-permission cache so VRChat-side role changes (e.g., granting calendar permissions to a role) surface without an app restart
 - Modify Events series badges contrast improved on event cards
 - Calendar setup guides rewritten for all 10 languages to reflect the decoupled architecture
-- Linux build now uses .ico icon (electron-builder auto-converts to PNG)
 - i18n parity sweep: 612 keys aligned across all 10 locales, 44 dead keys pruned, hardcoded English strings wired through `t()`
 
 ### Fixed
