@@ -211,8 +211,8 @@ export const fr = {
       attachMessage: "Joindre un message personnalisé au webhook",
       messageTitle: "Message personnalisé du webhook",
       messagePlaceholder: "Écrivez un message personnalisé à inclure avec le webhook...",
-      attachImage: "Joindre une image",
-      noImage: "Aucune image sélectionnée",
+      attachImage: "Joindre un fichier",
+      noImage: "Aucun fichier sélectionné",
       selectImage: "Sélectionner"
     },
     saveButton: "Enregistrer les paramètres",

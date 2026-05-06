@@ -30,7 +30,7 @@ All notable changes to VRChat Event Creator will be documented in this file.
   - Per-group webhook URL configuration with test/verify button (encrypted storage)
 - **EC Kit** — webhook identity customization for groups with an active license
   - Custom webhook display name, avatar URL, and embed color per group
-  - Per-template and per-event custom webhook message textarea and image/audio/video attachment (up to 25 MB)
+  - Per-template and per-event custom webhook message textarea and image/audio/video attachment (up to 10 MB, matching Discord's per-file webhook attachment cap; .ics files ride on their own quota and don't consume this one)
   - Pending automated events can have custom message/image edited before posting
   - Ed25519 signed license verification (offline, public key in app)
   - Import button in Discord Integration per-group settings; importer accepts either the delivered ZIP (auto-extracts) or a bare `.eckit` file
@@ -47,6 +47,7 @@ All notable changes to VRChat Event Creator will be documented in this file.
   - When webhook and calendar are both enabled, .ics is attached to the webhook post and also auto-saved
   - When webhook and Discord event are both enabled, webhook message includes the Discord event link
   - Kit custom message/image fields now depend only on the webhook toggle being enabled
+- Per-event posting toggles (Discord event / webhook / .ics) are now symmetric overrides — the form can opt *in* as well as out, regardless of the template's stored preference. Form values are pre-filled from the template on load, then the form is the source of truth at submit. Previously the template had to explicitly opt in; the form could only veto.
 - "Sync to Discord" renamed to "Create Discord Event" across all languages
 - Webhook URL field in Discord settings now visible when Discord integration is enabled (previously required calendar)
 - "Manage Templates" renamed to "Manage Schedules" to cover both templates and native series

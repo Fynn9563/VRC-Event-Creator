@@ -266,12 +266,11 @@ async function tryDiscordSync(groupId, profileKey, eventData, startsAtUtc, endsA
   const guildId = groupData.discordGuildId;
   if (!botToken || !guildId) return null;
 
-  // Check event-level opt-out (from Create Event form)
-  if (eventData?.discordSync === false) return null;
-
-  // Check profile-level opt-in (existing templates must explicitly enable)
-  const profile = groupData.profiles?.[profileKey];
-  if (profile && profile.discordSync !== true) return null;
+  // eventData.discordSync is the source of truth: loaded from the
+  // template at form-open time (events.js applyProfileToEventForm), and
+  // resolved from the profile for automation events (resolveEventDetails).
+  // The form can override in either direction; we just trust the value.
+  if (eventData?.discordSync !== true) return null;
 
   try {
     // Resolve image base64 if available
@@ -418,10 +417,9 @@ function generateIcsForEvent(groupId, profileKey, eventData, startsAtUtc, endsAt
  */
 function isIcsEnabled(groupId, profileKey, eventData) {
   if (!settings.calendarEnabled) return false;
-  if (eventData?.calendarCreate === false) return false;
-  const profile = profiles[groupId]?.profiles?.[profileKey];
-  if (profile && profile.calendarSync !== true) return false;
-  return true;
+  // eventData.calendarCreate is the source of truth (template default +
+  // form override for manual; profile-resolved for automation).
+  return eventData?.calendarCreate === true;
 }
 
 /**
@@ -436,15 +434,12 @@ function isIcsEnabled(groupId, profileKey, eventData) {
  * @param {{ eventId: string, guildId: string }|null} discordEvent - Discord event info if created
  */
 function tryWebhookPost(groupId, profileKey, eventData, startsAtUtc, endsAtUtc, discordEvent) {
-  // Check per-event opt-out
-  if (eventData?.webhookPost === false) return;
+  // eventData.webhookPost is the source of truth (template default + form
+  // override for manual events; profile-resolved for automation events).
+  if (eventData?.webhookPost !== true) return;
 
   const groupData = profiles[groupId];
   if (!groupData) return;
-
-  // Check profile-level opt-in
-  const profile = groupData.profiles?.[profileKey];
-  if (profile && profile.webhookPost !== true) return;
 
   // Webhook URL must exist
   const webhookUrl = decryptToken(groupData.webhookUrl);
@@ -2114,8 +2109,12 @@ ipcMain.handle("eckit:selectImage", async () => {
     // checking the size and reading the file.
     fd = fs.openSync(filePath, "r");
     const stat = fs.fstatSync(fd);
-    if (stat.size > 25 * 1024 * 1024) {
-      return { ok: false, error: "File must be under 25 MB." };
+    // Discord's webhook execute endpoint caps each attachment at 10 MiB
+    // (empirically verified — 10 MiB single file passes, 10.25 MiB returns
+    // 413/code 40005). The cap is per-file, not total-request: an .ics
+    // co-attachment rides on its own quota and doesn't eat into this one.
+    if (stat.size > 10 * 1024 * 1024) {
+      return { ok: false, error: "File must be under 10 MB." };
     }
     if (!WEBHOOK_IMAGES_DIR) {
       debugLog("eckit:selectImage", "WEBHOOK_IMAGES_DIR not initialized");

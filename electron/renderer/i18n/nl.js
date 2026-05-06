@@ -214,8 +214,8 @@ export const nl = {
       attachMessage: "Aangepast webhook bericht bijvoegen",
       messageTitle: "Aangepast Webhook Bericht",
       messagePlaceholder: "Schrijf een aangepast bericht om bij de webhook post te voegen...",
-      attachImage: "Afbeelding bijvoegen",
-      noImage: "Geen afbeelding geselecteerd",
+      attachImage: "Bestand bijvoegen",
+      noImage: "Geen bestand geselecteerd",
       selectImage: "Selecteren"
     },
     saveButton: "Instellingen opslaan",

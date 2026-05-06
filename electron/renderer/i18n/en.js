@@ -351,8 +351,8 @@ export const en = {
       attachMessage: "Attach Custom Webhook Message",
       messageTitle: "Custom Webhook Message",
       messagePlaceholder: "Write a custom message to include with the webhook post...",
-      attachImage: "Attach Image",
-      noImage: "No image selected",
+      attachImage: "Attach File",
+      noImage: "No file selected",
       selectImage: "Select"
     },
     saveButton: "Save Settings",

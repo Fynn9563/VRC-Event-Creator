@@ -214,8 +214,8 @@ export const de = {
       attachMessage: "Benutzerdefinierte Webhook-Nachricht anhängen",
       messageTitle: "Benutzerdefinierte Webhook-Nachricht",
       messagePlaceholder: "Schreibe eine benutzerdefinierte Nachricht für den Webhook-Post...",
-      attachImage: "Bild anhängen",
-      noImage: "Kein Bild ausgewählt",
+      attachImage: "Datei anhängen",
+      noImage: "Keine Datei ausgewählt",
       selectImage: "Auswählen"
     },
     saveButton: "Einstellungen speichern",

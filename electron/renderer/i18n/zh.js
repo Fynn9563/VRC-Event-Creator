@@ -214,8 +214,8 @@ export const zh = {
       attachMessage: "附加自定义Webhook消息",
       messageTitle: "自定义Webhook消息",
       messagePlaceholder: "编写要包含在Webhook帖子中的自定义消息...",
-      attachImage: "附加图片",
-      noImage: "未选择图片",
+      attachImage: "附加文件",
+      noImage: "未选择文件",
       selectImage: "选择"
     },
     saveButton: "保存设置",

@@ -214,8 +214,8 @@ export const ko = {
       attachMessage: "사용자 지정 Webhook 메시지 첨부",
       messageTitle: "사용자 지정 Webhook 메시지",
       messagePlaceholder: "Webhook 게시물에 포함할 사용자 지정 메시지를 작성하세요...",
-      attachImage: "이미지 첨부",
-      noImage: "선택된 이미지 없음",
+      attachImage: "파일 첨부",
+      noImage: "선택된 파일 없음",
       selectImage: "선택"
     },
     saveButton: "설정 저장",

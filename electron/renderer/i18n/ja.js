@@ -214,8 +214,8 @@ export const ja = {
       attachMessage: "カスタムWebhookメッセージを添付",
       messageTitle: "カスタムWebhookメッセージ",
       messagePlaceholder: "Webhook投稿に含めるカスタムメッセージを書いてください...",
-      attachImage: "画像を添付",
-      noImage: "画像未選択",
+      attachImage: "ファイルを添付",
+      noImage: "ファイル未選択",
       selectImage: "選択"
     },
     saveButton: "設定を保存",
