@@ -34,7 +34,7 @@ All notable changes to VRChat Event Creator will be documented in this file.
   - Pending automated events can have custom message/image edited before posting
   - Ed25519 signed license verification (offline, public key in app)
   - Import button in Discord Integration per-group settings; importer accepts either the delivered ZIP (auto-extracts) or a bare `.eckit` file
-  - Self-service purchase flow via Ko-fi shop with automated kit issuance through a Cloudflare Worker (transaction verification, signing, ZIP delivery, claim page)
+  - Self-service purchase flow via Ko-fi shop with automated kit issuance through a Cloudflare Worker (Ed25519 signing, magic-link email delivery via Resend, group binding with confirmation step, self-service resend portal)
   - Bundled `LICENSE-eckit.txt` documenting voluntary-purchase / no-service-contract terms
 - Calendar integration setting under Advanced Options
 - Translations for all new strings across all 10 supported languages
