@@ -1,4 +1,3 @@
-// Profile management module
 import { EVENT_DESCRIPTION_LIMIT, EVENT_NAME_LIMIT, TAG_LIMIT, LANGUAGES, PLATFORMS, MONTHS } from "./config.js";
 import { dom, state, setProfileEditConfirmed, getProfileEditConfirmed, getProfileWizard } from "./state.js";
 import { t, getLanguageDisplayName } from "./i18n/index.js";
@@ -158,13 +157,11 @@ export function updateProfileDurationPreview() {
   dom.profileDurationPreview.textContent = formatDurationPreview(dom.profileDuration.value, getDurationUnits());
 }
 
-// Helper function to get profile label
 export function getProfileLabel(profileKey, profile) {
   const label = (profile?.displayName || "").trim();
   return label || profileKey;
 }
 
-// Helper function to slugify profile key
 export function slugifyProfileKey(value) {
   const base = (value || "")
     .toLowerCase()
@@ -173,7 +170,6 @@ export function slugifyProfileKey(value) {
   return base.slice(0, 40);
 }
 
-// Helper function to get unique profile key
 export function getUniqueProfileKey(groupId, baseKey) {
   const profiles = state.profiles?.[groupId]?.profiles || {};
   if (!profiles[baseKey]) {
@@ -188,7 +184,6 @@ export function getUniqueProfileKey(groupId, baseKey) {
   return nextKey;
 }
 
-// Helper function to build profile key
 export function buildProfileKey(groupId, displayName, fallbackName) {
   const base = slugifyProfileKey(displayName || fallbackName);
   if (!base) {
@@ -197,7 +192,6 @@ export function buildProfileKey(groupId, displayName, fallbackName) {
   return getUniqueProfileKey(groupId, base);
 }
 
-// Helper function to get unique display name for a group
 export function getUniqueDisplayName(groupId, baseName) {
   const profiles = state.profiles?.[groupId]?.profiles || {};
   const existingNames = Object.values(profiles).map(p => (p.displayName || "").trim().toLowerCase());
@@ -216,7 +210,6 @@ export function getUniqueDisplayName(groupId, baseName) {
   return nextName;
 }
 
-// Helper function to get group name
 export function getGroupName(groupId) {
   const group = (state.groups || []).find(item => item.groupId === groupId);
   return group ? group.name : "Unknown Group";
@@ -227,13 +220,11 @@ function getGroupIconId(groupId) {
   return group?.iconId || "";
 }
 
-// Set profile mode (create or edit)
 export function setProfileMode(mode) {
   state.profile.mode = mode;
   dom.profileGroup.disabled = false;
 }
 
-// Automation form helpers
 function parseAutomationTimingInput(value) {
   const parsed = parseDurationInput(value);
   if (!parsed) {
@@ -297,7 +288,6 @@ function applyAutomationToForm(automation) {
   if (dom.automationRepeatMode) dom.automationRepeatMode.value = automation.repeatMode || "indefinite";
   if (dom.automationRepeatCount) dom.automationRepeatCount.value = String(automation.repeatCount ?? 10);
 
-  // Update visibility based on settings
   const isMonthly = automation.timingMode === "monthly";
   if (dom.automationOffsetSettings) dom.automationOffsetSettings.classList.toggle("is-hidden", isMonthly);
   if (dom.automationMonthlySettings) dom.automationMonthlySettings.classList.toggle("is-hidden", !isMonthly);
@@ -307,22 +297,18 @@ function applyAutomationToForm(automation) {
   const isCount = automation.repeatMode === "count";
   if (dom.automationRepeatCountField) dom.automationRepeatCountField.classList.toggle("is-hidden", !isCount);
 
-  // Update prose display - will be called after form is applied and ready
   if (window.updateAutomationProse) {
     window.updateAutomationProse();
   }
 
-  // Update restorable count for the selected profile
   if (window.updateRestorableCount) {
     window.updateRestorableCount();
   }
 }
 
 function getAutomationFromForm() {
-  // Parse DD:HH:MM timing input
   const timing = parseAutomationTimingInput(dom.automationTimingInput?.value);
 
-  // Parse monthly time picker value
   let monthlyHour = 18;
   let monthlyMinute = 0;
   if (dom.automationMonthlyTime?.value) {
@@ -348,9 +334,8 @@ function getAutomationFromForm() {
 }
 
 /**
- * Get minimum frequency (in days) between events based on patterns
- * @param {Array} patterns - Array of pattern objects
- * @returns {number} Minimum days between events, or Infinity if no patterns
+ * @param {Array} patterns
+ * @returns {number} Minimum days between events, or Infinity if no patterns.
  */
 function getMinPatternFrequencyDays(patterns) {
   if (!patterns?.length) return Infinity;
@@ -365,13 +350,12 @@ function getMinPatternFrequencyDays(patterns) {
       minDays = Math.min(minDays, 14);
     } else if (p.type === "nth" || p.type === "last") {
       nthCount++;
-      // If multiple nth/last patterns exist (e.g., 1st Monday + 3rd Monday),
-      // they could be 7-14 days apart within the same month
-      // Use 14 days as reasonable estimate for multiple occurrences
+      // Multiple nth/last patterns (e.g. 1st Monday + 3rd Monday) can land
+      // 7-14 days apart within a month. Use 14 as a reasonable estimate.
+      // Single nth/last is monthly (~28 days).
       if (nthCount > 1) {
         minDays = Math.min(minDays, 14);
       } else {
-        // Single nth/last pattern occurs monthly: ~28 days
         minDays = Math.min(minDays, 28);
       }
     } else if (p.type === "annual") {
@@ -382,8 +366,8 @@ function getMinPatternFrequencyDays(patterns) {
 }
 
 /**
- * Validate and auto-correct automation offset settings
- * If offset exceeds pattern frequency, auto-switch mode and/or cap values
+ * Validate and auto-correct automation offset. If offset exceeds pattern
+ * frequency, auto-switch mode and/or cap values.
  */
 export function validateAndCorrectAutomationOffset() {
   const warningEl = document.getElementById("automation-offset-warning");
@@ -391,22 +375,19 @@ export function validateAndCorrectAutomationOffset() {
   const timingMode = dom.automationTimingMode?.value;
   const minFrequency = getMinPatternFrequencyDays(state.profile.patterns);
 
-  // Hide warning by default
   if (warningEl) warningEl.classList.add("is-hidden");
 
-  // Skip if disabled, monthly mode, or no patterns
   if (!enabled || timingMode === "monthly" || minFrequency === Infinity) return;
 
-  // Parse the DD:HH:MM timing input
   const timing = parseAutomationTimingInput(dom.automationTimingInput?.value);
   const offsetDays = timing.days + (timing.hours / 24) + (timing.minutes / 1440);
 
-  // For "after" mode: if offset > half the frequency, auto-switch to "before" mode
-  // (Offset > frequency/2 means risk of publishing too close to next event)
+  // "after" mode: if offset > frequency/2, switch to "before" (risk of
+  // publishing too close to next event).
   if (timingMode === "after" && offsetDays > minFrequency / 2) {
     dom.automationTimingMode.value = "before";
-    // Convert "after" offset to equivalent "before" offset
-    // If offsetting X days after and pattern frequency is Y days, that's (Y - X) days before next event
+    // Convert "after" offset to equivalent "before" offset: X days after with
+    // frequency Y is (Y - X) days before the next event.
     const beforeEquivalent = minFrequency - offsetDays;
     const cappedDays = Math.max(1, Math.floor(beforeEquivalent));
     dom.automationTimingInput.value = formatAutomationTimingValue(cappedDays, 0, 0);
@@ -420,14 +401,13 @@ export function validateAndCorrectAutomationOffset() {
       warningEl.classList.remove("is-hidden");
     }
 
-    // Update prose after correction
     if (window.updateAutomationProse) {
       window.updateAutomationProse();
     }
     return;
   }
 
-  // For "before" mode: if offset >= frequency, cap it to frequency - 1 day
+  // "before" mode: if offset >= frequency, cap to frequency - 1 day.
   if (timingMode === "before" && offsetDays >= minFrequency) {
     const cappedDays = Math.max(1, minFrequency - 1);
     dom.automationTimingInput.value = formatAutomationTimingValue(cappedDays, 0, 0);
@@ -440,14 +420,12 @@ export function validateAndCorrectAutomationOffset() {
       warningEl.classList.remove("is-hidden");
     }
 
-    // Update prose after correction
     if (window.updateAutomationProse) {
       window.updateAutomationProse();
     }
   }
 }
 
-// Reset profile form to defaults
 export function resetProfileForm() {
   setProfileMode("create");
   setProfileEditConfirmed(false);
@@ -474,7 +452,6 @@ export function resetProfileForm() {
   dom.profileDuration.value = formatDuration(120);
   updateProfileDurationPreview();
 
-  // Get system timezone (simplified - assumes buildTimezones is available)
   const systemTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   dom.profileTimezone.value = systemTz;
 
@@ -486,12 +463,11 @@ export function resetProfileForm() {
   state.profile.platforms = ["standalonewindows", "android"];
   state.profile.patterns = [];
 
-  // Reset pattern type visibility (default is not annual, so show weekday, hide date)
-  if (dom.patternType) dom.patternType.selectedIndex = 0; // Reset to first option
+  // Default pattern type is not annual: show weekday, hide date.
+  if (dom.patternType) dom.patternType.selectedIndex = 0;
   if (dom.patternWeekdayField) dom.patternWeekdayField.classList.remove("is-hidden");
   if (dom.patternDateField) dom.patternDateField.classList.add("is-hidden");
 
-  // Reset automation
   resetAutomationForm();
   if (dom.automationRestore) {
     dom.automationRestore.disabled = true;
@@ -500,25 +476,20 @@ export function resetProfileForm() {
     dom.automationRestoreCount.textContent = "";
   }
 
-  // Reset Discord sync
   if (dom.discordSyncCheck) dom.discordSyncCheck.checked = true;
-  // Reset Webhook post
   if (dom.webhookPostCheck) dom.webhookPostCheck.checked = false;
-  // Reset Calendar sync
   if (dom.calendarSyncCheck) dom.calendarSyncCheck.checked = false;
   if (dom.profileCalendarRemindersEnabled) dom.profileCalendarRemindersEnabled.checked = false;
   if (dom.profileCalendarRemindersList) dom.profileCalendarRemindersList.innerHTML = "";
   if (dom.profileCalendarRemindersList) dom.profileCalendarRemindersList.classList.add("is-hidden");
   if (dom.profileCalendarReminderAdd) dom.profileCalendarReminderAdd.classList.add("is-hidden");
   if (dom.profileCalendarRemindersHint) dom.profileCalendarRemindersHint.classList.add("is-hidden");
-  // Reset webhook message/image
   if (dom.profileWebhookMessageEnabled) dom.profileWebhookMessageEnabled.checked = false;
   if (dom.profileWebhookMessage) dom.profileWebhookMessage.value = "";
   if (dom.profileWebhookImagePath) dom.profileWebhookImagePath.value = "";
   if (dom.profileWebhookMessageCard) dom.profileWebhookMessageCard.classList.add("is-hidden");
 }
 
-// Apply profile data to form
 export function applyProfileToForm(groupId, profileKey) {
   const profile = state.profiles?.[groupId]?.profiles?.[profileKey];
   if (!profile) {
@@ -527,7 +498,6 @@ export function applyProfileToForm(groupId, profileKey) {
   setProfileMode("edit");
   state.profile.currentKey = profileKey;
 
-  // Handle group selection
   if (!Array.from(dom.profileGroup.options).some(option => option.value === groupId)) {
     const option = document.createElement("option");
     option.value = groupId;
@@ -563,10 +533,9 @@ export function applyProfileToForm(groupId, profileKey) {
   state.profile.platforms = profile.platforms ? profile.platforms.slice() : [];
   state.profile.patterns = profile.patterns ? profile.patterns.slice() : [];
 
-  // Apply automation settings
   applyAutomationToForm(profile.automation);
 
-  // Apply Discord sync setting (existing templates must explicitly opt in)
+  // Existing templates must explicitly opt in to discord sync.
   if (dom.discordSyncCheck) {
     dom.discordSyncCheck.checked = profile.discordSync === true;
   }
@@ -579,14 +548,11 @@ export function applyProfileToForm(groupId, profileKey) {
   if (dom.profileCalendarRemindersEnabled) {
     dom.profileCalendarRemindersEnabled.checked = profile.calendarRemindersEnabled === true;
   }
-  // Render profile reminders
   renderCalendarReminders(dom.profileCalendarRemindersList, profile.calendarReminders || []);
-  // Update visibility of reminders list
   const showReminders = profile.calendarRemindersEnabled === true;
   if (dom.profileCalendarRemindersList) dom.profileCalendarRemindersList.classList.toggle("is-hidden", !showReminders);
   if (dom.profileCalendarReminderAdd) dom.profileCalendarReminderAdd.classList.toggle("is-hidden", !showReminders);
   if (dom.profileCalendarRemindersHint) dom.profileCalendarRemindersHint.classList.toggle("is-hidden", !showReminders);
-  // Load webhook message fields
   if (dom.profileWebhookMessageEnabled) {
     dom.profileWebhookMessageEnabled.checked = profile.webhookMessageEnabled === true;
   }
@@ -603,7 +569,6 @@ export function applyProfileToForm(groupId, profileKey) {
   updateCalendarVisibility();
 }
 
-// Update profile action buttons visibility
 export function updateProfileActionButtons() {
   const hasSelection = Boolean(dom.profileExisting.value);
   const hasGroup = Boolean(dom.profileGroup.value);
@@ -611,7 +576,7 @@ export function updateProfileActionButtons() {
   dom.profileDelete.classList.toggle("is-hidden", !hasSelection);
   dom.profileEdit.disabled = !hasSelection;
   dom.profileDelete.disabled = !hasSelection;
-  // Import enabled when group selected, export enabled when profile selected
+  // Import enabled when group selected; export enabled when profile selected.
   if (dom.profileImportJson) {
     dom.profileImportJson.disabled = !hasGroup;
   }
@@ -620,13 +585,13 @@ export function updateProfileActionButtons() {
   }
 }
 
-// Render schedule list (templates + series) for a selected group
+/** Render schedule list (templates + series) for a selected group. */
 export function renderProfileList(api) {
   const groupId = dom.profileGroup.value;
   const currentValue = dom.profileExisting.value;
   const filterType = state.schedules?.filterType || "all";
 
-  // Hide the "Choose a group" hint once a group is selected
+  // Hide the "Choose a group" hint once a group is selected.
   if (dom.scheduleGroupHint) {
     dom.scheduleGroupHint.classList.toggle("is-hidden", Boolean(groupId));
   }
@@ -670,7 +635,7 @@ export function renderProfileList(api) {
   dom.profileExisting.innerHTML = "";
   const placeholderOption = document.createElement("option");
   placeholderOption.value = "";
-  // Filter-aware empty placeholder
+  // Filter-aware empty placeholder.
   if (totalEntries === 0) {
     if (filterType === "templates") {
       placeholderOption.textContent = t("schedules.empty.templates") || "No templates for this group.";
@@ -694,7 +659,7 @@ export function renderProfileList(api) {
   };
 
   if (filterType === "all") {
-    // Use optgroups when showing both
+    // Use optgroups when showing both.
     if (templateEntries.length) {
       const tplGroup = document.createElement("optgroup");
       tplGroup.label = t("common.labels.templates") || "Templates";
@@ -718,7 +683,7 @@ export function renderProfileList(api) {
       dom.profileExisting.appendChild(srGroup);
     }
   } else {
-    // Single-type view — flat list, no group needed
+    // Single-type view: flat list, no optgroup needed.
     appendEntries(templateEntries);
     appendEntries(seriesEntries);
   }
@@ -732,7 +697,6 @@ export function renderProfileList(api) {
   updateProfileActionButtons();
 }
 
-// Validate profile basic fields
 export function validateProfileBasics() {
   const displayName = dom.profileDisplayName.value.trim();
   const eventName = dom.profileName.value.trim();
@@ -757,7 +721,7 @@ export function validateProfileBasics() {
   return { valid: true };
 }
 
-// Helper that mirrors a renderer log line to both console AND the persistent debug log file
+// Mirror a renderer log line to console AND the persistent debug log file.
 function _wlog(message) {
   console.log("[wizard]", message);
   if (window.vrcEvent?.debugLog) {
@@ -765,13 +729,12 @@ function _wlog(message) {
   }
 }
 
-// Handle profile wizard step change
 export function handleProfileWizardStepChange({ current, next }) {
   _wlog(`step change current=${current} next=${next} selected=${dom.profileExisting?.value || ""} editConfirmed=${getProfileEditConfirmed()}`);
   if (next < current) {
-    // Returning from a later step rebuilds the list DOMs from state — so a
-    // fresh schedule that's been wiped from state.profile.* shows blank fields,
-    // not stale leftovers from a previously-edited template (the v1.0 invariant).
+    // Returning from a later step rebuilds list DOMs from state. Without this,
+    // a fresh schedule (state.profile.* wiped) would show stale rows from the
+    // previously-edited template. v1.0 invariant.
     if (next === 0) {
       renderProfileLanguageList();
       renderProfilePlatformList();
@@ -804,7 +767,7 @@ export function handleProfileWizardStepChange({ current, next }) {
           applySeriesToWizard(seriesData);
           showScheduleMode("series", { lock: true });
         } else {
-          _wlog(`series data missing for ${groupId} / ${seriesId} — have keys: ${Object.keys(state.series?.[groupId] || {}).join(",")}`);
+          _wlog(`series data missing for ${groupId} / ${seriesId}; have keys: ${Object.keys(state.series?.[groupId] || {}).join(",")}`);
         }
       } else {
         const parts = selected.split("::");
@@ -823,10 +786,10 @@ export function handleProfileWizardStepChange({ current, next }) {
       renderPatternList();
       setProfileEditConfirmed(true);
     } else if (!getProfileEditConfirmed()) {
-      _wlog("no selection — resetting form (New flow)");
+      _wlog("no selection; resetting form (New flow)");
       resetProfileForm();
-      // Wipe DOM lists too — resetProfileForm clears state but the list DOM
-      // is rendered separately and used to keep stale rows from the prior edit.
+      // resetProfileForm clears state but list DOMs are rendered separately,
+      // so wipe them here too to drop stale rows from the prior edit.
       renderProfileLanguageList();
       renderProfilePlatformList();
       renderPatternList();
@@ -843,7 +806,7 @@ export function handleProfileWizardStepChange({ current, next }) {
     }
   }
 
-  // When entering step 3 (index 2), ensure the chooser/mode is visible per editingType
+  // Entering step 3 (index 2): make the chooser/mode visible per editingType.
   if (next === 2) {
     syncStep3Mode(next);
   }
@@ -852,11 +815,11 @@ export function handleProfileWizardStepChange({ current, next }) {
 }
 
 // Sync step 3 mode container visibility based on state.schedules.editingType.
-// Defaults to "template" if no type was chosen yet (the toggle always shows one mode).
+// Defaults to "template" if no type was chosen yet (toggle always shows one).
 function syncStep3Mode(stepIndex) {
   if (stepIndex !== 2) return;
   const editingType = state.schedules?.editingType || "template";
-  // Auto-default to template the first time the user lands on step 3 without a type
+  // Auto-default to template on first landing without a type.
   if (!state.schedules?.editingType) {
     state.schedules.editingType = "template";
   }
@@ -880,7 +843,6 @@ function syncStep3Mode(stepIndex) {
   }
 }
 
-// Handle profile group change
 export function handleProfileGroupChange(api) {
   setProfileEditConfirmed(false);
   state.profile.currentKey = null;
@@ -918,7 +880,6 @@ async function updateProfileTogglesVisibility(api) {
   }
 }
 
-// Handle new profile button
 export function handleProfileNew() {
   if (!dom.profileGroup.value) {
     return { success: false, message: t("profiles.selectGroupFirst") };
@@ -937,7 +898,6 @@ export function handleProfileNew() {
   return { success: true };
 }
 
-// Handle edit profile button
 export function handleProfileEdit() {
   if (!dom.profileExisting.value) {
     return { success: false, message: t("profiles.selectProfileToEdit") };
@@ -953,7 +913,6 @@ export function handleProfileEdit() {
   return { success: true };
 }
 
-// Handle profile selection change
 export function handleProfileSelection(api) {
   setProfileEditConfirmed(false);
   const selected = dom.profileExisting.value;
@@ -976,7 +935,6 @@ export function handleProfileAccessChange(api) {
   void renderProfileRoleRestrictions(api);
 }
 
-// Handle profile save
 export async function handleProfileSave(api) {
   const groupId = dom.profileGroup.value;
   if (!groupId) {
@@ -1099,7 +1057,6 @@ export async function handleProfileSave(api) {
   }
 }
 
-// Handle profile delete
 export async function handleProfileDelete(api) {
   const selected = dom.profileExisting.value;
   if (!selected) {
@@ -1129,7 +1086,6 @@ export async function handleProfileDelete(api) {
   }
 }
 
-// Refresh profiles data
 export async function refreshProfiles(api) {
   try {
     state.profiles = await api.getProfiles();
@@ -1142,7 +1098,6 @@ export async function refreshProfiles(api) {
   }
 }
 
-// Export profile to JSON
 export async function handleProfileExportJson(api) {
   try {
     const selected = dom.profileExisting.value;
@@ -1177,7 +1132,6 @@ export async function handleProfileExportJson(api) {
       automation: profile.automation || null
     };
 
-    // Include base64 image if imageId is set
     if (exportData.imageId) {
       try {
         const imageData = await api.getImageAsBase64(exportData.imageId);
@@ -1205,7 +1159,6 @@ export async function handleProfileExportJson(api) {
   }
 }
 
-// Import profile from JSON
 export async function handleProfileImportJson(api) {
   try {
     const result = await api.importProfileJson();
@@ -1225,22 +1178,20 @@ export async function handleProfileImportJson(api) {
   }
 }
 
-// Apply imported JSON data to profile form
 async function applyImportedJsonToProfileForm(data, api) {
   if (!data || typeof data !== "object") {
     return { success: false, message: t("common.errors.invalidJson") };
   }
 
-  // Check if this looks like an event JSON instead of a profile JSON
-  // Events have startDate/endDate/worldId - these fields don't exist in profiles
+  // Detect event JSON vs profile JSON: events have startDate/endDate/worldId
+  // (none of which exist on profiles); profiles require displayName.
   const hasEventFields = data.startDate !== undefined || data.endDate !== undefined || data.worldId !== undefined;
-  // Profiles must have displayName (required field unique to profiles)
   const hasProfileFields = data.displayName !== undefined;
   if (hasEventFields || !hasProfileFields) {
     return { success: false, message: t("profiles.importWrongType") || "This appears to be an event JSON. Please use Import Event instead." };
   }
 
-  // Handle image - check if imageId exists in user's gallery first, otherwise upload base64
+  // Image: prefer existing gallery imageId; otherwise upload base64.
   const autoUpload = dom.settingsAutoUploadImages?.checked ?? false;
   if (data.imageId && typeof data.imageId === "string") {
     try {
@@ -1265,7 +1216,7 @@ async function applyImportedJsonToProfileForm(data, api) {
     }
   }
 
-  // Apply display name - ensure unique name within the selected group
+  // Display name must be unique within the selected group.
   const selectedGroupId = dom.profileGroup.value;
   let displayName = (data.displayName && typeof data.displayName === "string")
     ? data.displayName.trim()
@@ -1275,7 +1226,6 @@ async function applyImportedJsonToProfileForm(data, api) {
   }
   dom.profileDisplayName.value = displayName;
 
-  // Apply event name
   dom.profileName.value = (data.name && typeof data.name === "string")
     ? sanitizeText(data.name, {
         maxLength: EVENT_NAME_LIMIT,
@@ -1284,7 +1234,6 @@ async function applyImportedJsonToProfileForm(data, api) {
       })
     : "";
 
-  // Apply description
   dom.profileDescription.value = (data.description && typeof data.description === "string")
     ? sanitizeText(data.description, {
         maxLength: EVENT_DESCRIPTION_LIMIT,
@@ -1293,7 +1242,6 @@ async function applyImportedJsonToProfileForm(data, api) {
       })
     : "";
 
-  // Apply category
   const validCategories = ["hangout", "social", "gaming", "roleplay", "media", "music", "dance", "performance", "educational", "creative", "networking", "sports", "other"];
   if (data.category && validCategories.includes(data.category)) {
     dom.profileCategory.value = data.category;
@@ -1301,7 +1249,6 @@ async function applyImportedJsonToProfileForm(data, api) {
     dom.profileCategory.value = "hangout";
   }
 
-  // Apply tags
   const tags = Array.isArray(data.tags)
     ? data.tags.filter(t => typeof t === "string").slice(0, TAG_LIMIT)
     : [];
@@ -1311,7 +1258,6 @@ async function applyImportedJsonToProfileForm(data, api) {
     dom.profileTags.value = tags.join(", ");
   }
 
-  // Apply access type
   const validAccessTypes = ["public", "members", "group"];
   if (data.accessType && validAccessTypes.includes(data.accessType)) {
     dom.profileAccess.value = data.accessType;
@@ -1319,36 +1265,30 @@ async function applyImportedJsonToProfileForm(data, api) {
     dom.profileAccess.value = "public";
   }
 
-  // Apply role IDs
   state.profile.roleIds = Array.isArray(data.roleIds)
     ? data.roleIds.filter(id => typeof id === "string" && id.trim())
     : [];
 
-  // Apply image ID
   dom.profileImageId.value = (data.imageId && typeof data.imageId === "string")
     ? data.imageId.trim()
     : "";
 
-  // Apply send notification
   dom.profileSendNotification.checked = typeof data.sendNotification === "boolean"
     ? data.sendNotification
     : false;
 
-  // Apply featured
   if (dom.profileFeatured) {
     dom.profileFeatured.checked = typeof data.featured === "boolean"
       ? data.featured
       : false;
   }
 
-  // Apply group fair
   if (dom.profileGroupFair) {
     dom.profileGroupFair.checked = typeof data.groupFair === "boolean"
       ? data.groupFair
       : false;
   }
 
-  // Apply duration
   if (typeof data.duration === "number" && data.duration > 0) {
     dom.profileDuration.value = formatDuration(data.duration);
   } else {
@@ -1356,12 +1296,11 @@ async function applyImportedJsonToProfileForm(data, api) {
   }
   updateProfileDurationPreview();
 
-  // Apply timezone
   if (data.timezone && typeof data.timezone === "string") {
     dom.profileTimezone.value = data.timezone;
   }
 
-  // Apply languages - only update if provided with valid non-empty values
+  // Languages/platforms: only overwrite if provided with valid non-empty values.
   if (Array.isArray(data.languages)) {
     const validLanguages = data.languages.filter(l => typeof l === "string" && l.trim()).slice(0, 3);
     if (validLanguages.length > 0) {
@@ -1369,7 +1308,6 @@ async function applyImportedJsonToProfileForm(data, api) {
     }
   }
 
-  // Apply platforms - only update if provided with valid non-empty values
   if (Array.isArray(data.platforms)) {
     const validPlatforms = data.platforms.filter(p => typeof p === "string" && p.trim());
     if (validPlatforms.length > 0) {
@@ -1377,38 +1315,30 @@ async function applyImportedJsonToProfileForm(data, api) {
     }
   }
 
-  // Apply date mode
   const validDateModes = ["manual", "pattern"];
   if (data.dateMode && validDateModes.includes(data.dateMode)) {
     dom.profileDateMode.value = data.dateMode;
   }
 
-  // Apply patterns
   if (Array.isArray(data.patterns)) {
     state.profile.patterns = data.patterns.filter(p => p && typeof p === "object");
   }
 
-  // Apply automation settings
   if (data.automation && typeof data.automation === "object") {
     applyAutomationToForm(data.automation);
   }
 
-  // Set up for new profile mode
   setProfileMode("new");
   state.profile.currentKey = null;
   dom.profileExisting.value = "";
-  // Mark as confirmed so wizard navigation doesn't reset the form
+  // Mark as confirmed so wizard navigation doesn't reset the form.
   setProfileEditConfirmed(true);
   updateProfileActionButtons();
 
-  // Re-render role restrictions if needed
   void renderProfileRoleRestrictions(api);
 
-  // Return success with flag to update UI
   return { success: true, needsUiUpdate: true };
 }
-
-// --- Discord integration UI ---
 
 /** Check if a group has Discord configured. */
 export function isGroupDiscordConfigured(groupId) {
@@ -1428,13 +1358,13 @@ export function isGroupKitActive(groupId) {
   return (state.kitGroupIds || []).includes(groupId);
 }
 
-/** Show/hide Discord panel in settings and sync toggle in profile editor.
- * @param {object} [options]
- * @param {boolean} [options.expandPanel] - Force expand/collapse the Discord settings panel.
+/**
+ * Show/hide Discord panel in settings and sync toggle in profile editor.
+ * @param {{ expandPanel?: boolean }} [options]
+ *   expandPanel: force expand/collapse the Discord settings panel.
  */
 export function updateDiscordVisibility({ expandPanel } = {}) {
   const enabled = state.settings?.discordEnabled === true;
-  // Show/hide the caret based on whether the setting is enabled
   if (dom.discordSettingsCaret) {
     dom.discordSettingsCaret.classList.toggle("is-hidden", !enabled);
   }
@@ -1449,69 +1379,58 @@ export function updateDiscordVisibility({ expandPanel } = {}) {
       dom.discordSettingsPanel.classList.add("is-hidden");
       if (dom.discordSettingsCaret) dom.discordSettingsCaret.classList.remove("is-expanded");
     }
-    // If expandPanel is undefined (e.g. on load), panel stays hidden, caret stays collapsed
+    // expandPanel undefined (e.g. on load): panel stays hidden, caret collapsed.
   }
-  // Profile editor: "Create Discord Event" toggle (visible if Discord configured for group)
   if (dom.discordSyncField) {
     dom.discordSyncField.classList.toggle("is-hidden", !isGroupDiscordConfigured(dom.profileGroup?.value));
   }
-  // Create Event: "Create Discord Event" toggle
   if (dom.eventDiscordSyncField) {
     dom.eventDiscordSyncField.classList.toggle("is-hidden", !isGroupDiscordConfigured(dom.eventGroup?.value));
   }
-  // Profile editor: "Post to Webhook" toggle (visible if webhook configured for group)
   if (dom.webhookPostField) {
     dom.webhookPostField.classList.toggle("is-hidden", !isGroupWebhookConfigured(dom.profileGroup?.value));
   }
-  // Create Event: "Post to Webhook" toggle
   if (dom.eventWebhookPostField) {
     dom.eventWebhookPostField.classList.toggle("is-hidden", !isGroupWebhookConfigured(dom.eventGroup?.value));
   }
   const calendarEnabled = state.settings?.calendarEnabled === true;
-  // Profile editor: "Create .ics Calendar Invite" toggle (visible if calendar feature enabled)
   if (dom.calendarSyncField) {
     dom.calendarSyncField.classList.toggle("is-hidden", !calendarEnabled);
   }
-  // Event creation: "Create .ics Calendar Invite" toggle
   if (dom.eventCalendarCreateField) {
     dom.eventCalendarCreateField.classList.toggle("is-hidden", !calendarEnabled);
   }
-  // Webhook field in Discord settings (visible if Discord integration enabled)
   if (dom.discordWebhookField) {
     dom.discordWebhookField.classList.toggle("is-hidden", !enabled);
   }
-  // Test webhook + Import Kit button visibility (only when webhook toggle is on)
   const webhookToggled = enabled && dom.discordWebhookEnabledCheck?.checked === true;
   if (dom.discordWebhookTestBtn) {
     dom.discordWebhookTestBtn.classList.toggle("is-hidden", !webhookToggled);
   }
-  // Import Kit button: show only when webhook is on AND no kit already active for this group
+  // Import Kit visible only when webhook is on AND no kit active for this group.
   const selectedGroupId = dom.discordGroupSelect?.value;
   const kitActiveForGroup = selectedGroupId && isGroupKitActive(selectedGroupId);
   if (dom.eckitImportBtn) {
     dom.eckitImportBtn.classList.toggle("is-hidden", !webhookToggled || kitActiveForGroup);
   }
-  // Kit-unlocked webhook message toggle visibility (depends on webhook post, not calendar+discord)
+  // Kit-unlocked webhook message toggle: depends on webhookPost, not calendar+discord.
   const profileGroupId = dom.profileGroup?.value;
   const profileKitActive = isGroupKitActive(profileGroupId) && dom.webhookPostCheck?.checked;
   if (dom.profileWebhookMessageField) {
     dom.profileWebhookMessageField.classList.toggle("is-hidden", !profileKitActive);
   }
-  // Also hide the message card when the toggle field is hidden
   if (!profileKitActive && dom.profileWebhookMessageCard) {
     dom.profileWebhookMessageCard.classList.add("is-hidden");
   }
-  // Event creation webhook message toggle
   const eventGroupId = dom.eventGroup?.value;
   const eventKitActive = isGroupKitActive(eventGroupId) && dom.eventWebhookPostCheck?.checked;
   if (dom.eventWebhookMessageField) {
     dom.eventWebhookMessageField.classList.toggle("is-hidden", !eventKitActive);
   }
-  // Also hide the event message input when the toggle field is hidden
   if (!eventKitActive && dom.eventWebhookMessageInput) {
     dom.eventWebhookMessageInput.classList.add("is-hidden");
   }
-  // Hide the announcements card entirely when no toggles inside are visible
+  // Hide the announcements card entirely when no toggles inside are visible.
   if (dom.profileAnnouncementsCard) {
     const anyVisible = (dom.discordSyncField && !dom.discordSyncField.classList.contains("is-hidden"))
       || (dom.webhookPostField && !dom.webhookPostField.classList.contains("is-hidden"))
@@ -1520,29 +1439,27 @@ export function updateDiscordVisibility({ expandPanel } = {}) {
   }
 }
 
-/** Update visibility of calendar-related fields across the app.
- * Called when calendarEnabled setting changes, or when profile calendar sync toggles change. */
+/**
+ * Update visibility of calendar-related fields across the app. Called when
+ * calendarEnabled setting changes or when profile calendar sync toggles.
+ */
 export function updateCalendarVisibility() {
   const calendarEnabled = state.settings?.calendarEnabled === true;
-  // Calendar Invite card (step 3): visible when the calendar feature is enabled in settings
   if (dom.profileCalendarInviteCard) {
     dom.profileCalendarInviteCard.classList.toggle("is-hidden", !calendarEnabled);
   }
-  // Reminders subsection: visible when the Create .ics toggle is checked
+  // Reminders subsection: visible when the Create .ics toggle is checked.
   if (dom.profileCalendarRemindersCard) {
     const calendarSyncOn = calendarEnabled && dom.calendarSyncCheck?.checked === true;
     dom.profileCalendarRemindersCard.classList.toggle("is-hidden", !calendarSyncOn);
   }
-  // Event calendar fields: visible if calendar enabled
   if (dom.eventCalendarCreateField) {
     dom.eventCalendarCreateField.classList.toggle("is-hidden", !calendarEnabled);
   }
-  // Event calendar reminders: visible if calendarCreate checked
   const eventCalendarOn = calendarEnabled && dom.eventCalendarCreateCheck?.checked === true;
   if (dom.eventCalendarRemindersEnabledField) {
     dom.eventCalendarRemindersEnabledField.classList.toggle("is-hidden", !eventCalendarOn);
   }
-  // Event reminder rows: visible if reminders enabled
   const eventRemindersOn = eventCalendarOn && dom.eventCalendarRemindersEnabled?.checked === true;
   if (dom.eventCalendarRemindersList) {
     dom.eventCalendarRemindersList.classList.toggle("is-hidden", !eventRemindersOn);
@@ -1553,13 +1470,12 @@ export function updateCalendarVisibility() {
   if (dom.eventCalendarRemindersHint) {
     dom.eventCalendarRemindersHint.classList.toggle("is-hidden", !eventRemindersOn);
   }
-  // Calendar save directory in Application Info
   if (dom.calendarSaveDirMeta) {
     dom.calendarSaveDirMeta.classList.toggle("is-hidden", !calendarEnabled);
   }
 }
 
-// Standard reminder presets that work across all calendar clients (including Outlook)
+// Standard reminder presets that work across all calendar clients (Outlook included).
 const REMINDER_PRESETS = [
   { value: 5, unit: "minutes" },
   { value: 10, unit: "minutes" },
@@ -1684,7 +1600,7 @@ function renderDiscordConfiguredList() {
     remove.title = "Remove Discord config";
     tag.appendChild(remove);
 
-    // Click tag to jump to editing that group
+    // Click tag to jump to editing that group.
     tag.addEventListener("click", () => {
       if (dom.discordGroupSelect) {
         dom.discordGroupSelect.value = g.groupId;
@@ -1692,7 +1608,7 @@ function renderDiscordConfiguredList() {
       }
     });
 
-    // Click X to clear Discord config for this group
+    // Click X to clear Discord config for this group.
     remove.addEventListener("click", async e => {
       e.stopPropagation();
       if (!_discordApi) return;
@@ -1703,7 +1619,7 @@ function renderDiscordConfiguredList() {
       });
       try { state.profiles = await _discordApi.getProfiles(); } catch { /* ignore */ }
       renderDiscordConfiguredList();
-      // If we just deleted the currently selected group, clear the config panel
+      // If just deleted the currently selected group, clear the config panel.
       if (dom.discordGroupSelect?.value === g.groupId) {
         if (dom.discordBotToken) dom.discordBotToken.value = "";
         if (dom.discordGuildId) dom.discordGuildId.value = "";
@@ -1728,25 +1644,25 @@ async function loadDiscordGroupConfig(api) {
   if (dom.discordBotToken) dom.discordBotToken.value = config.botToken || "";
   if (dom.discordGuildId) dom.discordGuildId.value = config.guildId || "";
   if (dom.discordTestResult) dom.discordTestResult.textContent = "";
-  // Load webhook URL and toggle state
+  // Load webhook URL and toggle state.
   const webhookConfig = await api.webhookGetGroupWebhook(groupId);
   const hasWebhook = !!(webhookConfig.webhookUrl);
   if (dom.discordWebhookUrl) dom.discordWebhookUrl.value = webhookConfig.webhookUrl || "";
   if (dom.discordWebhookEnabledCheck) dom.discordWebhookEnabledCheck.checked = hasWebhook;
   if (dom.discordWebhookUrlField) dom.discordWebhookUrlField.classList.toggle("is-hidden", !hasWebhook);
   if (dom.discordWebhookTestBtn) dom.discordWebhookTestBtn.classList.toggle("is-hidden", !hasWebhook);
-  // The kit's presence reveals the customization fields below; nothing else
-  // about the kit is surfaced in the UI.
+  // Kit presence reveals customization fields below; nothing else about
+  // the kit is surfaced in the UI.
   const hasKit = await api.eckitHasKit(groupId);
   if (dom.eckitConfig) dom.eckitConfig.classList.toggle("is-hidden", !hasKit);
-  // Load kit customization values from group data
+  // Load kit customization values from group data.
   const groupData = (state.profiles || {})[groupId] || {};
   if (dom.eckitWebhookName) dom.eckitWebhookName.value = groupData.webhookDisplayName || "";
   const colorVal = groupData.webhookEmbedColor || "#1FC3AD";
   if (dom.eckitEmbedColor) dom.eckitEmbedColor.value = colorVal;
   if (dom.eckitEmbedColorHex) dom.eckitEmbedColorHex.value = colorVal;
   if (dom.eckitAvatarUrl) dom.eckitAvatarUrl.value = groupData.webhookAvatarUrl || "";
-  // Refresh visibility after loading config (webhook toggle, import button, etc.)
+  // Refresh visibility after loading config (webhook toggle, import button, etc.).
   updateDiscordVisibility();
 }
 
@@ -1763,13 +1679,12 @@ async function saveDiscordGroupConfig(api) {
     webhookAvatarUrl: dom.eckitAvatarUrl?.value?.trim() || "",
     webhookEmbedColor: dom.eckitEmbedColorHex?.value?.trim() || dom.eckitEmbedColor?.value || ""
   });
-  // Save webhook URL
   await api.webhookUpdateGroupWebhook({
     groupId,
     webhookUrl: dom.discordWebhookUrl?.value?.trim() || ""
   });
 
-  // Refresh profiles so the configured list updates
+  // Refresh profiles so the configured list updates.
   try {
     state.profiles = await api.getProfiles();
   } catch { /* ignore */ }
@@ -1781,7 +1696,6 @@ async function saveDiscordGroupConfig(api) {
 export function initDiscordUI(api) {
   _discordApi = api;
 
-  // Token show/hide toggle
   if (dom.discordTokenToggle && dom.discordBotToken) {
     dom.discordTokenToggle.addEventListener("click", () => {
       const isPassword = dom.discordBotToken.type === "password";
@@ -1790,12 +1704,10 @@ export function initDiscordUI(api) {
     });
   }
 
-  // Group selector change
   if (dom.discordGroupSelect) {
     dom.discordGroupSelect.addEventListener("change", () => loadDiscordGroupConfig(api));
   }
 
-  // Test connection button
   if (dom.discordTestBtn) {
     dom.discordTestBtn.addEventListener("click", async () => {
       const token = dom.discordBotToken?.value;
@@ -1819,18 +1731,15 @@ export function initDiscordUI(api) {
     });
   }
 
-  // Webhook enabled toggle — show/hide URL field
   if (dom.discordWebhookEnabledCheck) {
     dom.discordWebhookEnabledCheck.addEventListener("change", () => {
       const checked = dom.discordWebhookEnabledCheck.checked;
       if (dom.discordWebhookUrlField) dom.discordWebhookUrlField.classList.toggle("is-hidden", !checked);
       if (dom.discordWebhookTestBtn) dom.discordWebhookTestBtn.classList.toggle("is-hidden", !checked);
-      // Clear URL if unchecked
       if (!checked && dom.discordWebhookUrl) dom.discordWebhookUrl.value = "";
     });
   }
 
-  // Webhook URL show/hide toggle
   if (dom.discordWebhookToggle && dom.discordWebhookUrl) {
     dom.discordWebhookToggle.addEventListener("click", () => {
       const isPassword = dom.discordWebhookUrl.type === "password";
@@ -1839,7 +1748,6 @@ export function initDiscordUI(api) {
     });
   }
 
-  // Webhook test button
   if (dom.discordWebhookTestBtn) {
     dom.discordWebhookTestBtn.addEventListener("click", async () => {
       const url = dom.discordWebhookUrl?.value?.trim();
@@ -1863,7 +1771,6 @@ export function initDiscordUI(api) {
     });
   }
 
-  // Save button
   if (dom.discordSaveBtn) {
     dom.discordSaveBtn.addEventListener("click", async () => {
       await saveDiscordGroupConfig(api);

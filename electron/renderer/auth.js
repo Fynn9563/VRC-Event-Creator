@@ -1,15 +1,9 @@
-// Authentication and session management for VRChat Event Creator
-
 import { dom, state } from "./state.js";
 import { setStatus, showToast, setAuthState } from "./ui.js";
 import { t } from "./i18n/index.js";
 import { sanitizePassword, sanitizeUsername } from "./utils.js";
 import { updateAdvancedSettingsVisibility, updateImportExportVisibility } from "./events.js";
 import { updateDiscordVisibility, updateCalendarVisibility } from "./profiles.js";
-
-// ============================================================================
-// Session Management
-// ============================================================================
 
 export async function checkSession(api, refreshDataFn) {
   setStatus(t("auth.sessionChecking"));
@@ -32,7 +26,6 @@ async function onLoginSuccess(api, user, refreshDataFn) {
   dom.aboutSession.textContent = user.displayName || "Authenticated";
   setStatus(t("auth.loggedInAs", { name: user.displayName || "user" }));
 
-  // Load settings and initialize toggles
   try {
     const settings = await api.getSettings();
     if (dom.eventWarnConflicts) {
@@ -66,7 +59,7 @@ async function onLoginSuccess(api, user, refreshDataFn) {
       dom.calendarSaveDirDisplay.textContent = settings.calendarSaveDir || "-";
     }
     state.settings = settings;
-    // Hydrate persisted modify time range
+    // Hydrate persisted modify time range.
     if (Number.isFinite(settings.modifyTimeRangeDays)) {
       state.modify.timeRangeDays = settings.modifyTimeRangeDays;
       if (dom.modifyTimeRange) {
@@ -75,9 +68,8 @@ async function onLoginSuccess(api, user, refreshDataFn) {
     }
     updateAdvancedSettingsVisibility();
     updateImportExportVisibility();
-    // Ensure Discord caret visibility is set on load (panel stays collapsed)
+    // Discord caret visibility set on load; panel stays collapsed.
     updateDiscordVisibility();
-    // Ensure Calendar visibility is set on load
     updateCalendarVisibility();
   } catch (err) {
     console.error("Failed to load settings:", err);
@@ -85,10 +77,6 @@ async function onLoginSuccess(api, user, refreshDataFn) {
 
   await refreshDataFn();
 }
-
-// ============================================================================
-// Login/Logout Handlers
-// ============================================================================
 
 export async function handleLogin(event, api, refreshDataFn) {
   event.preventDefault();
@@ -127,10 +115,6 @@ export async function handleLogout(api) {
   setAuthState(false);
   setStatus(t("auth.loggedOut"));
 }
-
-// ============================================================================
-// Settings Handlers
-// ============================================================================
 
 export function handleSettingsSave() {
   showToast(t("settings.saved"));

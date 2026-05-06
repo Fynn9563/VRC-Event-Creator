@@ -1,30 +1,18 @@
-/**
- * EC Kit (Event Creator Kit) — webhook identity license verification.
- * Uses Ed25519 signatures for offline verification of .eckit license files.
- * No external dependencies — uses Node.js built-in crypto module.
- */
-
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 
-// Public key for verifying kit signatures (Ed25519, DER/SPKI hex-encoded).
-// Production key as of v1.2.0; signed kits issued via the EC Kit purchase
-// flow (Cloudflare Worker) verify against this. Rotating this constant
-// invalidates all previously-issued kits — see the cleanup logic in
-// loadKits() which auto-removes orphaned files after a rotation.
+// Production Ed25519 public key (DER/SPKI hex). Rotating invalidates all
+// previously-issued kits; loadKits() auto-removes orphans after a rotation.
 const PUBLIC_KEY_HEX = "302a300506032b657003210008044dd51eca1a9d9b806b1e08d337267185b7198282830131d4b8c4ad547da6";
 
-// Hard caps on import. A real kit ZIP is ~6 KB (eckit JSON + license text);
-// the eckit JSON itself is well under 1 KB. These bounds give large headroom
-// for future license-text growth while preventing memory exhaustion from a
-// crafted oversized file or a DEFLATE bomb in the ZIP path.
-const MAX_KIT_FILE_BYTES = 256 * 1024;     // source file (.eckit or .zip)
-const MAX_EXTRACTED_BYTES = 64 * 1024;     // decompressed .eckit JSON
-// Group IDs always look like grp_<36-char id>. Anything else is rejected
-// before being used as a destination filename — defense in depth against
-// path traversal (would only matter if the signing key were compromised).
+// Real kits are ~6 KB; cap source at 256 KB and extracted JSON at 64 KB
+// to bound memory and guard against DEFLATE bombs in the ZIP path.
+const MAX_KIT_FILE_BYTES = 256 * 1024;
+const MAX_EXTRACTED_BYTES = 64 * 1024;
+// Group IDs always match grp_<36-char id>. Validating before path use
+// is defense in depth against destination filename traversal.
 const GROUP_ID_RE = /^grp_[0-9a-fA-F-]{36}$/;
 
 let publicKey;
@@ -38,13 +26,11 @@ try {
   console.error("Failed to load EC Kit public key:", err.message);
 }
 
-// In-memory cache of verified kits, keyed by groupId
 const verifiedKits = new Map();
 
 /**
- * Read a file with a hard byte cap, using a single FD for the size check
- * and the read so there's no TOCTOU window between them. Throws if the
- * file exceeds the cap.
+ * TOCTOU-safe bounded read: stat and read against the same FD. Throws if
+ * the file exceeds maxBytes.
  * @param {string} filePath
  * @param {number} maxBytes
  * @returns {Buffer}
@@ -68,8 +54,8 @@ function readFileBoundedSync(filePath, maxBytes) {
 }
 
 /**
- * Build the canonical payload string for signing/verification.
- * Fields are sorted alphabetically and joined with newlines.
+ * Build the canonical payload string for signing/verification. Fields are
+ * sorted alphabetically and joined with newlines.
  */
 function canonicalize(kit) {
   const fields = {
@@ -82,8 +68,7 @@ function canonicalize(kit) {
 }
 
 /**
- * Verify an .eckit file's signature.
- * @param {object} kit - Parsed kit JSON
+ * @param {object} kit
  * @returns {{ valid: boolean, error?: string }}
  */
 function verifyKit(kit) {
@@ -106,8 +91,8 @@ function verifyKit(kit) {
 
 /**
  * Load and verify all .eckit files from a directory.
- * @param {string} kitsDir - Path to the kits directory
- * @returns {number} Number of valid kits loaded
+ * @param {string} kitsDir
+ * @returns {number} Number of valid kits loaded.
  */
 function loadKits(kitsDir) {
   verifiedKits.clear();
@@ -134,14 +119,11 @@ function loadKits(kitsDir) {
           isValid = true;
         }
       } catch {
-        // Parse / read error — falls through to cleanup
+        // Parse / read error falls through to cleanup below.
       }
       if (!isValid) {
-        // Orphaned kit (signature failure from a keypair rotation, parse
-        // error, missing fields). Delete so the import button reappears
-        // and the user can re-import a valid kit instead of being stuck
-        // with a silently-skipped file. Best-effort delete; if the unlink
-        // fails (permissions, file locked) we just leave it.
+        // Orphan from keypair rotation, parse error, or missing fields.
+        // Delete so the import button reappears for re-import; best-effort.
         try { fs.unlinkSync(filePath); } catch { /* best-effort */ }
       }
     }
@@ -152,15 +134,13 @@ function loadKits(kitsDir) {
 }
 
 /**
- * Extract the .eckit JSON content from a ZIP archive buffer.
- * The kit purchase flow ships kits inside a ZIP that also contains
- * LICENSE.txt — this lets us accept the ZIP directly without making
- * the buyer extract it first. STORE and DEFLATE methods supported.
+ * Extract the .eckit content from a ZIP buffer. Kits ship as ZIP with
+ * LICENSE.txt alongside; accept either form. STORE and DEFLATE supported.
  * @param {Buffer} buffer
- * @returns {string} The .eckit file contents as a UTF-8 string.
+ * @returns {string}
  */
 function extractEckitFromZip(buffer) {
-  // EOCD signature 0x06054b50, scanned backward (allows up to 65535-byte comment).
+  // EOCD signature 0x06054b50, scanned backward (up to 65535-byte comment).
   let eocdOffset = -1;
   const minOffset = Math.max(0, buffer.length - (22 + 65535));
   for (let i = buffer.length - 22; i >= minOffset; i--) {
@@ -203,7 +183,7 @@ function extractEckitFromZip(buffer) {
         return compressed.toString("utf8");
       }
       if (compressionMethod === 8) {
-        // maxOutputLength caps zlib's allocation — protects against DEFLATE bombs.
+        // maxOutputLength caps zlib's allocation; guards against DEFLATE bombs.
         const inflated = zlib.inflateRawSync(compressed, { maxOutputLength: MAX_EXTRACTED_BYTES });
         return inflated.toString("utf8");
       }
@@ -216,10 +196,9 @@ function extractEckitFromZip(buffer) {
 }
 
 /**
- * Import an .eckit file (or a .zip containing one) — verify and copy to
- * kits directory.
- * @param {string} filePath - Path to the .eckit or .zip file to import
- * @param {string} kitsDir - Path to the kits directory
+ * Verify and import a kit (.eckit file or .zip containing one).
+ * @param {string} filePath
+ * @param {string} kitsDir
  * @returns {{ ok: boolean, groupId?: string, issuedTo?: string, error?: string }}
  */
 function importKit(filePath, kitsDir) {
@@ -233,7 +212,7 @@ function importKit(filePath, kitsDir) {
       }
       throw err;
     }
-    // ZIP magic: PK\x03\x04 — local file header signature 0x04034b50 (LE).
+    // ZIP magic: PK\x03\x04 (0x04034b50 LE).
     const isZip = buffer.length >= 4 && buffer.readUInt32LE(0) === 0x04034b50;
     const raw = isZip ? extractEckitFromZip(buffer) : buffer.toString("utf8");
     if (raw.length > MAX_EXTRACTED_BYTES) {
@@ -243,9 +222,8 @@ function importKit(filePath, kitsDir) {
     const kit = JSON.parse(raw);
     const result = verifyKit(kit);
     if (!result.valid) return { ok: false, error: result.error };
-    // Defense in depth: even with a valid signature, never let groupId
-    // escape the kits directory. A properly-issued kit always matches
-    // the regex; this only triggers if our signing key is compromised.
+    // Defense in depth against destination-filename traversal if the
+    // signing key were ever compromised. Real kits always match.
     if (!GROUP_ID_RE.test(kit.groupId)) {
       return { ok: false, error: "Kit has an invalid group ID." };
     }
@@ -267,28 +245,17 @@ function importKit(filePath, kitsDir) {
   }
 }
 
-/**
- * Check if a group has a valid kit loaded.
- * @param {string} groupId
- * @returns {boolean}
- */
+/** @param {string} groupId @returns {boolean} */
 function hasKit(groupId) {
   return verifiedKits.has(groupId);
 }
 
-/**
- * Get kit info for a group.
- * @param {string} groupId
- * @returns {{ groupId: string, issuedTo: string, issuedAt: string } | null}
- */
+/** @param {string} groupId @returns {{ groupId: string, issuedTo: string, issuedAt: string } | null} */
 function getKit(groupId) {
   return verifiedKits.get(groupId) || null;
 }
 
-/**
- * Get all loaded kit group IDs.
- * @returns {string[]}
- */
+/** @returns {string[]} */
 function getKitGroupIds() {
   return Array.from(verifiedKits.keys());
 }

@@ -1,7 +1,4 @@
-﻿// i18n - Internationalization loader for VRChat Event Creator
-// This module handles loading and switching between language translations
-
-import { en } from "./en.js";
+﻿import { en } from "./en.js";
 import { fr } from "./fr.js";
 import { es } from "./es.js";
 import { de } from "./de.js";
@@ -12,7 +9,6 @@ import { ko } from "./ko.js";
 import { ru } from "./ru.js";
 import { nl } from "./nl.js";
 
-// Available languages
 const languages = {
   en,
   fr,
@@ -73,7 +69,6 @@ function getSystemLanguage() {
   return null;
 }
 
-// Current language state
 let currentLang = "en";
 let translations = en;
 let languageDisplay = null;
@@ -93,18 +88,15 @@ function capitalizeLanguageLabel(label) {
   return `${upper}${rest}`;
 }
 
-/**
- * Get the current language code
- * @returns {string} Current language code (e.g., "en")
- */
+/** @returns {string} Current language code (e.g., "en"). */
 export function getCurrentLanguage() {
   return currentLang;
 }
 
 /**
- * Set the application language
- * @param {string} langCode - Language code (e.g., "en", "fr", "es")
- * @returns {Promise<boolean>} Success status
+ * Set the application language.
+ * @param {string} langCode
+ * @returns {Promise<boolean>}
  */
 export async function setLanguage(langCode) {
   if (!languages[langCode]) {
@@ -112,7 +104,6 @@ export async function setLanguage(langCode) {
     return false;
   }
 
-  // If language is already loaded (not a function), use it directly
   if (typeof languages[langCode] !== "function") {
     translations = languages[langCode];
     currentLang = langCode;
@@ -120,7 +111,7 @@ export async function setLanguage(langCode) {
     return true;
   }
 
-  // Otherwise, lazy load it
+  // Lazy load.
   try {
     translations = await languages[langCode]();
     currentLang = langCode;
@@ -132,10 +123,9 @@ export async function setLanguage(langCode) {
   }
 }
 
-// Tracks missing/non-string keys so we only warn once per key per session
-// instead of spamming the console every render. The set is also exposed on
-// `window.__missingI18nKeys` (when window exists) so devs can dump the full
-// list with one console statement during a session.
+// Tracks missing/non-string keys so each key warns once per session instead of
+// spamming the console every render. Exposed on `window.__missingI18nKeys`
+// (when window exists) so a single console statement dumps the full list.
 const missingKeyWarnings = new Set();
 if (typeof window !== "undefined") {
   window.__missingI18nKeys = missingKeyWarnings;
@@ -148,10 +138,10 @@ function warnMissingKey(keyPath, reason) {
 }
 
 /**
- * Get a translation string by key path
- * @param {string} keyPath - Dot-notation key path (e.g., "auth.title")
- * @param {object} vars - Variables to interpolate (e.g., {name: "John"})
- * @returns {string} Translated string
+ * Get a translation string by dot-notation key path (e.g., "auth.title").
+ * @param {string} keyPath
+ * @param {object} vars - Variables to interpolate as {name} placeholders.
+ * @returns {string}
  */
 export function t(keyPath, vars = {}) {
   const keys = keyPath.split(".");
@@ -171,16 +161,12 @@ export function t(keyPath, vars = {}) {
     return keyPath;
   }
 
-  // Replace variables like {name}, {count}, etc.
   return value.replace(/\{(\w+)\}/g, (match, varName) => {
     return vars[varName] !== undefined ? vars[varName] : match;
   });
 }
 
-/**
- * Initialize i18n system
- * Loads the saved language preference or defaults to English
- */
+/** Load saved language preference, falling back to system locale, then English. */
 export async function initI18n() {
   const savedLang = localStorage.getItem("language");
   const systemLang = getSystemLanguage();
@@ -188,10 +174,7 @@ export async function initI18n() {
   await setLanguage(nextLang);
 }
 
-/**
- * Get all available language codes
- * @returns {string[]} Array of language codes
- */
+/** @returns {string[]} */
 export function getAvailableLanguages() {
   return Object.keys(languages);
 }

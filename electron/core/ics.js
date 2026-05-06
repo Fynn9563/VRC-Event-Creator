@@ -1,22 +1,16 @@
 /**
- * ICS (iCalendar) file generation module.
- * Generates RFC 5545 compliant .ics calendar strings.
- * No external dependencies — ICS is a plain text format.
- */
-
-/**
- * Generate an ICS calendar string for a single event.
+ * Generate an RFC 5545 ICS calendar string for a single event.
  * @param {object} options
- * @param {string} options.title - Event title (SUMMARY)
- * @param {string} options.description - Event description (DESCRIPTION)
- * @param {string} options.startTime - ISO 8601 UTC start time
- * @param {string} options.endTime - ISO 8601 UTC end time
- * @param {string} [options.location] - Event location (LOCATION), defaults to "VRChat"
- * @param {string} options.uid - Deterministic UID for this event
- * @param {number} [options.sequence] - SEQUENCE number for updates (default 0)
- * @param {Array<{value: number, unit: string}>} [options.reminders] - VALARM reminders
- * @param {string} [options.rrule] - Optional RFC 5545 RRULE string for recurring events (no "RRULE:" prefix)
- * @returns {string} Complete ICS file content
+ * @param {string} options.title
+ * @param {string} options.description
+ * @param {string} options.startTime - ISO 8601 UTC.
+ * @param {string} options.endTime - ISO 8601 UTC.
+ * @param {string} [options.location] - Defaults to "VRChat".
+ * @param {string} options.uid - Deterministic UID for this event.
+ * @param {number} [options.sequence] - SEQUENCE for updates (default 0).
+ * @param {Array<{value: number, unit: string}>} [options.reminders]
+ * @param {string} [options.rrule] - RRULE body for recurring events (no "RRULE:" prefix).
+ * @returns {string}
  */
 function generateIcsString({ title, description, startTime, endTime, location, uid, sequence, reminders, rrule }) {
   const now = new Date();
@@ -44,7 +38,7 @@ function generateIcsString({ title, description, startTime, endTime, location, u
     lines.push(`RRULE:${rrule}`);
   }
 
-  // Add VALARM blocks for each reminder (longest first — some clients only use the first)
+  // VALARM blocks per reminder, longest first; some clients only use the first.
   if (Array.isArray(reminders)) {
     const sorted = [...reminders].filter(r => r && typeof r.value === "number" && r.value > 0).sort((a, b) => {
       const toMin = r => r.value * (r.unit === "days" ? 1440 : r.unit === "hours" ? 60 : 1);
@@ -69,18 +63,12 @@ function generateIcsString({ title, description, startTime, endTime, location, u
   return lines.map(foldLine).join("\r\n") + "\r\n";
 }
 
-/**
- * Convert an ISO 8601 string to ICS timestamp format.
- * "2026-05-15T19:00:00.000Z" → "20260515T190000Z"
- */
+// "2026-05-15T19:00:00.000Z" -> "20260515T190000Z".
 function toIcsTimestamp(isoString) {
   return isoString.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
-/**
- * Convert a value + unit to an ICS duration string.
- * e.g., (30, "minutes") → "PT30M", (5, "hours") → "PT5H", (1, "days") → "P1D"
- */
+// (30, "minutes") -> "PT30M", (5, "hours") -> "PT5H", (1, "days") -> "P1D".
 function toDuration(value, unit) {
   switch (unit) {
     case "hours": return `PT${value}H`;
@@ -90,10 +78,7 @@ function toDuration(value, unit) {
   }
 }
 
-/**
- * Escape text for ICS fields.
- * Backslash, semicolon, comma, and newlines must be escaped.
- */
+// Backslash, semicolon, comma, and newlines must be escaped in ICS fields.
 function escapeText(str) {
   if (!str) return "";
   return str
@@ -103,10 +88,8 @@ function escapeText(str) {
     .replace(/\r\n|\r|\n/g, "\\n");
 }
 
-/**
- * Fold a line to comply with RFC 5545 (max 75 octets per line).
- * Continuation lines start with a single space.
- */
+// RFC 5545 line folding: max 75 octets per line, continuation lines start
+// with a single space.
 function foldLine(line) {
   if (Buffer.byteLength(line, "utf8") <= 75) return line;
 

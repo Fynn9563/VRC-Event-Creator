@@ -1,7 +1,7 @@
 /**
  * Convert a VRChat recurrence object into an RFC 5545 RRULE string.
  *
- * Input shape (matches VRChat API):
+ * Input (matches VRChat API):
  * {
  *   frequency: "daily" | "weekly" | "monthly" | "yearly",
  *   interval: number (>= 1),
@@ -9,8 +9,8 @@
  *   daysOfWeek?: ["MO","TU","WE","TH","FR","SA","SU"]  // weekly only
  *   end?: {
  *     type: "afterOccurrences" | "afterDate",
- *     count?: number,            // for afterOccurrences
- *     date?: string              // for afterDate, "YYYY-MM-DDTHH:MM:SS" (no offset)
+ *     count?: number,            // afterOccurrences
+ *     date?: string              // afterDate, "YYYY-MM-DDTHH:MM:SS" (no offset)
  *   }
  * }
  *
@@ -46,7 +46,7 @@ function recurrenceToRRule(recurrence) {
     if (recurrence.end.type === "afterOccurrences" && Number.isFinite(recurrence.end.count) && recurrence.end.count >= 1) {
       parts.push(`COUNT=${Math.floor(recurrence.end.count)}`);
     } else if (recurrence.end.type === "afterDate" && typeof recurrence.end.date === "string") {
-      // Convert "2026-12-31T23:59:00" to RFC 5545 UTC format "20261231T235900Z"
+      // "2026-12-31T23:59:00" to RFC 5545 UTC "20261231T235900Z"
       const isoDate = new Date(recurrence.end.date);
       if (!Number.isNaN(isoDate.getTime())) {
         const yyyy = isoDate.getUTCFullYear().toString().padStart(4, "0");

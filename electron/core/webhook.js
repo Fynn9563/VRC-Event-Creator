@@ -1,16 +1,10 @@
-/**
- * Discord Webhook delivery module.
- * Sends messages with optional file attachments via Discord webhooks.
- * No external dependencies — uses Node.js built-in fetch with manual multipart/form-data.
- */
-
 const WEBHOOK_URL_PATTERN = /^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\//;
 
-// Discord rejects webhook usernames that contain these substrings — server-
-// side enforcement returns a 400. We pre-screen on the client to (a) keep
-// the post going (fall back to the default name) instead of failing, and
-// (b) prevent impersonation of system actors regardless of any future
-// Discord-side relaxation.
+// Discord rejects webhook usernames containing these substrings server-side
+// with a 400. Pre-screening on the client (a) keeps the post going via
+// fallback to the default name instead of failing, and (b) prevents
+// impersonation of system actors regardless of any future Discord-side
+// relaxation.
 const FORBIDDEN_NAME_SUBSTRINGS = [
   /discord/i,
   /clyde/i,
@@ -22,8 +16,7 @@ const WEBHOOK_NAME_MAX_LENGTH = 80;
 
 /**
  * Validate + clean a webhook display name. Returns the trimmed name on
- * success or `null` if the name is invalid/forbidden/empty — the caller
- * should fall back to a default in that case.
+ * success or null if invalid/forbidden/empty (caller should fall back).
  *
  * Rejection causes:
  *   - Non-string input
@@ -34,11 +27,11 @@ const WEBHOOK_NAME_MAX_LENGTH = 80;
  * Always strips control characters (0x00-0x1F) before length checking.
  *
  * @param {string} name
- * @returns {string|null} Cleaned name, or null if rejected
+ * @returns {string|null}
  */
 function sanitizeWebhookName(name) {
   if (typeof name !== "string") return null;
-  // Strip control chars + collapse whitespace
+  // Strip control chars and collapse whitespace.
   const cleaned = name.replace(/[\x00-\x1F]/g, "").trim();
   if (cleaned.length < WEBHOOK_NAME_MIN_LENGTH) return null;
   if (cleaned.length > WEBHOOK_NAME_MAX_LENGTH) return null;
@@ -49,19 +42,20 @@ function sanitizeWebhookName(name) {
 }
 
 /**
- * Send a message to a Discord webhook with optional ICS, image, and icon attachments.
+ * Send a message to a Discord webhook with optional ICS, image, and icon
+ * attachments.
  * @param {object} options
- * @param {string} options.webhookUrl - Discord webhook URL
- * @param {string} [options.icsContent] - ICS file content string (optional)
- * @param {string} [options.filename] - Filename for the ICS attachment (e.g., "event.ics")
- * @param {string} [options.content] - Message text content
- * @param {object} [options.embed] - Discord embed object
- * @param {Buffer|null} [options.imageBuffer] - Optional banner image as Buffer
- * @param {string} [options.imageFilename] - Image filename (e.g., "banner.png")
- * @param {Buffer|null} [options.iconBuffer] - Optional group icon as Buffer
- * @param {string} [options.iconFilename] - Icon filename (e.g., "icon.png")
- * @param {string} [options.avatarUrl] - Webhook avatar URL override
- * @param {string} [options.webhookName] - Webhook display name override
+ * @param {string} options.webhookUrl
+ * @param {string} [options.icsContent]
+ * @param {string} [options.filename] - Filename for the ICS attachment.
+ * @param {string} [options.content]
+ * @param {object} [options.embed]
+ * @param {Buffer|null} [options.imageBuffer] - Banner image.
+ * @param {string} [options.imageFilename]
+ * @param {Buffer|null} [options.iconBuffer] - Group icon.
+ * @param {string} [options.iconFilename]
+ * @param {string} [options.avatarUrl] - Webhook avatar override.
+ * @param {string} [options.webhookName] - Webhook display-name override.
  * @returns {Promise<{ok: boolean, error?: string}>}
  */
 async function sendWebhook({ webhookUrl, icsContent, filename, content, embed, imageBuffer, imageFilename, iconBuffer, iconFilename, avatarUrl, webhookName }) {
@@ -71,9 +65,8 @@ async function sendWebhook({ webhookUrl, icsContent, filename, content, embed, i
 
   const boundary = `----WebhookBoundary${Date.now()}${Math.random().toString(36).slice(2)}`;
 
-  // Validate the optional webhook display-name override; a forbidden /
-  // malformed name would otherwise get rejected by Discord with a 400.
-  // Falling back to the default keeps the post going.
+  // Sanitize the optional display-name override; a forbidden or malformed
+  // name would otherwise trigger a 400. Falling back keeps the post going.
   const safeWebhookName = sanitizeWebhookName(webhookName) || "VRC Event Creator";
 
   const payload = {
@@ -83,11 +76,11 @@ async function sendWebhook({ webhookUrl, icsContent, filename, content, embed, i
     ...(avatarUrl ? { avatar_url: avatarUrl } : {})
   };
 
-  // Build multipart body as array of Buffer chunks for binary safety
+  // Build multipart body as Buffer chunks for binary safety.
   const chunks = [];
   const str = s => Buffer.from(s, "utf8");
 
-  // Part 1: JSON payload
+  // Part 1: JSON payload.
   chunks.push(str(
     `--${boundary}\r\n` +
     `Content-Disposition: form-data; name="payload_json"\r\n` +
@@ -95,10 +88,9 @@ async function sendWebhook({ webhookUrl, icsContent, filename, content, embed, i
     `${JSON.stringify(payload)}\r\n`
   ));
 
-  // File attachment index
   let fileIndex = 0;
 
-  // Part 2: ICS file (optional)
+  // Part 2: ICS file (optional).
   if (icsContent && filename) {
     chunks.push(str(
       `--${boundary}\r\n` +
@@ -109,7 +101,7 @@ async function sendWebhook({ webhookUrl, icsContent, filename, content, embed, i
     fileIndex++;
   }
 
-  // Part 3: Custom attachment (optional — image, gif, audio, video)
+  // Part 3: Custom attachment (optional; image, gif, audio, video).
   if (imageBuffer && imageFilename) {
     chunks.push(str(
       `--${boundary}\r\n` +
@@ -121,7 +113,7 @@ async function sendWebhook({ webhookUrl, icsContent, filename, content, embed, i
     fileIndex++;
   }
 
-  // Part 4: Group icon (optional)
+  // Part 4: Group icon (optional).
   if (iconBuffer && iconFilename) {
     chunks.push(str(
       `--${boundary}\r\n` +
@@ -157,8 +149,8 @@ async function sendWebhook({ webhookUrl, icsContent, filename, content, embed, i
 }
 
 /**
- * Test a webhook URL by fetching its info (GET request).
- * @param {string} webhookUrl - Discord webhook URL
+ * Test a webhook URL by fetching its info (GET).
+ * @param {string} webhookUrl
  * @returns {Promise<{ok: boolean, webhookName?: string, error?: string}>}
  */
 async function testWebhook(webhookUrl) {
@@ -184,9 +176,7 @@ async function testWebhook(webhookUrl) {
   }
 }
 
-/**
- * Derive a MIME type from a filename extension.
- */
+// Derive a MIME type from a filename extension.
 function mimeFromFilename(name) {
   const ext = (name || "").split(".").pop().toLowerCase();
   const types = {
@@ -202,17 +192,13 @@ function mimeFromFilename(name) {
   return types[ext] || "application/octet-stream";
 }
 
-/**
- * Sanitize a filename for use in Content-Disposition headers.
- */
+// Sanitize a filename for use in Content-Disposition headers.
 function sanitizeFilename(name) {
   if (!name) return "file";
   return name.replace(/["\\\r\n]/g, "_");
 }
 
-/**
- * Format a Discord webhook error into a user-friendly message.
- */
+// Format a Discord webhook error into a user-friendly message.
 function formatWebhookError(status, errorData) {
   const detail = errorData?.message || "";
   switch (status) {

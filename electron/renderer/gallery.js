@@ -8,17 +8,15 @@ const GALLERY_RATE_LIMIT_KEY = "gallery:upload";
 
 let galleryApi = null;
 
-// In-memory cache for data URLs to avoid repeated IPC calls
+// In-memory cache for data URLs avoids repeated IPC calls.
 const imageDataUrlCache = new Map();
 
 async function loadCachedImageForElement(imgElement, imageId, fallbackUrl) {
-  // Check in-memory cache first
   if (imageDataUrlCache.has(imageId)) {
     imgElement.src = imageDataUrlCache.get(imageId);
     return;
   }
 
-  // Try to get from disk cache
   try {
     const dataUrl = await galleryApi?.getCachedImage(imageId);
     if (dataUrl) {
@@ -26,7 +24,7 @@ async function loadCachedImageForElement(imgElement, imageId, fallbackUrl) {
       imgElement.src = dataUrl;
     }
   } catch {
-    // Silently fail - image will continue using remote URL
+    // Failure leaves the remote URL in place.
   }
 }
 
@@ -121,14 +119,14 @@ function renderGalleryList() {
       img.src = file.previewUrl;
       img.alt = file.name || file.id;
       img.loading = "lazy";
-      // Add error handler to fall back to remote URL if cache fails
+      // Fall back to remote URL if cache fails.
       img.onerror = () => {
         if (img.src !== file.previewUrl) {
           img.src = file.previewUrl;
         }
       };
       preview.appendChild(img);
-      // Async: try to use cached version after initial render
+      // After initial render, try the cached version asynchronously.
       loadCachedImageForElement(img, file.id, file.previewUrl);
     } else {
       const placeholder = document.createElement("div");
@@ -245,7 +243,6 @@ async function loadGalleryFiles(options = {}) {
     state.gallery.files = sortGalleryFiles(nextFiles);
     state.gallery.offset = offset + files.length;
     state.gallery.hasMore = files.length >= PAGE_SIZE;
-    // Trigger background caching for fetched images
     triggerBackgroundCaching(files);
   } catch (err) {
     showToast(t("gallery.loadFailed"), true);
@@ -270,7 +267,7 @@ function applyGallerySelection() {
     return;
   }
   state.gallery.targetInput.value = selected.id;
-  // Dispatch event with both id and url for pending event image preview
+  // Dispatch with id and url for pending event image preview.
   state.gallery.targetInput.dispatchEvent(new CustomEvent("gallerySelect", {
     bubbles: true,
     detail: { id: selected.id, url: selected.previewUrl || "" }

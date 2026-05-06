@@ -1,5 +1,3 @@
-// Utility functions for VRChat Event Creator
-
 import { TAG_LIMIT, TAG_TEXT_LIMIT } from "./config.js";
 import { state } from "./state.js";
 import { showToast } from "./ui.js";
@@ -15,10 +13,6 @@ export async function handleChangeDataDir(api) {
     showToast(t("settings.dataDir.willChangeOnRestart", { path: selectedPath }), false);
   }
 }
-
-// ============================================================================
-// Rate Limit Utilities
-// ============================================================================
 
 const RATE_LIMIT_SCHEDULE_MS = [
   5000,
@@ -85,10 +79,6 @@ export function isRateLimitError(error) {
     || message.includes("rate limit");
 }
 
-// ============================================================================
-// Timezone Utilities
-// ============================================================================
-
 function formatDateInput(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -107,25 +97,23 @@ export function getMaxEventDateString() {
 }
 
 export function getTimeZoneAbbr(timeZone) {
-  // Custom mappings for timezones that would otherwise show generic abbreviations
+  // Override timezones that would otherwise show generic/conflicting abbreviations.
   const customMappings = {
     "Asia/Tokyo": "JST",
     "Asia/Seoul": "KST",
     "Asia/Shanghai": "UTC+8",    // Beijing CST conflicts with Central Standard Time
     "Asia/Dubai": "UTC+3",        // Arabian AST conflicts with Atlantic Standard Time
-    "Asia/Tehran": "IRST",        // Iran Standard Time
+    "Asia/Tehran": "IRST",
     "Asia/Kolkata": "IST",
     "Asia/Manila": "PHT",
     "Asia/Bangkok": "ICT",
     "Asia/Jakarta": "WIB"
   };
 
-  // Return custom mapping if available
   if (customMappings[timeZone]) {
     return customMappings[timeZone];
   }
 
-  // Otherwise use Intl.DateTimeFormat
   try {
     const parts = new Intl.DateTimeFormat("en-US", {
       timeZone,
@@ -185,10 +173,6 @@ export function ensureTimezoneOption(selectEl, value) {
   }
 }
 
-// ============================================================================
-// Tag Utilities
-// ============================================================================
-
 const CONTROL_CHARS_REGEX = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 
 export function sanitizeText(value, options = {}) {
@@ -229,10 +213,6 @@ export function sanitizeTag(value, maxLength = TAG_TEXT_LIMIT) {
   const cleaned = sanitizeSingleLine(value, maxLength, true);
   return cleaned.replace(/\s+/g, " ");
 }
-
-// ============================================================================
-// Duration Utilities
-// ============================================================================
 
 const MAX_DURATION_DAYS = 31;
 const MAX_DURATION_MINUTES = MAX_DURATION_DAYS * 24 * 60;
@@ -509,10 +489,6 @@ export function createTagInput(options) {
   return { getTags, setTags, clear: () => setTags([]), commit: () => commitInput(true) };
 }
 
-// ============================================================================
-// Profile Key Utilities
-// ============================================================================
-
 export function slugifyProfileKey(value) {
   const base = (value || "")
     .toLowerCase()
@@ -540,10 +516,6 @@ export function buildProfileKey(groupId, displayName, fallbackName) {
   }
   return getUniqueProfileKey(groupId, base);
 }
-
-// ============================================================================
-// Group Utilities
-// ============================================================================
 
 export function getGroupName(groupId) {
   const group = state.groups.find(g => g.id === groupId);

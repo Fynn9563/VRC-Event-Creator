@@ -12,24 +12,21 @@ const CREATE_RATE_LIMIT_BASE_KEY = "events:create";
 
 export function updateAdvancedSettingsVisibility({ expand } = {}) {
   const enabled = dom.settingsEnableAdvanced?.checked ?? false;
-  // Show/hide the caret based on whether the setting is enabled
   if (dom.settingsAdvancedCaret) {
     dom.settingsAdvancedCaret.classList.toggle("is-hidden", !enabled);
   }
   if (dom.settingsAdvancedOptions) {
     if (!enabled) {
-      // Disabled: always hide panel and collapse caret
       dom.settingsAdvancedOptions.classList.add("is-hidden");
       if (dom.settingsAdvancedCaret) dom.settingsAdvancedCaret.classList.remove("is-expanded");
     } else if (expand === true) {
-      // Explicitly requested expand (e.g. just enabled the checkbox)
       dom.settingsAdvancedOptions.classList.remove("is-hidden");
       if (dom.settingsAdvancedCaret) dom.settingsAdvancedCaret.classList.add("is-expanded");
     } else if (expand === false) {
       dom.settingsAdvancedOptions.classList.add("is-hidden");
       if (dom.settingsAdvancedCaret) dom.settingsAdvancedCaret.classList.remove("is-expanded");
     }
-    // If expand is undefined (e.g. on load), panel stays hidden, caret stays collapsed
+    // expand undefined (e.g. on load): panel stays hidden, caret collapsed.
   }
 }
 
@@ -57,8 +54,7 @@ let createdEventIdsLoaded = false;
 let conflictResolve = null;
 
 /**
- * Shows the conflict modal and returns a Promise.
- * Resolves with { continue: true } to proceed, or { continue: false, changeTime: true/false }
+ * Resolves with { continue: true } to proceed, or { continue: false, changeTime: true/false }.
  */
 function showConflictModal(eventTitle) {
   return new Promise(resolve => {
@@ -125,7 +121,7 @@ function loadHourlyHistory() {
     state.event.hourlyCreateHistory = normalized;
     saveHourlyHistory();
   } catch (err) {
-    // Ignore storage errors.
+    // Storage errors ignored.
   }
 }
 
@@ -136,7 +132,7 @@ function saveHourlyHistory() {
   try {
     localStorage.setItem(HOURLY_HISTORY_STORAGE_KEY, JSON.stringify(state.event.hourlyCreateHistory));
   } catch (err) {
-    // Ignore storage errors.
+    // Storage errors ignored.
   }
 }
 
@@ -194,7 +190,7 @@ function saveCreatedEventIds() {
   try {
     localStorage.setItem(CREATED_EVENTS_STORAGE_KEY, JSON.stringify(state.event.createdEventIds));
   } catch (err) {
-    // Ignore storage errors.
+    // Storage errors ignored.
   }
 }
 
@@ -320,7 +316,7 @@ function getEventCreatedAtMs(event) {
 }
 
 function updateServerHourlyCount(events) {
-  // Count ALL events created in the last hour (by anyone) for cross-platform detection
+  // Count all events created in the last hour (any user) for cross-platform detection.
   if (!Array.isArray(events)) {
     state.event.serverHourlyCount = 0;
     return;
@@ -334,7 +330,7 @@ function updateServerHourlyCount(events) {
 }
 
 function getTotalLocalCount(groupId) {
-  // Sum events from ALL users for this group (for cross-platform detection)
+  // Sum events across all users for this group (cross-platform detection).
   ensureHourlyHistoryLoaded();
   if (!groupId) {
     return 0;
@@ -370,14 +366,14 @@ function getRateLimitMessage(rateLimitInfo) {
   }
   const { case: rateLimitCase, minutes } = rateLimitInfo;
   if (rateLimitCase === "A") {
-    // User hit their 10/hour limit - use existing message
+    // User hit their 10/hour limit.
     return t("events.upcomingLimitError");
   }
   if (rateLimitCase === "B") {
-    // Cross-platform events
+    // Cross-platform events.
     return t("events.crossPlatformRateLimit", { minutes: minutes || 2 });
   }
-  // Case C: Unknown hard limit
+  // Case C: unknown hard limit.
   return t("events.unknownRateLimit");
 }
 
@@ -467,7 +463,7 @@ function handleCreateRateLimit(groupId) {
   const totalLocalCount = getTotalLocalCount(groupId);
   const serverCount = state.event.serverHourlyCount;
 
-  // Case A: User hit their 10/hour limit
+  // Case A: user hit their 10/hour limit.
   if (userLocalCount >= EVENT_HOURLY_LIMIT) {
     const nextExpiry = getNextHourlyExpiry(groupId);
     if (nextExpiry) {
@@ -477,8 +473,8 @@ function handleCreateRateLimit(groupId) {
     return { case: "A", minutes: null };
   }
 
-  // Case B: Cross-platform events (totalLocal < server)
-  // Case C: Unknown hard limit (totalLocal == server but still got 429)
+  // Case B: cross-platform events (totalLocal < server).
+  // Case C: unknown hard limit (totalLocal == server but still got 429).
   const isCrossPlatform = totalLocalCount < serverCount;
   const backoffMinutes = getNextBackoffMinutes();
   const blockUntil = Date.now() + (backoffMinutes * 60 * 1000);
@@ -608,10 +604,10 @@ export async function refreshUpcomingEventCount(api, options = {}) {
         upcomingOnly: true,
         includeNonEditable: true
       });
-      // Store server count for cross-platform detection (not for display)
+      // Server count stored for cross-platform detection, not for display.
       updateServerHourlyCount(events);
     } catch (err) {
-      // Ignore list failures and keep local history.
+      // List failure: keep local history.
     }
   }
   const count = getHourlyCount(groupId);
@@ -800,7 +796,7 @@ export async function handleEventGroupChange(api) {
     dom.eventImportJson.disabled = !dom.eventGroup.value;
   }
   await refreshUpcomingEventCount(api);
-  // Update featured checkbox visibility based on verified groups
+  // Update featured checkbox visibility based on verified groups.
   void updateEventTogglesVisibility(api);
   updateDiscordVisibility();
   updateCalendarVisibility();
@@ -817,10 +813,9 @@ async function updateEventTogglesVisibility(api) {
   }
 
   try {
-    // Call backend to check feature flags (tags are NOT exposed to renderer)
+    // Backend checks feature flags; tags are not exposed to renderer.
     const flags = await api.checkFeatureFlags(groupId);
 
-    // Show/hide toggles based on backend response
     dom.eventFeaturedField.classList.toggle("is-hidden", !flags.hasFeaturedEvents);
     dom.eventGroupFairField.classList.toggle("is-hidden", !flags.hasGroupFair);
 
@@ -859,7 +854,7 @@ export function handleDateSourceChange(event) {
 }
 
 export async function handleEventCreate(api) {
-  // Rate limiting: prevent rapid event creation
+  // Rate limiting: prevent rapid event creation.
   if (state.event.createInProgress) {
     showToast(t("events.create.alreadyCreating"), true);
     return { success: false, message: t("events.create.alreadyCreating"), toastShown: true };
@@ -891,7 +886,6 @@ export async function handleEventCreate(api) {
     ? state.event.tagInput.getTags()
     : enforceTagsInput(dom.eventTags, TAG_LIMIT, true);
 
-  // Add group fair tag if checkbox is checked
   if (dom.eventGroupFair?.checked) {
     if (!tags.includes("vrc_event_group_fair")) {
       tags.push("vrc_event_group_fair");
@@ -910,7 +904,6 @@ export async function handleEventCreate(api) {
     if (!selectedDateIso) {
       return { success: false, message: t("events.selectDateError") };
     }
-    // Validate pattern date is not in the past
     const patternDateTime = new Date(selectedDateIso);
     if (patternDateTime < new Date()) {
       return { success: false, message: t("events.cannotCreatePast") };
@@ -925,7 +918,6 @@ export async function handleEventCreate(api) {
     if (manualDate > maxDate) {
       return { success: false, message: t("events.futureDateError") };
     }
-    // Validate manual date/time is not in the past
     const manualDateTime = new Date(`${manualDate}T${manualTime}`);
     const now = new Date();
     if (manualDateTime < now) {
@@ -987,14 +979,13 @@ export async function handleEventCreate(api) {
     return { success: false, message: t("common.errors.requiredSingle", { field: t("common.fields.description") }) };
   }
 
-  // Check if user wants conflict warnings - if so, lock button IMMEDIATELY to prevent race conditions
+  // If conflict warnings are on, lock button immediately to prevent race conditions.
   const warnConflicts = dom.eventWarnConflicts?.checked ?? false;
   if (warnConflicts) {
     state.event.createInProgress = true;
     updateEventCreateDisabled();
   }
 
-  // Prepare the event and check for conflicts
   try {
     const prep = await api.prepareEvent({
       groupId,
@@ -1005,13 +996,11 @@ export async function handleEventCreate(api) {
       manualTime
     });
 
-    // Show conflict modal if conflict found and warnings enabled
     if (prep.conflictEvent && warnConflicts) {
       let conflictResult;
       try {
         conflictResult = await showConflictModal(prep.conflictEvent.title);
       } catch (modalErr) {
-        // Modal failed - unlock button and return
         state.event.createInProgress = false;
         updateEventCreateDisabled();
         console.error("Conflict modal error:", modalErr);
@@ -1019,11 +1008,10 @@ export async function handleEventCreate(api) {
       }
 
       if (!conflictResult || !conflictResult.continue) {
-        // User canceled - unlock button
         state.event.createInProgress = false;
         updateEventCreateDisabled();
         if (conflictResult?.changeTime) {
-          // Navigate back to date selection step (step index 1)
+          // Navigate back to date selection step (step index 1).
           const wizard = getEventWizard();
           if (wizard) {
             wizard.goTo(1);
@@ -1033,7 +1021,7 @@ export async function handleEventCreate(api) {
       }
     }
 
-    // If warnings are OFF, lock the button now (after conflict check is complete)
+    // Warnings off: lock button now, after conflict check completed.
     if (!warnConflicts) {
       state.event.createInProgress = true;
       updateEventCreateDisabled();
@@ -1060,7 +1048,6 @@ export async function handleEventCreate(api) {
       state.event.createInProgress = false;
       updateEventCreateDisabled();
 
-      // Handle permission revocation errors
       if (rawMessage === "FEATURED_PERMISSION_REVOKED") {
         const message = t("events.featuredPermissionRevoked");
         showToast(message, true);
@@ -1197,24 +1184,19 @@ export function applyProfileToEventForm(groupId, profileKey, api) {
   updateDateMode(profile);
   updateDateOptions(api, profile);
   void renderEventRoleRestrictions(api);
-  // Apply template's Discord sync preference
   if (dom.eventDiscordSyncCheck) {
     dom.eventDiscordSyncCheck.checked = profile.discordSync === true;
   }
-  // Apply template's Webhook post preference
   if (dom.eventWebhookPostCheck) {
     dom.eventWebhookPostCheck.checked = profile.webhookPost === true;
   }
-  // Apply template's Calendar preferences
   if (dom.eventCalendarCreateCheck) {
     dom.eventCalendarCreateCheck.checked = profile.calendarSync === true;
   }
   if (dom.eventCalendarRemindersEnabled) {
     dom.eventCalendarRemindersEnabled.checked = profile.calendarRemindersEnabled === true;
   }
-  // Render template reminders into event form
   renderCalendarReminders(dom.eventCalendarRemindersList, profile.calendarReminders || []);
-  // Apply template's webhook message settings
   if (dom.eventWebhookMessageEnabled) {
     dom.eventWebhookMessageEnabled.checked = profile.webhookMessageEnabled === true;
   }
@@ -1244,30 +1226,27 @@ export async function applyImportedJsonToEventForm(data, api) {
     return { success: false, message: t("common.errors.invalidJson") };
   }
 
-  // Check if this looks like a profile JSON instead of an event JSON
+  // Reject profile JSON imported into the event flow.
   if (data.displayName !== undefined || data.patterns !== undefined || data.automation !== undefined) {
     return { success: false, message: t("events.importWrongType") };
   }
 
-  // Handle image - check if imageId exists in user's gallery first, otherwise upload base64
+  // If imageId resolves in the user's gallery, keep it; otherwise upload base64.
   const autoUpload = dom.settingsAutoUploadImages?.checked ?? false;
   if (data.imageId && typeof data.imageId === "string") {
-    // Check if this imageId already exists in user's gallery
     try {
       const imageExists = await api.checkGalleryImageExists(data.imageId);
       if (!imageExists && autoUpload && data.imageBase64 && typeof data.imageBase64 === "string") {
-        // Image doesn't exist, upload from base64
         const uploadResult = await api.uploadGalleryImageBase64(data.imageBase64);
         if (uploadResult?.ok && uploadResult?.data?.id) {
           data.imageId = uploadResult.data.id;
         }
       }
-      // If imageExists is true, keep the original imageId
     } catch (imgErr) {
       console.warn("Could not check/upload imported image:", imgErr);
     }
   } else if (autoUpload && data.imageBase64 && typeof data.imageBase64 === "string") {
-    // No imageId but has base64, upload it
+    // No imageId, upload base64 directly.
     try {
       const uploadResult = await api.uploadGalleryImageBase64(data.imageBase64);
       if (uploadResult?.ok && uploadResult?.data?.id) {
@@ -1278,7 +1257,6 @@ export async function applyImportedJsonToEventForm(data, api) {
     }
   }
 
-  // Apply title (eventName) - always set, clear if empty
   dom.eventName.value = (data.title && typeof data.title === "string")
     ? sanitizeText(data.title, {
         maxLength: EVENT_NAME_LIMIT,
@@ -1287,7 +1265,6 @@ export async function applyImportedJsonToEventForm(data, api) {
       })
     : "";
 
-  // Apply description - always set, clear if empty
   dom.eventDescription.value = (data.description && typeof data.description === "string")
     ? sanitizeText(data.description, {
         maxLength: EVENT_DESCRIPTION_LIMIT,
@@ -1296,14 +1273,12 @@ export async function applyImportedJsonToEventForm(data, api) {
       })
     : "";
 
-  // Apply category - use default if invalid/missing
   if (data.category && typeof data.category === "string" && VALID_CATEGORIES.includes(data.category)) {
     dom.eventCategory.value = data.category;
   } else {
     dom.eventCategory.value = VALID_CATEGORIES[0] || "";
   }
 
-  // Apply tags - always set, clear if empty
   const tags = Array.isArray(data.tags)
     ? data.tags.filter(t => typeof t === "string").slice(0, TAG_LIMIT)
     : [];
@@ -1313,7 +1288,6 @@ export async function applyImportedJsonToEventForm(data, api) {
     dom.eventTags.value = tags.join(", ");
   }
 
-  // Apply access type - use default if invalid/missing
   if (data.accessType && typeof data.accessType === "string" && VALID_ACCESS_TYPES.includes(data.accessType)) {
     dom.eventAccess.value = data.accessType;
   } else {
@@ -1324,43 +1298,38 @@ export async function applyImportedJsonToEventForm(data, api) {
     enforceGroupAccess(dom.eventAccess, groupId);
   }
 
-  // Apply role IDs - always set, clear if empty
   state.event.roleIds = Array.isArray(data.roleIds)
     ? data.roleIds.filter(id => typeof id === "string" && id.trim())
     : [];
 
-  // Apply image ID - always set, clear if empty
   dom.eventImageId.value = (data.imageId && typeof data.imageId === "string")
     ? data.imageId.trim()
     : "";
 
-  // Apply send notification - default to false if missing
   dom.eventSendNotification.checked = typeof data.sendNotification === "boolean"
     ? data.sendNotification
     : false;
 
-  // Apply featured - default to false if missing
   if (dom.eventFeatured) {
     dom.eventFeatured.checked = typeof data.featured === "boolean"
       ? data.featured
       : false;
   }
 
-  // Apply duration - use default if invalid/missing
   if (typeof data.duration === "number" && data.duration > 0) {
     dom.eventDuration.value = formatDuration(data.duration);
   } else {
-    dom.eventDuration.value = formatDuration(120); // Default 2 hours
+    dom.eventDuration.value = formatDuration(120); // default 2 hours
   }
   updateEventDurationPreview();
 
-  // Apply timezone - keep current if invalid/missing
+  // Timezone: keep current if invalid/missing.
   if (data.timezone && typeof data.timezone === "string") {
     ensureTimezoneOption(dom.eventTimezone, data.timezone);
     dom.eventTimezone.value = data.timezone;
   }
 
-  // Apply languages - only update if provided with valid non-empty values
+  // Languages/platforms: only update when valid non-empty values are provided.
   if (Array.isArray(data.languages)) {
     const validLanguages = data.languages.filter(l => typeof l === "string" && l.trim()).slice(0, 3);
     if (validLanguages.length > 0) {
@@ -1369,7 +1338,6 @@ export async function applyImportedJsonToEventForm(data, api) {
     }
   }
 
-  // Apply platforms - only update if provided with valid non-empty values
   if (Array.isArray(data.platforms)) {
     const validPlatforms = data.platforms.filter(p => typeof p === "string" && p.trim());
     if (validPlatforms.length > 0) {
@@ -1378,21 +1346,18 @@ export async function applyImportedJsonToEventForm(data, api) {
     }
   }
 
-  // Apply date - always set, clear if invalid/missing
   if (data.date && typeof data.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(data.date)) {
     dom.eventManualDate.value = data.date;
   } else {
     dom.eventManualDate.value = "";
   }
 
-  // Apply time - always set, clear if invalid/missing
   if (data.time && typeof data.time === "string" && /^\d{2}:\d{2}$/.test(data.time)) {
     dom.eventManualTime.value = data.time;
   } else {
     dom.eventManualTime.value = "";
   }
 
-  // Re-render role restrictions if needed
   void renderEventRoleRestrictions(api);
 
   return { success: true };
@@ -1419,7 +1384,6 @@ export async function handleEventImportJson(api) {
 
 export async function handleEventExportJson(api) {
   try {
-    // Gather current form values
     const tags = state.event.tagInput?.getTags?.() ||
       dom.eventTags.value.split(",").map(t => t.trim()).filter(Boolean);
 
@@ -1442,14 +1406,13 @@ export async function handleEventExportJson(api) {
       time: dom.eventManualTime.value || ""
     };
 
-    // Include base64 image if imageId is set (fetches from gallery if not cached)
-    // Keep imageId as well so importer can check if they already have it
+    // Include base64 image when imageId is set (fetches from gallery if not cached).
+    // imageId is kept in the export so the importer can check for an existing copy.
     if (exportData.imageId) {
       try {
         const imageData = await api.getImageAsBase64(exportData.imageId);
         if (imageData) {
           exportData.imageBase64 = imageData;
-          // Keep imageId in export so importer can check if image already exists
         }
       } catch (imgErr) {
         console.warn("Could not include image in export:", imgErr);
@@ -1472,7 +1435,6 @@ export async function handleEventExportJson(api) {
   }
 }
 
-// Bind conflict modal event handlers
 if (dom.conflictContinue) {
   dom.conflictContinue.addEventListener("click", handleConflictContinue);
 }

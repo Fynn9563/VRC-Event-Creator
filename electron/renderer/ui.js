@@ -1,5 +1,3 @@
-// UI helper functions for VRChat Event Creator
-
 import { dom, state } from "./state.js";
 import { THEMES, THEME_FIELDS, THEME_PRESET_LABELS } from "./config.js";
 import { t } from "./i18n/index.js";
@@ -68,10 +66,6 @@ export function refreshStatusPill() {
   updateStatusPill();
 }
 
-// ============================================================================
-// Status and Toast
-// ============================================================================
-
 export function setStatus(message) {
   dom.statusLine.textContent = message;
 }
@@ -87,14 +81,13 @@ export function setFootMeta(message) {
 }
 
 /**
- * Show a stylized in-app confirmation dialog. Returns a Promise that resolves to
- * true if the user clicks the confirm button, false on cancel/dismiss.
+ * Stylized in-app confirmation dialog. Resolves true on confirm, false on cancel/dismiss.
  * @param {object} options
- * @param {string} options.message - Body text (required)
- * @param {string} [options.title] - Optional heading
- * @param {string} [options.confirmLabel] - Text for the confirm button
- * @param {string} [options.cancelLabel] - Text for the cancel button
- * @param {boolean} [options.danger] - Style the confirm button as destructive
+ * @param {string} options.message
+ * @param {string} [options.title]
+ * @param {string} [options.confirmLabel]
+ * @param {string} [options.cancelLabel]
+ * @param {boolean} [options.danger] - Style confirm button as destructive.
  * @returns {Promise<boolean>}
  */
 export function showConfirmModal(options = {}) {
@@ -163,10 +156,6 @@ export function showToast(message, isError = false, options = {}) {
   }, duration);
 }
 
-// ============================================================================
-// Auth State
-// ============================================================================
-
 export function setAuthState(isAuthed) {
   statusIsAuthed = Boolean(isAuthed);
   updateStatusPill();
@@ -187,10 +176,6 @@ export function setAuthState(isAuthed) {
   }
 }
 
-// ============================================================================
-// Views
-// ============================================================================
-
 export function showView(viewName) {
   dom.navButtons.forEach(btn => {
     btn.classList.toggle("is-active", btn.dataset.view === viewName);
@@ -201,10 +186,6 @@ export function showView(viewName) {
   dom.viewAbout.classList.toggle("is-hidden", viewName !== "about");
   dom.logoutBtn.classList.toggle("is-hidden", viewName !== "about");
 }
-
-// ============================================================================
-// Rendering Functions
-// ============================================================================
 
 function resolveItemLabel(item, getLabel) {
   if (!item) {
@@ -285,10 +266,6 @@ export function renderChecklist(container, items, selected, options = {}) {
   }
 }
 
-// ============================================================================
-// Wizard
-// ============================================================================
-
 export function setupWizard({ wizardId, stepsId, backButton, nextButton, saveButton, beforeStepChange }) {
   const wizard = document.getElementById(wizardId);
   if (!wizard) {
@@ -317,7 +294,7 @@ export function setupWizard({ wizardId, stepsId, backButton, nextButton, saveBut
       nextButton.disabled = isLast;
       nextButton.classList.toggle("is-hidden", isLast);
     }
-    // Save button visible only on the final step
+    // Save button visible only on the final step.
     if (saveButton) {
       const isLast = current >= stepPanels.length - 1;
       saveButton.classList.toggle("is-hidden", !isLast);
@@ -349,10 +326,6 @@ export function setupWizard({ wizardId, stepsId, backButton, nextButton, saveBut
   return { goTo };
 }
 
-// ============================================================================
-// Window Controls
-// ============================================================================
-
 export function bindWindowControls(windowControls) {
   if (!windowControls || !dom.windowMinimize || !dom.windowMaximize || !dom.windowClose) {
     return;
@@ -380,10 +353,6 @@ export function bindWindowControls(windowControls) {
   }
   windowControls.isMaximized().then(isMax => updateMaximizeState(isMax));
 }
-
-// ============================================================================
-// Theme Management
-// ============================================================================
 
 const THEME_KEYS = THEME_FIELDS.map(field => field.key);
 const BUILTIN_PRESETS = [
@@ -1001,7 +970,7 @@ async function saveThemeStore() {
     const stored = await themeApi.saveThemeStore(themeStore);
     themeStore = normalizeThemeStore(stored);
   } catch (err) {
-    // Ignore save errors.
+    // Save errors ignored.
   }
 }
 

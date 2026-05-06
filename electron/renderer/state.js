@@ -1,5 +1,3 @@
-// State management and DOM element references
-
 export const dom = {
   app: document.querySelector(".app"),
   titlebar: document.getElementById("titlebar"),
@@ -111,7 +109,7 @@ export const dom = {
   eventWarnConflicts: document.getElementById("event-warn-conflicts"),
   modifyGroup: document.getElementById("modify-group"),
   modifyRefresh: document.getElementById("modify-refresh"),
-  modifyShowPending: null, // legacy — replaced by modifyFilterPending
+  modifyShowPending: null, // legacy; replaced by modifyFilterPending
   modifyEventGrid: document.getElementById("modify-event-grid"),
   modifyCount: document.getElementById("modify-count"),
   modifyOverlay: document.getElementById("modify-overlay"),
@@ -204,7 +202,6 @@ export const dom = {
   profileSave: document.getElementById("profile-save"),
   profileBack: document.getElementById("profile-back"),
   profileNext: document.getElementById("profile-next"),
-  // Automation elements
   automationCard: document.getElementById("automation-card"),
   automationEnabled: document.getElementById("automation-enabled"),
   automationSettings: document.getElementById("automation-settings"),
@@ -221,11 +218,9 @@ export const dom = {
   automationRepeatCount: document.getElementById("automation-repeat-count"),
   automationRestore: document.getElementById("automation-restore"),
   automationRestoreCount: document.getElementById("automation-restore-count"),
-  // Automation confirm overlay
   automationConfirmOverlay: document.getElementById("automation-confirm-overlay"),
   automationConfirmOk: document.getElementById("automation-confirm-ok"),
   automationConfirmCancel: document.getElementById("automation-confirm-cancel"),
-  // Discord elements
   settingsDiscordEnabled: document.getElementById("settings-discord-enabled"),
   discordSettingsCaret: document.getElementById("discord-settings-caret"),
   discordSettingsPanel: document.getElementById("discord-settings-panel"),
@@ -243,12 +238,10 @@ export const dom = {
   discordSyncCheck: document.getElementById("discord-sync-check"),
   eventDiscordSyncField: document.getElementById("event-discord-sync-field"),
   eventDiscordSyncCheck: document.getElementById("event-discord-sync-check"),
-  // Webhook post toggles
   webhookPostField: document.getElementById("webhook-post-field"),
   webhookPostCheck: document.getElementById("webhook-post-check"),
   eventWebhookPostField: document.getElementById("event-webhook-post-field"),
   eventWebhookPostCheck: document.getElementById("event-webhook-post-check"),
-  // Calendar / Webhook elements
   settingsCalendarEnabled: document.getElementById("settings-calendar-enabled"),
   calendarSaveDirMeta: document.getElementById("calendar-save-dir-meta"),
   calendarSaveDirDisplay: document.getElementById("calendar-save-dir-display"),
@@ -256,14 +249,14 @@ export const dom = {
   calendarSaveDirOpen: document.getElementById("calendar-save-dir-open"),
   calendarSyncField: document.getElementById("calendar-sync-field"),
   calendarSyncCheck: document.getElementById("calendar-sync-check"),
-  // Profile calendar reminders (Schedule step)
+  // Profile calendar reminders (Schedule step).
   profileCalendarInviteCard: document.getElementById("profile-calendar-invite-card"),
   profileCalendarRemindersCard: document.getElementById("profile-calendar-reminders-card"),
   profileCalendarRemindersEnabled: document.getElementById("profile-calendar-reminders-enabled"),
   profileCalendarRemindersList: document.getElementById("profile-calendar-reminders-list"),
   profileCalendarReminderAdd: document.getElementById("profile-calendar-reminder-add"),
   profileCalendarRemindersHint: document.getElementById("profile-calendar-reminders-hint"),
-  // Event calendar options (Date step)
+  // Event calendar options (Date step).
   eventCalendarCreateField: document.getElementById("event-calendar-create-field"),
   eventCalendarCreateCheck: document.getElementById("event-calendar-create-check"),
   eventCalendarRemindersEnabledField: document.getElementById("event-calendar-reminders-enabled-field"),
@@ -271,35 +264,34 @@ export const dom = {
   eventCalendarRemindersList: document.getElementById("event-calendar-reminders-list"),
   eventCalendarReminderAdd: document.getElementById("event-calendar-reminder-add"),
   eventCalendarRemindersHint: document.getElementById("event-calendar-reminders-hint"),
-  // Webhook elements (inside discord-group-config)
+  // Webhook elements within discord-group-config.
   discordWebhookField: document.getElementById("discord-webhook-field"),
   discordWebhookEnabledCheck: document.getElementById("discord-webhook-enabled"),
   discordWebhookUrlField: document.getElementById("discord-webhook-url-field"),
   discordWebhookUrl: document.getElementById("discord-webhook-url"),
   discordWebhookToggle: document.getElementById("discord-webhook-toggle"),
   discordWebhookTestBtn: document.getElementById("discord-webhook-test-btn"),
-  // EC Kit elements
   eckitImportBtn: document.getElementById("eckit-import-btn"),
   eckitConfig: document.getElementById("eckit-config"),
   eckitWebhookName: document.getElementById("eckit-webhook-name"),
   eckitEmbedColor: document.getElementById("eckit-embed-color"),
   eckitEmbedColorHex: document.getElementById("eckit-embed-color-hex"),
   eckitAvatarUrl: document.getElementById("eckit-avatar-url"),
-  // Profile webhook message (Basics tab, kit-unlocked)
+  // Profile webhook message (Basics tab, kit-unlocked).
   profileWebhookMessageField: document.getElementById("profile-webhook-message-field"),
   profileWebhookMessageEnabled: document.getElementById("profile-webhook-message-enabled"),
   profileWebhookMessageCard: document.getElementById("profile-webhook-message-card"),
   profileWebhookMessage: document.getElementById("profile-webhook-message"),
   profileWebhookImagePath: document.getElementById("profile-webhook-image-path"),
   profileWebhookImageBtn: document.getElementById("profile-webhook-image-btn"),
-  // Event webhook message (Details step, kit-unlocked)
+  // Event webhook message (Details step, kit-unlocked).
   eventWebhookMessageField: document.getElementById("event-webhook-message-field"),
   eventWebhookMessageEnabled: document.getElementById("event-webhook-message-enabled"),
   eventWebhookMessageInput: document.getElementById("event-webhook-message-input"),
   eventWebhookMessage: document.getElementById("event-webhook-message"),
   eventWebhookImagePath: document.getElementById("event-webhook-image-path"),
   eventWebhookImageBtn: document.getElementById("event-webhook-image-btn"),
-  // Modify modal posting options (pending events only)
+  // Modify modal posting options (pending events only).
   modifyPostingOptions: document.getElementById("modify-posting-options"),
   modifyDiscordSyncField: document.getElementById("modify-discord-sync-field"),
   modifyDiscordSync: document.getElementById("modify-discord-sync"),
@@ -318,8 +310,7 @@ export const dom = {
   modifyWebhookMessage: document.getElementById("modify-webhook-message"),
   modifyWebhookImagePath: document.getElementById("modify-webhook-image-path"),
   modifyWebhookImageBtn: document.getElementById("modify-webhook-image-btn"),
-  // Modify Events series filter
-  // Modify view filters
+  // Modify view filters.
   modifyTimeRange: document.getElementById("modify-time-range"),
   modifyFiltersBtn: document.getElementById("modify-filters-btn"),
   modifyFiltersPanel: document.getElementById("modify-filters-panel"),
@@ -330,11 +321,9 @@ export const dom = {
   modifyFilterSeriesList: document.getElementById("modify-filter-series-list"),
   modifyFilterTemplatesGroup: document.getElementById("modify-filter-templates-group"),
   modifyFilterTemplatesList: document.getElementById("modify-filter-templates-list"),
-  // Schedule selection helpers
   scheduleGroupHint: document.getElementById("schedule-group-hint"),
-  // Schedule type filter chips
   scheduleFilterChips: document.getElementById("schedule-filter-chips"),
-  // Step 3 type toggle + mode containers
+  // Step 3 type toggle and mode containers.
   scheduleTypeTemplateBtn: document.getElementById("schedule-type-template-btn"),
   scheduleTypeSeriesBtn: document.getElementById("schedule-type-series-btn"),
   scheduleModeBlurbTemplate: document.getElementById("schedule-mode-blurb-template"),
@@ -343,7 +332,7 @@ export const dom = {
   scheduleModeInfo: document.getElementById("schedule-mode-info"),
   scheduleModeTemplate: document.getElementById("schedule-mode-template"),
   scheduleModeSeries: document.getElementById("schedule-mode-series"),
-  // Series-specific recurrence inputs (in step 3)
+  // Series-specific recurrence inputs in step 3.
   seriesDuration: document.getElementById("series-duration"),
   seriesDurationPreview: document.getElementById("series-duration-preview"),
   seriesStartDate: document.getElementById("series-start-date"),
@@ -376,11 +365,11 @@ export const state = {
   profiles: {},
   series: {},
   schedules: {
-    filterType: "all",       // "all" | "templates" | "series" — list filter
-    selectedType: null,      // "template" | "series" — what's currently selected in the dropdown
-    editingType: null,       // "template" | "series" | null — current wizard mode
-    editingSeriesId: null,   // when editing an existing series
-    recurrenceUnlocked: false // user clicked Unlock on a started series — save uses regenerate flow
+    filterType: "all",       // "all" | "templates" | "series": list filter
+    selectedType: null,      // "template" | "series": current dropdown selection
+    editingType: null,       // "template" | "series" | null: current wizard mode
+    editingSeriesId: null,   // set when editing an existing series
+    recurrenceUnlocked: false // Unlock clicked on a started series; save uses regenerate flow
   },
   event: {
     languages: [],
@@ -421,7 +410,7 @@ export const state = {
     refreshBackoffUntil: 0,
     refreshBackoffIndex: 0,
     lastRefreshTime: 0,
-    showPending: true,                   // legacy — kept for backward refs, mirrors filters.pending
+    showPending: true,                   // legacy; mirrors filters.pending for backward refs
     missedCount: 0,
     selectedImageUrl: "",
     filters: {
@@ -430,7 +419,7 @@ export const state = {
       modified: true,
       series: {}                         // keyed by seriesId, true=visible
     },
-    timeRangeDays: 90                    // default 3 months — persisted in settings
+    timeRangeDays: 90                    // default 3 months; persisted in settings
   },
   profile: {
     mode: "create",
@@ -451,7 +440,7 @@ export const state = {
   }
 };
 
-// Wizard state (referenced by both events and profiles)
+// Wizard state shared by events and profiles.
 export let eventWizard = null;
 export let profileWizard = null;
 export let profileEditConfirmed = false;

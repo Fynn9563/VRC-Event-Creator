@@ -1,33 +1,32 @@
-/**
- * Schema validator for user-supplied JSON imports (events + profiles).
- *
- * Threat model: an attacker hands the user a malicious JSON file, the user
- * imports it via dialog. Without validation, any field shape is possible:
- *   - Prototype pollution via __proto__ / constructor / prototype keys
- *   - Oversized strings or arrays causing memory pressure / UI hangs
- *   - Wrong types causing downstream crashes when state.* is used
- *   - Unknown fields persisting through saves and quietly accumulating
- *
- * Strategy: strict whitelist + type coercion. Anything not in the schema
- * is dropped silently. Each schema field has a type + an optional max
- * length / array cap. Non-conformant values fall back to documented
- * defaults rather than rejecting the whole import — a single bad field
- * shouldn't prevent the user from importing a mostly-good event.
- */
+// Schema validator for user-supplied JSON imports (events + profiles).
+//
+// Threat model: an attacker hands the user a malicious JSON file and the
+// user imports it via dialog. Without validation, any field shape is
+// possible:
+//   - Prototype pollution via __proto__ / constructor / prototype keys
+//   - Oversized strings or arrays causing memory pressure / UI hangs
+//   - Wrong types causing downstream crashes when state.* is used
+//   - Unknown fields persisting through saves and quietly accumulating
+//
+// Strategy: strict whitelist + type coercion. Anything not in the schema
+// is dropped silently. Each schema field has a type plus an optional max
+// length / array cap. Non-conformant values fall back to documented
+// defaults rather than rejecting the whole import; a single bad field
+// shouldn't prevent the user from importing a mostly-good event.
 
-// Cap any string field at 10k chars before downstream code sees it. The UI
-// limits descriptions to a few thousand; anything bigger is a memory-pressure
-// attempt or accidentally-pasted-binary. Per-field caps below override this
-// for short fields (titles, etc.).
+// Cap string fields at 10k chars before downstream code sees them. UI
+// limits descriptions to a few thousand; anything larger is a memory-
+// pressure attempt or accidentally-pasted binary. Per-field caps below
+// override this for short fields.
 const STRING_CAP = 10000;
 
-// Maximum array length for any whitelisted array field. The UI displays /
-// iterates these; an array of 100k strings would wedge the renderer.
+// Max array length for any whitelisted array field. The UI iterates these;
+// an array of 100k strings would wedge the renderer.
 const ARRAY_CAP = 100;
 
-// Reject these top-level keys outright — they're dangerous regardless of
-// value type. Using Object.create(null) for the working object is also a
-// belt; this is the suspenders.
+// Reject these top-level keys outright; they're dangerous regardless of
+// value type. Object.create(null) on the working object would belt this;
+// the explicit reject is the suspenders.
 const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 function isPlainObject(v) {
@@ -60,9 +59,8 @@ function asEnum(v, allowed, fallback) {
   return typeof v === "string" && allowed.includes(v) ? v : fallback;
 }
 
-// Reject + warn if any dangerous prototype-pollution keys are present at
-// the top level. We could just drop them silently, but throwing surfaces
-// the attempt in logs.
+// Reject + warn if dangerous prototype-pollution keys appear at the top
+// level. Silent drops would work; throwing surfaces the attempt in logs.
 function rejectDangerousKeys(raw) {
   for (const key of Object.keys(raw)) {
     if (DANGEROUS_KEYS.has(key)) {
@@ -81,7 +79,7 @@ const VALID_PLATFORMS = ["standalonewindows", "android", "ios"];
 const VALID_DATE_MODES = ["manual", "pattern", "both"];
 
 // ─────────────────────────────────────────────────────────────────────────
-// Event JSON schema — see electron/renderer/events.js handleEventExportJson
+// Event JSON schema. See electron/renderer/events.js handleEventExportJson
 // for the source of truth on what fields are produced.
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -116,7 +114,7 @@ function validateEventImport(raw) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Profile JSON schema — superset of event with patterns + automation.
+// Profile JSON schema: superset of event with patterns + automation.
 // ─────────────────────────────────────────────────────────────────────────
 
 function validateProfileImport(raw) {
@@ -169,15 +167,15 @@ function validatePatterns(raw) {
   }).filter(Boolean);
 }
 
-// Automation is an opaque-ish nested object. We only know it should be a
-// plain object or null. Strip dangerous prototype-pollution keys silently
-// rather than rejecting the whole automation block — keeps the rest of
-// the import usable. The downstream automation engine has its own
-// normalizePendingStore that handles further validation.
+// Automation is an opaque-ish nested object; the only known constraint is
+// that it must be a plain object or null. Strip dangerous prototype-
+// pollution keys silently rather than rejecting the whole automation
+// block, which keeps the rest of the import usable. The downstream
+// automation engine has its own normalizePendingStore for further checks.
 function validateAutomation(raw) {
   if (raw === null || raw === undefined) return null;
   if (!isPlainObject(raw)) return null;
-  // Strip dangerous keys (one level deep — automation is shallow in practice)
+  // Strip dangerous keys (one level deep; automation is shallow in practice)
   const clean = {};
   for (const [k, v] of Object.entries(raw)) {
     if (DANGEROUS_KEYS.has(k)) continue;

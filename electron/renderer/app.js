@@ -1,5 +1,3 @@
-// Main application entry point - imports and wires modular components
-
 import { CATEGORIES, ACCESS_TYPES, DATE_MODES, PATTERN_TYPES, WEEKDAYS, MONTHS, TAG_LIMIT } from "./config.js";
 import { dom, state, setEventWizard, setProfileWizard, getProfileWizard, getProfileEditConfirmed, setProfileEditConfirmed } from "./state.js";
 import { setStatus, setFootMeta, showToast, setAuthState, setUpdateAvailable, setUpdateProgress, refreshStatusPill, showView, renderSelect, setupWizard, bindWindowControls, initThemeControls, loadTheme, handleThemeChange, handleThemeReset, handleThemePresetSave, handleThemePresetDelete, handleThemePresetImport, handleThemePresetExport, syncThemeLocalization } from "./ui.js";
@@ -41,7 +39,6 @@ import {
   let resyncInProgress = false;
   let initialSyncComplete = false;
 
-  // Core app functions
   function renderGroupSelects(config = {}) {
     const { preserveSelection = false } = config;
     const currentEventGroup = dom.eventGroup.value;
@@ -209,9 +206,9 @@ import {
   }
 
   async function startAuthFlow() {
-    // Check session in background without blocking UI
+    // Check session in background without blocking UI.
     checkSession(api, refreshData).catch(() => {
-      // Session check failed, user needs to login
+      // Session check failed; user needs to log in.
     });
   }
 
@@ -229,12 +226,12 @@ import {
     const { preserveSelection = false, force = false } = options;
     try {
       setFootMeta(t("common.syncing"));
-      // Resync passes force=true to bypass the per-group permission cache
-      // in main, so VRChat-side role changes surface without an app restart.
+      // force=true bypasses main's per-group permission cache, so VRChat-side
+      // role changes surface without an app restart.
       state.groups = await api.getGroups(force ? { force: true } : undefined);
       state.profiles = await api.getProfiles();
       state.kitGroupIds = await api.eckitGetKitGroupIds().catch(() => []);
-      // Load series for currently-selected groups
+      // Load series for currently-selected groups.
       const profileGroupId = dom.profileGroup?.value;
       if (profileGroupId) {
         await loadSeriesForGroup(profileGroupId);
@@ -356,7 +353,7 @@ import {
       renderUpcomingEventCountLabel();
       syncModifyLocalization();
       syncThemeLocalization();
-      // Re-render reminder dropdowns with updated translations
+      // Re-render reminder dropdowns with updated translations.
       if (dom.profileCalendarRemindersList) {
         const current = readCalendarRemindersFromDom(dom.profileCalendarRemindersList);
         if (current.length) renderCalendarReminders(dom.profileCalendarRemindersList, current);
@@ -407,7 +404,7 @@ import {
       dom.patternDatePreview.textContent = "";
       return;
     }
-    // Create a date object for formatting (use 2024 as a leap year to handle Feb 29)
+    // 2024 is a leap year, so Feb 29 formats correctly.
     const date = new Date(2024, monthValue - 1, dayValue);
     const locale = getCurrentLanguage() || "en";
     const formatted = date.toLocaleDateString(locale, { month: "long", day: "numeric" });
@@ -430,26 +427,21 @@ import {
     }
   }
 
-  // Automation handlers
   function handleAutomationEnabledChange() {
     const enabled = dom.automationEnabled.checked;
 
-    // If enabling, show confirmation dialog
     if (enabled) {
-      // Check that patterns exist first
       if (state.profile.patterns.length === 0) {
         showToast(t("profiles.automation.patternsRequired") || "At least one pattern is required for automation", true);
         dom.automationEnabled.checked = false;
         return;
       }
 
-      // Show themed confirmation overlay
+      // Show themed confirmation overlay; settings stay hidden until confirm.
       dom.automationConfirmOverlay.classList.remove("is-hidden");
-      // Don't toggle settings yet - wait for user confirmation
       return;
     }
 
-    // Toggle settings visibility (when disabling)
     if (dom.automationSettings) {
       dom.automationSettings.classList.toggle("is-hidden", !enabled);
     }
@@ -457,7 +449,6 @@ import {
 
   function handleAutomationConfirmOk() {
     dom.automationConfirmOverlay.classList.add("is-hidden");
-    // Show automation settings
     if (dom.automationSettings) {
       dom.automationSettings.classList.remove("is-hidden");
     }
@@ -465,7 +456,6 @@ import {
 
   function handleAutomationConfirmCancel() {
     dom.automationConfirmOverlay.classList.add("is-hidden");
-    // Uncheck the checkbox
     dom.automationEnabled.checked = false;
   }
 
@@ -504,7 +494,6 @@ import {
         } else {
           showToast(t("profiles.automation.restoreNone") || "No events to restore");
         }
-        // Update the restorable count display
         await updateRestorableCount();
       } else {
         showToast(result.error?.message || t("profiles.automation.restoreFailed") || "Failed to restore events", true);
@@ -546,15 +535,12 @@ import {
     const mode = dom.automationTimingMode.value;
     const isMonthly = mode === "monthly";
 
-    // Toggle visibility of offset settings (timing input) vs monthly settings
     if (dom.automationOffsetSettings) {
       dom.automationOffsetSettings.classList.toggle("is-hidden", isMonthly);
     }
     if (dom.automationMonthlySettings) {
       dom.automationMonthlySettings.classList.toggle("is-hidden", !isMonthly);
     }
-
-    // Toggle prose visibility
     if (dom.automationOffsetProse) {
       dom.automationOffsetProse.classList.toggle("is-hidden", isMonthly);
     }
@@ -562,7 +548,6 @@ import {
       dom.automationMonthlyProse.classList.toggle("is-hidden", !isMonthly);
     }
 
-    // Update prose for new mode
     updateAutomationProse();
   }
 
@@ -576,7 +561,7 @@ import {
   }
 
   function parseAutomationTimingInput(value) {
-    // Parse DD:HH:MM format (same as duration format)
+    // DD:HH:MM format (same as duration format).
     const parsed = parseDurationInput(value);
     if (!parsed) {
       return { days: 0, hours: 0, minutes: 0, totalMinutes: 0 };
@@ -589,7 +574,7 @@ import {
   }
 
   function formatAutomationTimingValue(days, hours, minutes) {
-    // Normalize: hours >= 24 overflow to days, minutes >= 60 overflow to hours
+    // Normalize: hours >= 24 overflow to days; minutes >= 60 overflow to hours.
     let totalMinutes = (days * 1440) + (hours * 60) + minutes;
     const normDays = Math.floor(totalMinutes / 1440);
     const normHours = Math.floor((totalMinutes % 1440) / 60);
@@ -615,7 +600,6 @@ import {
     const timing = parseAutomationTimingInput(dom.automationTimingInput?.value);
     const { days, hours, minutes } = timing;
 
-    // Build parts array for natural language
     const parts = [];
     if (days === 1) {
       parts.push(t("profiles.automation.prose.day"));
@@ -633,7 +617,7 @@ import {
       parts.push(t("profiles.automation.prose.minutes", { count: minutes }));
     }
 
-    // Join parts with commas and "and"
+    // Join parts with commas and "and".
     let timeStr;
     if (parts.length === 0) {
       timeStr = t("profiles.automation.prose.noTime");
@@ -647,7 +631,6 @@ import {
       timeStr = `${middleParts}, ${t("profiles.automation.prose.and")} ${lastPart}`;
     }
 
-    // Build final prose based on mode
     const proseSpan = proseEl.querySelector("span");
     if (proseSpan) {
       if (mode === "before") {
@@ -665,19 +648,16 @@ import {
     const day = parseInt(dom.automationMonthlyDay?.value) || 1;
     const time = dom.automationMonthlyTime?.value || "18:00";
 
-    // Format time to 12-hour with AM/PM
     const [hours24, mins] = time.split(":");
     const hours = parseInt(hours24);
     const isPM = hours >= 12;
     const hours12 = hours === 0 ? 12 : (hours > 12 ? hours - 12 : hours);
     const ampm = isPM ? "PM" : "AM";
 
-    // Get timezone abbreviation from selected timezone
     const selectedTz = dom.profileTimezone?.value || Intl.DateTimeFormat().resolvedOptions().timeZone;
     const tzAbbrev = getTimeZoneAbbr(selectedTz);
     const timeFormatted = `${hours12}:${mins} ${ampm} ${tzAbbrev}`;
 
-    // Get ordinal suffix for day
     const ordinal = getOrdinalSuffix(day);
 
     const proseSpan = proseEl.querySelector("span");
@@ -693,7 +673,6 @@ import {
   function getOrdinalSuffix(num) {
     const lang = getCurrentLanguage?.() || "en";
 
-    // For English, use st/nd/rd/th
     if (lang === "en") {
       if (num % 100 >= 11 && num % 100 <= 13) return "th";
       switch (num % 10) {
@@ -704,7 +683,7 @@ import {
       }
     }
 
-    // For other languages, return empty (they'll handle in translation)
+    // Other languages handle ordinals via translation strings.
     return "";
   }
 
@@ -721,7 +700,6 @@ import {
     const hour = Number(hourStr);
     const minute = Number(minuteStr);
 
-    // Handle annual pattern type
     if (type === "annual") {
       const month = Number(dom.patternMonth.value);
       const day = Number(dom.patternDay.value);
@@ -736,7 +714,6 @@ import {
       return;
     }
 
-    // Handle weekday-based patterns
     const weekday = dom.patternWeekday.value;
     if (!weekday) {
       showToast(t("profiles.patterns.selectAll"), true);
@@ -794,7 +771,7 @@ import {
 
   function handleProfileWizardStepChange(payload) {
     const { current, next } = payload;
-    // Refresh template list when returning to step 0 so newly saved schedules show up
+    // Returning to step 0: refresh template list so newly saved schedules show up.
     if (next < current && next === 0) {
       const currentGroup = dom.profileGroup.value;
       if (currentGroup) {
@@ -802,15 +779,15 @@ import {
       }
     }
     const result = profilesHandleProfileWizardStepChange(payload);
-    // After advancing to step 3 with a series, re-run the occurrence inspection so date/time
-    // backfill happens every navigation (not just on dropdown change). This covers the case
-    // where the user goes step1 → step3, back to step1, forward to step3 again.
+    // Advancing to step 3 with a series: re-run occurrence inspection so
+    // date/time backfill happens every navigation (not just on dropdown
+    // change). Covers step1 -> step3, back to step1, forward to step3 again.
     if (result && next > current && next >= 2 && state.schedules?.editingType === "series") {
       const groupId = dom.profileGroup.value;
       const seriesId = state.schedules?.editingSeriesId;
       if (groupId && seriesId) {
         inspectSeriesOccurrences(api, groupId, seriesId).then(info => {
-          // Don't re-lock if the user has explicitly clicked Unlock — respect their override
+          // Don't re-lock if user explicitly clicked Unlock; respect override.
           if (info.started === true && !state.schedules?.recurrenceUnlocked) {
             setRecurrenceFieldsLocked(true);
           }
@@ -822,7 +799,7 @@ import {
                 state.series[groupId][seriesId].firstOccurrenceEndUtc = info.earliestEnd;
               }
             }
-            // Backfill the form fields if they're empty.
+            // Backfill form fields if empty.
             if (dom.seriesStartDate?.value === "" || dom.seriesStartTime?.value === "") {
               const localDate = new Date(info.earliestStart);
               if (!Number.isNaN(localDate.getTime())) {
@@ -875,16 +852,16 @@ import {
     }
   }
 
+
   function bindEvents() {
     dom.navButtons.forEach(btn => btn.addEventListener("click", () => {
       const view = btn.dataset.view;
       const previousView = Array.from(dom.navButtons).find(b => b.classList.contains("is-active"))?.dataset.view;
       showView(view);
-      // Reset Modify Events filters when leaving the tab (filters are session-scoped)
+      // Reset Modify Events filters when leaving the tab (session-scoped).
       if (previousView === "modify" && view !== "modify") {
         resetModifyFilters();
       }
-      // Refresh profile list when navigating to profiles view
       if (view === "profiles") {
         renderProfileList(api);
         updateAutomationProse();
@@ -936,16 +913,11 @@ import {
           return;
         }
         if (updateInfo.downloaded && api.installUpdate) {
-          // Update is downloaded, restart to install
           api.installUpdate();
         } else if (updateInfo.downloading) {
-          // Already downloading, just show status
           showToast(t("common.updateDownloading") || "Downloading update...");
-        } else {
-          // Start download when user clicks update pill
-          if (api.downloadUpdate) {
-            await api.downloadUpdate();
-          }
+        } else if (api.downloadUpdate) {
+          await api.downloadUpdate();
         }
       });
     }
@@ -1117,7 +1089,7 @@ import {
       dom.settingsEnableAdvanced.addEventListener("change", async () => {
         try {
           const enabled = dom.settingsEnableAdvanced.checked;
-          // When disabling advanced, also disable sub-settings
+          // Disabling advanced cascades to sub-settings.
           if (!enabled) {
             if (dom.settingsEnableImportExport) dom.settingsEnableImportExport.checked = false;
             if (dom.settingsAutoUploadImages) dom.settingsAutoUploadImages.checked = false;
@@ -1130,19 +1102,17 @@ import {
           } else {
             await api.updateSettings({ enableAdvanced: true });
           }
-          // Expand on enable, collapse on disable
           updateAdvancedSettingsVisibility({ expand: enabled });
         } catch (err) {
           console.error("Failed to save advanced settings:", err);
         }
       });
     }
-    // Advanced settings caret toggle
     if (dom.settingsAdvancedCaret) {
       dom.settingsAdvancedCaret.addEventListener("click", () => {
         const isExpanded = dom.settingsAdvancedCaret.classList.contains("is-expanded");
         updateAdvancedSettingsVisibility({ expand: !isExpanded });
-        // Refresh Discord caret visibility when advanced panel is expanded
+        // Refresh Discord caret visibility when advanced panel is expanded.
         updateDiscordVisibility();
       });
     }
@@ -1165,14 +1135,12 @@ import {
         }
       });
     }
-    // Discord integration toggle
     if (dom.settingsDiscordEnabled) {
       dom.settingsDiscordEnabled.addEventListener("change", async () => {
         try {
           const enabled = dom.settingsDiscordEnabled.checked;
           await api.updateSettings({ discordEnabled: enabled });
           state.settings.discordEnabled = enabled;
-          // Expand on enable, collapse on disable
           updateDiscordVisibility({ expandPanel: enabled });
           if (enabled) renderDiscordGroupSelect();
         } catch (err) {
@@ -1180,14 +1148,12 @@ import {
         }
       });
     }
-    // Discord settings caret toggle
     if (dom.discordSettingsCaret) {
       dom.discordSettingsCaret.addEventListener("click", () => {
         const isExpanded = dom.discordSettingsCaret.classList.contains("is-expanded");
         updateDiscordVisibility({ expandPanel: !isExpanded });
       });
     }
-    // Discord sync event listeners
     if (api.onDiscordSyncSuccess) {
       api.onDiscordSyncSuccess(({ eventTitle }) => {
         showToast(t("settings.discord.syncSuccess").replace("{title}", eventTitle));
@@ -1198,7 +1164,6 @@ import {
         showToast(t("settings.discord.syncFailed").replace("{title}", eventTitle).replace("{error}", error), true);
       });
     }
-    // Calendar integration toggle (in Advanced Settings)
     if (dom.settingsCalendarEnabled) {
       dom.settingsCalendarEnabled.addEventListener("change", async () => {
         try {
@@ -1212,7 +1177,6 @@ import {
         }
       });
     }
-    // Calendar save directory browse button
     if (dom.calendarSaveDirBtn) {
       dom.calendarSaveDirBtn.addEventListener("click", async () => {
         const result = await api.calendarSelectSaveDir();
@@ -1222,7 +1186,6 @@ import {
         }
       });
     }
-    // Calendar save directory open button
     if (dom.calendarSaveDirOpen) {
       dom.calendarSaveDirOpen.addEventListener("click", () => {
         if (state.settings.calendarSaveDir) {
@@ -1230,17 +1193,14 @@ import {
         }
       });
     }
-    // Auto-save toast listener
     if (api.onCalendarAutoSaved) {
       api.onCalendarAutoSaved(({ eventTitle, filePath }) => {
         showToast((t("settings.calendar.autoSaved") || "Calendar file saved: {filePath}").replace("{filePath}", filePath).replace("{title}", eventTitle));
       });
     }
-    // Profile calendar sync toggle — show/hide reminders card
     if (dom.calendarSyncCheck) {
       dom.calendarSyncCheck.addEventListener("change", () => updateCalendarVisibility());
     }
-    // Profile calendar reminders enabled toggle — show/hide rows
     if (dom.profileCalendarRemindersEnabled) {
       dom.profileCalendarRemindersEnabled.addEventListener("change", () => {
         const show = dom.profileCalendarRemindersEnabled.checked;
@@ -1249,29 +1209,24 @@ import {
         if (dom.profileCalendarRemindersHint) dom.profileCalendarRemindersHint.classList.toggle("is-hidden", !show);
       });
     }
-    // Profile calendar reminder add button
     if (dom.profileCalendarReminderAdd) {
       dom.profileCalendarReminderAdd.addEventListener("click", () => {
         const current = readCalendarRemindersFromDom(dom.profileCalendarRemindersList);
         renderCalendarReminders(dom.profileCalendarRemindersList, [...current, { value: 30, unit: "minutes" }]);
       });
     }
-    // Event calendar create toggle — show/hide reminders option
     if (dom.eventCalendarCreateCheck) {
       dom.eventCalendarCreateCheck.addEventListener("change", () => { updateCalendarVisibility(); updateDiscordVisibility(); });
     }
-    // Event calendar reminders enabled toggle — show/hide rows
     if (dom.eventCalendarRemindersEnabled) {
       dom.eventCalendarRemindersEnabled.addEventListener("change", () => updateCalendarVisibility());
     }
-    // Event calendar reminder add button
     if (dom.eventCalendarReminderAdd) {
       dom.eventCalendarReminderAdd.addEventListener("click", () => {
         const current = readCalendarRemindersFromDom(dom.eventCalendarRemindersList);
         renderCalendarReminders(dom.eventCalendarRemindersList, [...current, { value: 30, unit: "minutes" }]);
       });
     }
-    // Webhook sync toast listeners
     if (api.onWebhookSyncSuccess) {
       api.onWebhookSyncSuccess(({ eventTitle }) => {
         showToast(t("settings.webhook.syncSuccess").replace("{title}", eventTitle));
@@ -1282,33 +1237,29 @@ import {
         showToast(t("settings.webhook.syncFailed").replace("{title}", eventTitle).replace("{error}", error), true);
       });
     }
-    // Initialize Discord UI (token toggle, test button, auto-save)
     initDiscordUI(api);
-    // EC Kit import button
     if (dom.eckitImportBtn) {
       dom.eckitImportBtn.addEventListener("click", async () => {
         const result = await api.eckitImport();
         if (result.cancelled) return;
         if (result.ok) {
           // Visible feedback is the customization fields appearing below the
-          // import button. The toast is a brief confirmation only — no kit
-          // metadata surfaced.
+          // import button. The toast is a brief confirmation only; no kit
+          // metadata is surfaced.
           showToast(t("settings.eckit.imported"));
-          // Refresh kit state so isGroupKitActive() picks up the new kit
           state.kitGroupIds = await api.eckitGetKitGroupIds().catch(() => []);
-          // Reload current group config to show kit fields
+          // Reload current group config to show kit fields.
           const groupId = dom.discordGroupSelect?.value;
           if (groupId) {
             dom.discordGroupSelect.dispatchEvent(new Event("change"));
           }
-          // Refresh visibility for template and event forms
           updateDiscordVisibility();
         } else {
           showToast(result.error || "Invalid kit file.", true);
         }
       });
     }
-    // EC Kit color picker ↔ hex text sync
+    // EC Kit color picker / hex text sync.
     if (dom.eckitEmbedColor && dom.eckitEmbedColorHex) {
       dom.eckitEmbedColor.addEventListener("input", () => {
         dom.eckitEmbedColorHex.value = dom.eckitEmbedColor.value;
@@ -1320,7 +1271,6 @@ import {
         }
       });
     }
-    // Profile webhook image select button
     if (dom.profileWebhookImageBtn) {
       dom.profileWebhookImageBtn.addEventListener("click", async () => {
         const result = await api.eckitSelectImage();
@@ -1331,39 +1281,33 @@ import {
         }
       });
     }
-    // Profile webhook message toggle
     if (dom.profileWebhookMessageEnabled) {
       dom.profileWebhookMessageEnabled.addEventListener("change", () => {
         const show = dom.profileWebhookMessageEnabled.checked;
         if (dom.profileWebhookMessageCard) dom.profileWebhookMessageCard.classList.toggle("is-hidden", !show);
       });
     }
-    // Event "Create Discord Event" checkbox — refresh visibility
     if (dom.eventDiscordSyncCheck) {
       dom.eventDiscordSyncCheck.addEventListener("change", () => {
         updateDiscordVisibility();
       });
     }
-    // Profile "Post to Webhook" checkbox — refresh kit visibility
     if (dom.webhookPostCheck) {
       dom.webhookPostCheck.addEventListener("change", () => {
         updateDiscordVisibility();
       });
     }
-    // Event "Post to Webhook" checkbox — refresh kit visibility
     if (dom.eventWebhookPostCheck) {
       dom.eventWebhookPostCheck.addEventListener("change", () => {
         updateDiscordVisibility();
       });
     }
-    // Event webhook message toggle
     if (dom.eventWebhookMessageEnabled) {
       dom.eventWebhookMessageEnabled.addEventListener("change", () => {
         const show = dom.eventWebhookMessageEnabled.checked;
         if (dom.eventWebhookMessageInput) dom.eventWebhookMessageInput.classList.toggle("is-hidden", !show);
       });
     }
-    // Event webhook image select button
     if (dom.eventWebhookImageBtn) {
       dom.eventWebhookImageBtn.addEventListener("click", async () => {
         const result = await api.eckitSelectImage();
@@ -1374,7 +1318,7 @@ import {
         }
       });
     }
-    // Modify modal posting options (pending events)
+    // Modify modal posting options (pending events).
     if (dom.modifyWebhookPost) {
       dom.modifyWebhookPost.addEventListener("change", () => updateModifyWebhookVisibility());
     }
@@ -1435,11 +1379,10 @@ import {
     if (dom.modifyEventImagePicker) {
       dom.modifyEventImagePicker.addEventListener("click", () => openGalleryPicker(dom.modifyEventImageId));
     }
-      // Init series module
       initSeriesModule(api);
       initRasterizeStatusIndicator();
 
-      // Schedule type filter chips
+      // Schedule type filter chips.
       if (dom.scheduleFilterChips) {
         dom.scheduleFilterChips.addEventListener("click", (event) => {
           const btn = event.target.closest("button[data-filter]");
@@ -1452,20 +1395,20 @@ import {
         });
       }
 
-      // Step 3 type toggle (Template / Series segmented control)
+      // Step 3 type toggle (Template / Series segmented control).
       if (dom.scheduleTypeTemplateBtn) {
         dom.scheduleTypeTemplateBtn.addEventListener("click", () => {
           if (state.schedules.editingType === "template") return;
           state.schedules.editingType = "template";
-          // Don't clear the series form — DOM retains values for in-session toggle return
+          // Don't clear the series form; DOM retains values for in-session toggle return.
           showScheduleMode("template");
         });
       }
       if (dom.scheduleTypeSeriesBtn) {
         dom.scheduleTypeSeriesBtn.addEventListener("click", () => {
           if (state.schedules.editingType === "series") return;
-          // Initialize series fields with sensible defaults the first time we toggle here
-          // in this session (only if start date is empty — preserves user input on toggle-back)
+          // First toggle this session: seed sensible defaults, but only if
+          // start date is empty (preserves user input on toggle-back).
           if (!dom.seriesStartDate?.value) {
             resetSeriesRecurrenceForm();
           }
@@ -1473,7 +1416,6 @@ import {
           showScheduleMode("series");
         });
       }
-      // More info disclosure
       if (dom.scheduleModeMoreInfo) {
         dom.scheduleModeMoreInfo.addEventListener("click", () => {
           if (dom.scheduleModeInfo) {
@@ -1481,11 +1423,10 @@ import {
           }
         });
       }
-      // Series end-type dropdown — show/hide rows
       if (dom.seriesEndType) {
         dom.seriesEndType.addEventListener("change", () => updateSeriesEndVisibility());
       }
-      // Series interval-unit dropdown — re-evaluate weekday checkbox visibility
+      // Series interval-unit dropdown re-evaluates weekday checkbox visibility.
       if (dom.seriesIntervalUnit) {
         dom.seriesIntervalUnit.addEventListener("change", () => updateSeriesFrequencyVisibility());
       }
@@ -1497,7 +1438,7 @@ import {
           await loadSeriesForGroup(groupId);
         }
         renderProfileList(api);
-        // Reset wizard editing state and unlock toggle when switching groups
+        // Reset wizard editing state and unlock toggle when switching groups.
         state.schedules.editingType = null;
         state.schedules.editingSeriesId = null;
         showScheduleMode(null, { lock: false });
@@ -1505,13 +1446,13 @@ import {
       dom.profileExisting.addEventListener("change", async () => {
         const selected = dom.profileExisting.value;
         if (selected.startsWith("series::")) {
-          // Series selected — populate the wizard for editing so step buttons work directly
+          // Series selected: populate the wizard for editing so step buttons work directly.
           const seriesId = selected.slice("series::".length);
           const groupId = dom.profileGroup?.value;
           state.schedules.selectedType = "series";
           state.schedules.editingType = "series";
           state.schedules.editingSeriesId = seriesId;
-          // Lazy-load series data if missing (covers stale-state scenarios)
+          // Lazy-load series data if missing (covers stale-state scenarios).
           let seriesData = state.series?.[groupId]?.[seriesId];
           if (!seriesData) {
             try {
@@ -1522,13 +1463,13 @@ import {
               }
             } catch (err) { /* ignore */ }
           }
-          // Always set edit-confirmed for series so wizard transitions work
+          // Always set edit-confirmed for series so wizard transitions work.
           setProfileEditConfirmed(true);
           showScheduleMode("series", { lock: true });
           if (seriesData) {
             applySeriesToWizard(seriesData);
           }
-          // Async-inspect occurrences: lock recurrence fields if started + backfill missing dates
+          // Async-inspect: lock recurrence fields if started + backfill missing dates.
           setRecurrenceFieldsLocked(false);
           inspectSeriesOccurrences(api, groupId, seriesId).then(info => {
             if (info.started === true) setRecurrenceFieldsLocked(true);
@@ -1548,15 +1489,15 @@ import {
           updateProfileActionButtons();
           return;
         } else if (selected) {
-          // Template selected — handleProfileSelection loads the data; mark as edit
+          // Template selected: handleProfileSelection loads the data; mark as edit.
           state.schedules.selectedType = "template";
           state.schedules.editingType = "template";
           state.schedules.editingSeriesId = null;
           showScheduleMode("template", { lock: true });
           setRecurrenceFieldsLocked(false);
           handleProfileSelection(api);
-          // Same reason as the Edit button handler above: render helpers live
-          // in this closure, applyProfileToForm doesn't trigger them.
+          // Same reason as the Edit button handler above: render helpers
+          // live in this closure; applyProfileToForm doesn't trigger them.
           renderProfileLanguageList();
           renderProfilePlatformList();
           renderPatternList();
@@ -1576,11 +1517,11 @@ import {
           showToast(t("common.errors.noGroup") || "Select a group.", true);
           return;
         }
-        // Reset editing state — type will be picked in step 3 (toggle stays unlocked)
+        // Reset editing state; type is picked in step 3 (toggle stays unlocked).
         state.schedules.editingType = null;
         state.schedules.editingSeriesId = null;
         showScheduleMode(null, { lock: false });
-        // Ensure recurrence fields are unlocked for new series
+        // Ensure recurrence fields are unlocked for new series.
         setRecurrenceFieldsLocked(false);
         const r = handleProfileNew();
         if (!r.success && r.message) showToast(r.message, true);
@@ -1595,13 +1536,13 @@ import {
             showToast(t("series.errors.notFound") || "Series not found.", true);
             return;
           }
-          // Set up wizard for editing this series — lock the type toggle
+          // Set up wizard for editing this series; lock the type toggle.
           applySeriesToWizard(seriesData);
           showScheduleMode("series", { lock: true });
           setProfileEditConfirmed(true);
-          // Default to unlocked recurrence fields — async inspect below may re-lock
+          // Default to unlocked recurrence fields; async inspect below may re-lock.
           setRecurrenceFieldsLocked(false);
-          // Async: inspect occurrences to lock if started + backfill date/time if missing
+          // Async: inspect occurrences to lock if started + backfill date/time if missing.
           inspectSeriesOccurrences(api, groupId, seriesId).then(info => {
             if (info.started === true) setRecurrenceFieldsLocked(true);
             if (!seriesData.firstOccurrenceUtc && info.earliestStart && dom.seriesStartDate?.value === "") {
@@ -1617,21 +1558,21 @@ import {
               }
             }
           }).catch(() => {});
-          // Land on step 2 (Basics) — most edits target event details, not recurrence
+          // Land on step 2 (Basics): most edits target event details, not recurrence.
           const w0 = getProfileWizard();
           if (w0?.goTo) w0.goTo(1);
           return;
         }
-        // Template edit — existing flow, locked to template
+        // Template edit: existing flow, locked to template.
         state.schedules.editingType = "template";
         state.schedules.editingSeriesId = null;
         showScheduleMode("template", { lock: true });
         const r = handleProfileEdit();
         if (!r.success && r.message) showToast(r.message, true);
-        // applyProfileToForm (in profiles.js) repopulates state.profile.{patterns,
-        // languages,platforms} from the saved profile — but the DOM render
-        // helpers live in this file's closure and aren't reachable from
-        // profiles.js. Re-render here so step 3 reflects the loaded state.
+        // applyProfileToForm in profiles.js repopulates state.profile.{patterns,
+        // languages,platforms}, but the DOM render helpers live in this
+        // closure and aren't reachable from profiles.js. Re-render here so
+        // step 3 reflects the loaded state.
         if (r.success) {
           renderProfileLanguageList();
           renderProfilePlatformList();
@@ -1651,12 +1592,12 @@ import {
       else if (!r.cancelled) showToast(r.message, true);
     });
 
-    // Refresh schedule list event (dispatched after series CRUD)
+    // Dispatched after series CRUD.
     document.addEventListener("schedules:refresh", () => {
       renderProfileList(api);
     });
 
-    // Series recurrence form: live updates (in step 3 series mode)
+    // Series recurrence form: live updates (step 3 series mode).
     if (dom.seriesFrequency) {
       dom.seriesFrequency.addEventListener("change", () => updateSeriesFrequencyVisibility());
     }
@@ -1670,7 +1611,7 @@ import {
         updateSeriesDurationPreview();
       });
     }
-      // Save dispatches based on editingType
+      // Save dispatches based on editingType.
       dom.profileSave.addEventListener("click", async () => {
         if (state.schedules.editingType === "series") {
           const result = state.schedules.editingSeriesId
@@ -1679,27 +1620,25 @@ import {
           if (result?.success) {
             await refreshData({ preserveSelection: true });
             renderProfileList(api);
-            // Reset wizard editing state and unlock toggle after series save
             state.schedules.editingType = null;
             state.schedules.editingSeriesId = null;
             showScheduleMode(null, { lock: false });
-            // Reset form fields so the next New click starts fresh, but keep the group
+            // Reset form fields so the next New click starts fresh; keep the group.
             resetProfileForm();
             if (dom.profileExisting) dom.profileExisting.value = "";
             updateProfileActionButtons();
-            // Return to step 1 (Selection) so user can pick another or create a new one
+            // Return to step 1 (Selection) for picking another or creating new.
             const wizard = getProfileWizard();
             if (wizard?.goTo) wizard.goTo(0);
           }
           return;
         }
-        // Template save — existing flow
         const r = await handleProfileSave(api);
         if (r.success) {
           showToast(r.message);
           await refreshData({ preserveSelection: true });
           renderProfileList(api);
-          // Reset form fields and return to step 1 so user can pick another or create new
+          // Reset form fields and return to step 1 for picking another or creating new.
           resetProfileForm();
           if (dom.profileExisting) dom.profileExisting.value = "";
           updateProfileActionButtons();
@@ -1733,7 +1672,6 @@ import {
     dom.patternMonth.addEventListener("change", updatePatternDayOptions);
     dom.patternDay.addEventListener("change", updatePatternDatePreview);
 
-    // Automation event listeners
     if (dom.automationEnabled) {
       dom.automationEnabled.addEventListener("change", handleAutomationEnabledChange);
     }
@@ -1756,14 +1694,13 @@ import {
         }
       });
     }
-    // Automation timing input handlers (DD:HH:MM format like duration)
+    // Automation timing input handlers (DD:HH:MM format, like duration).
     if (dom.automationTimingInput) {
       dom.automationTimingInput.addEventListener("input", () => {
         dom.automationTimingInput.value = sanitizeDurationInputValue(dom.automationTimingInput.value);
         updateAutomationProse();
       });
       dom.automationTimingInput.addEventListener("blur", () => {
-        // Normalize and validate the timing input
         const timing = parseAutomationTimingInput(dom.automationTimingInput.value);
         dom.automationTimingInput.value = formatAutomationTimingValue(timing.days, timing.hours, timing.minutes);
         updateAutomationProse();
@@ -1850,7 +1787,7 @@ import {
     renderSelect(dom.patternWeekday, WEEKDAYS, t("profiles.patterns.selectWeekday"));
     renderSelect(dom.patternMonth, MONTHS, t("profiles.patterns.selectMonth"));
     updatePatternDayOptions();
-    handlePatternTypeChange(); // Set initial field visibility based on default pattern type
+    handlePatternTypeChange();
     initModifySelects();
     const { list, systemTz } = buildTimezones();
     renderSelect(dom.profileTimezone, list);
@@ -1876,7 +1813,7 @@ import {
     renderPatternList();
     applyManualEventDefaults();
     void renderEventRoleRestrictions(api);
-    // Set date range to today through one year from now.
+    // Date range: today through one year from now.
     const today = getTodayDateString();
     const maxDate = getMaxEventDateString();
     dom.eventManualDate.min = today;
@@ -1931,30 +1868,25 @@ import {
           void renderProfileRoleRestrictions(api);
         }
         // Modify view's pendingEvents may include projected events sourced
-        // from a now-deleted template — refresh it so projection re-runs
+        // from a now-deleted template; refresh so projection re-runs
         // against the updated profilesRef and stale entries disappear.
         void refreshModifyEvents(api, { preserveScroll: true });
       });
     }
 
-    // Listen for tray prompt event from main process
     if (windowControls.onShowTrayPrompt) {
       windowControls.onShowTrayPrompt(() => {
         dom.trayPromptOverlay.classList.remove("is-hidden");
       });
     }
 
-    // Handle tray prompt responses
     if (dom.trayPromptYes) {
       dom.trayPromptYes.addEventListener("click", async () => {
         dom.trayPromptOverlay.classList.add("is-hidden");
-        // Enable minimizeToTray and mark prompt as shown
         await api.updateSettings({ minimizeToTray: true, trayPromptShown: true });
-        // Update the UI checkbox to reflect the new setting
         if (dom.settingsMinimizeTray) {
           dom.settingsMinimizeTray.checked = true;
         }
-        // Hide to tray immediately
         windowControls.close();
       });
     }
@@ -1962,9 +1894,7 @@ import {
     if (dom.trayPromptNo) {
       dom.trayPromptNo.addEventListener("click", async () => {
         dom.trayPromptOverlay.classList.add("is-hidden");
-        // Mark prompt as shown but don't enable tray
         await api.updateSettings({ trayPromptShown: true });
-        // Quit the app
         api.quitApp();
       });
     }
@@ -1979,7 +1909,7 @@ import {
     }
   }
 
-  // Expose updateAutomationProse and updateRestorableCount to global scope for use in profiles.js
+  // Expose to global scope for profiles.js (cross-module access without import cycle).
   window.updateAutomationProse = updateAutomationProse;
   window.updateRestorableCount = updateRestorableCount;
 

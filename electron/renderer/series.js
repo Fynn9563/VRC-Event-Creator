@@ -11,8 +11,6 @@ export function initSeriesModule(api) {
   _seriesApi = api;
 }
 
-// --- Dropdown population ---
-
 export function populateSeriesTimezoneDropdown() {
   if (!dom.seriesTimezone) return;
   const { systemTz, list } = buildTimezones();
@@ -20,8 +18,6 @@ export function populateSeriesTimezoneDropdown() {
   ensureTimezoneOption(dom.seriesTimezone, systemTz);
   dom.seriesTimezone.value = systemTz;
 }
-
-// --- IPC ---
 
 export async function loadSeriesForGroup(groupId) {
   if (!_seriesApi || !groupId) return {};
@@ -35,8 +31,6 @@ export async function loadSeriesForGroup(groupId) {
     return {};
   }
 }
-
-// --- Series step 3 form helpers ---
 
 /** Reset only the series-specific recurrence inputs (step 3 series mode). */
 export function resetSeriesRecurrenceForm() {
@@ -78,7 +72,7 @@ export function applySeriesToWizard(seriesData) {
   state.schedules.editingType = "series";
   state.schedules.editingSeriesId = seriesData.seriesId;
 
-  // Step 2: schedule basics — fill the wizard's existing inputs from eventTemplate
+  // Step 2: schedule basics. Fill wizard inputs from eventTemplate.
   const tpl = seriesData.eventTemplate || {};
   if (dom.profileDisplayName) dom.profileDisplayName.value = seriesData.label || "";
   if (dom.profileName) dom.profileName.value = tpl.title || "";
@@ -88,7 +82,7 @@ export function applySeriesToWizard(seriesData) {
   if (dom.profileSendNotification) dom.profileSendNotification.checked = Boolean(tpl.sendCreationNotification);
   if (dom.profileAccess) dom.profileAccess.value = tpl.accessType || "public";
 
-  // Step 3: recurrence — fill series-specific inputs
+  // Step 3: recurrence. Fill series-specific inputs.
   const rec = seriesData.recurrence || { frequency: "weekly", interval: 1 };
   populateSeriesTimezoneDropdown();
   if (dom.seriesTimezone && rec.timezone) {
@@ -141,9 +135,9 @@ export function applySeriesToWizard(seriesData) {
     dom.seriesDuration.value = formatDuration(tpl.duration || 120);
     updateSeriesDurationPreview();
   }
-  // Populate first occurrence date + time from saved metadata (interpreted in user's local timezone).
-  // If firstOccurrenceUtc is missing (older series predating local persistence), leave the inputs
-  // alone — the caller's inspectSeriesOccurrences backfill will set them from VRChat's data.
+  // First occurrence date + time from saved metadata (user's local timezone).
+  // If firstOccurrenceUtc is missing (older series predating local persistence),
+  // leave inputs alone; inspectSeriesOccurrences backfill sets them from VRChat.
   if (seriesData.firstOccurrenceUtc) {
     const localDate = new Date(seriesData.firstOccurrenceUtc);
     if (!Number.isNaN(localDate.getTime())) {
@@ -194,12 +188,10 @@ export function readSeriesFromWizard() {
     sendCreationNotification: Boolean(dom.profileSendNotification?.checked)
   };
 
-  // Read raw wizard inputs; the recurrence assembly itself is in the extracted
-  // pure module (./series-recurrence.js) so it can be unit-tested without the
-  // DOM. DOM reads + interval clamping stay here in the renderer.
-  // Daily / Weekly / Monthly / Yearly are simple (interval=1).
-  // Weekdays = weekly with Mon-Fri; Weekends = weekly with Sat-Sun.
-  // Custom unlocks the unit dropdown + day-of-week checkboxes.
+  // Recurrence assembly is in ./series-recurrence.js (pure, unit-testable).
+  // DOM reads + interval clamping stay here in the renderer.
+  // Daily/Weekly/Monthly/Yearly are interval=1. Weekdays = weekly Mon-Fri;
+  // Weekends = weekly Sat-Sun. Custom unlocks unit + day-of-week checkboxes.
   const uiFreq = dom.seriesFrequency?.value || "weekly";
   const timezone = dom.seriesTimezone?.value || "UTC";
   let customIntervalUnit;
@@ -232,9 +224,9 @@ export function readSeriesFromWizard() {
     endType, endDate, endCount,
   });
 
-  // Build startsAt and endsAt — require BOTH date and time. Silently defaulting
-  // the time was a real footgun: an empty field used to fall back to 20:00 and
-  // the series got created at 8pm without telling the user.
+  // Require BOTH date and time for startsAt/endsAt. Silently defaulting the
+  // time to 20:00 was a real footgun: empty field led to series at 8pm
+  // without telling the user.
   const { startsAtUtc, endsAtUtc } = computeStartEndUtc({
     startDate: dom.seriesStartDate?.value || "",
     startTime: dom.seriesStartTime?.value || "",
@@ -259,16 +251,14 @@ export function readSeriesFromWizard() {
   return { label, eventTemplate, recurrence, startsAtUtc, endsAtUtc, announcements };
 }
 
-// --- Visibility helpers ---
-
 /** Show/hide custom interval and weekday checkboxes based on frequency selection. */
 export function updateSeriesFrequencyVisibility() {
   const freq = dom.seriesFrequency?.value || "weekly";
-  // "Custom" is the only frequency that exposes interval + unit fields
+  // "Custom" is the only frequency that exposes interval + unit fields.
   if (dom.seriesCustomRow) {
     dom.seriesCustomRow.classList.toggle("is-hidden", freq !== "custom");
   }
-  // Day-of-week checkboxes appear only when Custom + weekly unit
+  // Day-of-week checkboxes appear only when Custom + weekly unit.
   let showDays = false;
   if (freq === "custom") {
     const unit = dom.seriesIntervalUnit?.value || "weekly";
@@ -292,7 +282,7 @@ export function updateSeriesEndVisibility() {
 
 export function updateSeriesDurationPreview() {
   if (!dom.seriesDuration || !dom.seriesDurationPreview) return;
-  // formatDurationPreview takes the raw string, not the parsed result
+  // formatDurationPreview takes the raw string, not the parsed result.
   dom.seriesDurationPreview.textContent = formatDurationPreview(dom.seriesDuration.value);
 }
 
@@ -322,10 +312,10 @@ export function updateSaveButtonLabel() {
  * occurrence begins." Fields stay visible but become read-only with a hint.
  */
 export function setRecurrenceFieldsLocked(locked) {
-  // VRChat locks date / time / frequency / interval / day-of-week after the first
-  // occurrence starts, but the END condition (afterOccurrences / afterDate) IS
-  // editable post-start (verified via API testing 2026-04-30). So we keep
-  // seriesEndType / seriesEndCount / seriesEndDate UNLOCKED here.
+  // VRChat locks date/time/frequency/interval/day-of-week after the first
+  // occurrence starts, but the END condition (afterOccurrences/afterDate) IS
+  // editable post-start (verified via API testing 2026-04-30). So
+  // seriesEndType/seriesEndCount/seriesEndDate stay UNLOCKED here.
   const fields = [
     dom.seriesStartDate,
     dom.seriesStartTime,
@@ -340,15 +330,15 @@ export function setRecurrenceFieldsLocked(locked) {
       el.disabled = Boolean(locked);
     }
   });
-  // Hide the grey disclaimer when the yellow lock hint is showing (deduplicate)
+  // Hide the grey disclaimer when the yellow lock hint is showing (deduplicate).
   const disclaimer = document.getElementById("series-disclaimer");
   if (disclaimer) {
     disclaimer.classList.toggle("is-hidden", Boolean(locked));
   }
   // Show or hide a hint + Unlock button at the top of the recurrence card.
-  // When the user clicks Unlock, the recurrence fields become editable AND we
-  // flip state.schedules.recurrenceUnlocked so the save path uses the
-  // regenerate flow (delete+recreate, preserve modifications).
+  // Clicking Unlock makes the recurrence fields editable and flips
+  // state.schedules.recurrenceUnlocked so save uses the regenerate flow
+  // (delete+recreate, preserve modifications).
   let hint = document.getElementById("series-locked-hint");
   if (locked) {
     if (!hint && dom.seriesStartDate) {
@@ -376,9 +366,9 @@ export function setRecurrenceFieldsLocked(locked) {
         card.insertBefore(hint, card.firstChild);
       }
     }
-    // Reset the "unlocked override" flag whenever we re-enter locked mode
+    // Reset the "unlocked override" flag whenever re-entering locked mode.
     if (state.schedules) state.schedules.recurrenceUnlocked = false;
-    // Also clear any leftover regen banner from a previous unlock session
+    // Clear any leftover regen banner from a previous unlock session.
     const staleRegenBanner = document.getElementById("series-regen-warning");
     if (staleRegenBanner) staleRegenBanner.remove();
   } else if (hint) {
@@ -387,15 +377,15 @@ export function setRecurrenceFieldsLocked(locked) {
 }
 
 /**
- * Replace the locked banner with an unlocked-warning banner that says "saving
- * will regenerate the series". The recurrence fields are unlocked. We do NOT
- * call any destructive API here — the destructive work happens at save time.
- * We DO query seriesCheckModifications so the banner copy reflects whether a
- * Keep/Discard decision is coming on save.
+ * Replace the locked banner with an unlocked-warning banner ("saving will
+ * regenerate the series"). Recurrence fields become editable. No destructive
+ * API call here; that happens at save time. seriesCheckModifications is
+ * queried so the banner copy reflects whether a Keep/Discard decision is
+ * coming on save.
  */
 async function handleSeriesUnlock() {
   if (!state.schedules) return;
-  // Set the override flag FIRST so any subsequent setRecurrenceFieldsLocked call
+  // Set the override flag FIRST so any subsequent setRecurrenceFieldsLocked
   // from concurrent inspect retries doesn't undo the unlock.
   state.schedules.recurrenceUnlocked = true;
   setRecurrenceFieldsLocked(false);
@@ -413,11 +403,11 @@ async function handleSeriesUnlock() {
     card.insertBefore(banner, card.firstChild);
   }
   const textEl = banner.querySelector("#series-regen-warning-text");
-  // Default copy assumes no modifications until we hear otherwise
+  // Default copy assumes no modifications until proven otherwise.
   const baseCopy = t("series.regenWarning")
     || "Recurrence is unlocked. If you change the recurrence, the current series will be replaced with a new one.";
   textEl.textContent = baseCopy;
-  // Async check: if modifications exist, update the banner to mention them
+  // If modifications exist, update banner to mention them.
   const groupId = dom.profileGroup?.value;
   const seriesId = state.schedules.editingSeriesId;
   if (!_seriesApi?.seriesCheckModifications || !groupId || !seriesId) return;
@@ -430,16 +420,16 @@ async function handleSeriesUnlock() {
       textEl.textContent = withMods;
     }
   } catch (err) {
-    // Non-fatal — banner stays on the no-modifications copy
+    // Non-fatal; banner stays on the no-modifications copy.
   }
 }
 
 /**
- * Inspect a series's occurrences. Returns:
- *   { started: bool|null, earliestStart: ISO|null, earliestEnd: ISO|null }
- * - started: true if any occurrence's start is in the past, false otherwise, null on error
- * - earliestStart: ISO of the earliest occurrence (used to backfill the form when the
- *   series was created before we stored firstOccurrenceUtc locally)
+ * Inspect a series's occurrences.
+ * @returns {Promise<{ started: boolean|null, earliestStart: string|null, earliestEnd: string|null }>}
+ *   started: true if any occurrence's start is in the past, false otherwise,
+ *   null on error. earliestStart backfills the form for series created before
+ *   firstOccurrenceUtc was stored locally.
  */
 export async function inspectSeriesOccurrences(api, groupId, seriesId) {
   const result = { started: null, earliestStart: null, earliestEnd: null };
@@ -449,7 +439,7 @@ export async function inspectSeriesOccurrences(api, groupId, seriesId) {
     const now = Date.now();
     const occurrences = (events || []).filter(e => e.seriesId === seriesId);
     if (!occurrences.length) return result;
-    // Sort by start time ascending, take the first
+    // Sort by start time ascending, take the first.
     occurrences.sort((a, b) => {
       const aMs = a.startsAtUtc ? Date.parse(a.startsAtUtc) : Number.POSITIVE_INFINITY;
       const bMs = b.startsAtUtc ? Date.parse(b.startsAtUtc) : Number.POSITIVE_INFINITY;
@@ -475,11 +465,13 @@ export async function checkSeriesStarted(api, groupId, seriesId) {
   return info.started;
 }
 
-/** Show the appropriate mode container in step 3. Defaults to template if mode is null.
- *  When editing an existing schedule, the type is locked — toggle gets disabled. */
+/**
+ * Show the appropriate mode container in step 3. Defaults to template if mode
+ * is null. When editing an existing schedule, the type toggle is disabled.
+ * @param {"template"|"series"|null} mode
+ * @param {{ lock?: boolean }} [options]
+ */
 export function showScheduleMode(mode, options = {}) {
-  // mode: "template" | "series" | null — null defaults to template (the existing flow)
-  // options.lock: when true, disables the type toggle (used when editing existing schedules)
   const effectiveMode = mode || "template";
   const locked = Boolean(options.lock);
   if (dom.scheduleModeTemplate) {
@@ -488,7 +480,6 @@ export function showScheduleMode(mode, options = {}) {
   if (dom.scheduleModeSeries) {
     dom.scheduleModeSeries.classList.toggle("is-hidden", effectiveMode !== "series");
   }
-  // Toggle button active + disabled state
   if (dom.scheduleTypeTemplateBtn) {
     dom.scheduleTypeTemplateBtn.classList.toggle("is-active", effectiveMode === "template");
     dom.scheduleTypeTemplateBtn.disabled = locked;
@@ -499,16 +490,14 @@ export function showScheduleMode(mode, options = {}) {
     dom.scheduleTypeSeriesBtn.disabled = locked;
     dom.scheduleTypeSeriesBtn.classList.toggle("is-locked", locked);
   }
-  // Header blurb visibility
   if (dom.scheduleModeBlurbTemplate) {
     dom.scheduleModeBlurbTemplate.classList.toggle("is-hidden", effectiveMode !== "template");
   }
   if (dom.scheduleModeBlurbSeries) {
     dom.scheduleModeBlurbSeries.classList.toggle("is-hidden", effectiveMode !== "series");
   }
-  // Sync Save button label with the current mode
   updateSaveButtonLabel();
-  // Adapt the Announcements hint to the schedule type
+  // Adapt the Announcements hint to the schedule type.
   const announcementsHint = document.getElementById("profile-announcements-hint");
   if (announcementsHint) {
     const key = effectiveMode === "series"
@@ -521,8 +510,6 @@ export function showScheduleMode(mode, options = {}) {
     announcementsHint.dataset.i18n = key;
   }
 }
-
-// --- Action handlers ---
 
 export async function handleSeriesCreate(api) {
   if (state.app?.updateAvailable) {
@@ -553,7 +540,7 @@ export async function handleSeriesCreate(api) {
       || "First occurrence must be in the future. Update the date before saving.", true);
     return;
   }
-  // For Custom + weekly unit, require at least one day of the week
+  // For Custom + weekly unit, require at least one day of the week.
   const uiFreq = dom.seriesFrequency?.value;
   const unit = dom.seriesIntervalUnit?.value;
   if (uiFreq === "custom" && unit === "weekly" && (!recurrence.daysOfWeek || !recurrence.daysOfWeek.length)) {
@@ -608,8 +595,8 @@ export async function handleSeriesUpdate(api) {
   const existing = state.series[groupId]?.[seriesId];
   const existingRec = existing?.recurrence || {};
   const recurrenceRuleChanged = JSON.stringify(existingRec) !== JSON.stringify(recurrence);
-  // The first occurrence date+time lives on startsAt/endsAt, NOT inside the
-  // recurrence object. A change there also regenerates all occurrences and
+  // First-occurrence date+time lives on startsAt/endsAt, NOT inside the
+  // recurrence object. Changing it also regenerates all occurrences and
   // wipes occurrenceModified flags, so it must be treated like a recurrence
   // change for warning + regenerate purposes.
   const startTimeChanged = startsAtUtc && existing?.firstOccurrenceUtc
@@ -620,9 +607,9 @@ export async function handleSeriesUpdate(api) {
   // Regenerate path: user explicitly unlocked recurrence on a started series.
   // Delete + recreate, preserving modifications via the rasterize queue.
   if (unlocked && recurrenceChanged) {
-    // Client-side validation BEFORE any destructive call. The most common
-    // cause of regen failure is a startsAt that's in the past (because the
-    // form had the old start date and the user didn't update it).
+    // Client-side validation BEFORE any destructive call. Most common regen
+    // failure is a startsAt in the past (form had the old start date and the
+    // user didn't update it).
     if (!startsAtUtc || !endsAtUtc) {
       showToast(t("series.errors.noStartDate") || "First occurrence date and time are required.", true);
       return { success: false };
@@ -641,7 +628,7 @@ export async function handleSeriesUpdate(api) {
       if (choice === "cancel") return { success: false };
       strategy = choice; // "keep" | "discard"
     } else {
-      // No modifications — confirm the destructive action anyway since seriesId will change
+      // No modifications, but seriesId will change so confirm anyway.
       const confirmed = await showConfirmModal({
         title: t("series.regen.choiceTitle") || "Replace series?",
         message: t("series.regen.confirmMessage") || "This will replace the current series with a new one. Continue?",
@@ -686,13 +673,14 @@ export async function handleSeriesUpdate(api) {
     return { success: true };
   }
 
-  // Standard update path (recurrence unchanged, or recurrence editable pre-start)
+  // Standard update path (recurrence unchanged, or recurrence editable pre-start).
   if (!startsAtUtc || !endsAtUtc) {
     showToast(t("series.errors.noStartDate") || "First occurrence date and time are required.", true);
     return { success: false };
   }
-  // Only block past dates when recurrence changed (i.e. server will re-expand from startsAt).
-  // For pure event-detail updates with unchanged recurrence, leave startsAt alone.
+  // Only block past dates when recurrence changed (server re-expands from
+  // startsAt). Pure event-detail updates with unchanged recurrence leave
+  // startsAt alone.
   if (recurrenceChanged) {
     const startMs = Date.parse(startsAtUtc);
     if (!Number.isFinite(startMs) || startMs < Date.now()) {
@@ -702,9 +690,9 @@ export async function handleSeriesUpdate(api) {
     }
   }
   // When recurrence/time changes, VRChat regenerates occurrences and wipes
-  // occurrenceModified flags. Same Keep/Discard/Cancel choice as the regenerate
-  // path — modifications get rescued via the rasterize queue regardless of
-  // whether we're going through PUT (pre-start) or DELETE+CREATE (post-start).
+  // occurrenceModified flags. Same Keep/Discard/Cancel choice as the
+  // regenerate path; modifications get rescued via the rasterize queue
+  // regardless of PUT (pre-start) vs DELETE+CREATE (post-start).
   let strategyForUpdate = "discard";
   let modsForUpdate = [];
   if (recurrenceChanged) {
@@ -752,8 +740,8 @@ export async function handleSeriesUpdate(api) {
 }
 
 /**
- * Three-button modal asking the user how to handle modified occurrences when
- * regenerating a series. Returns "keep" | "discard" | "cancel".
+ * Three-button modal: how to handle modified occurrences when regenerating.
+ * @returns {Promise<"keep"|"discard"|"cancel">}
  */
 function showRegenerateChoiceModal(modCount) {
   return new Promise(resolve => {
@@ -839,8 +827,6 @@ export async function handleSeriesDelete(api, seriesId) {
   return { success: true };
 }
 
-// --- Display helpers ---
-
 export function recurrenceToHumanString(recurrence) {
   if (!recurrence) return "";
   const freq = recurrence.frequency || "weekly";
@@ -876,11 +862,9 @@ export function isGroupSeriesActive(groupId) {
   return Boolean(state.series[groupId] && Object.keys(state.series[groupId]).length);
 }
 
-// ----------------------------------------------------------------------------
-// Rasterize queue status indicator. Shows when the local pending-rasterize.json
-// queue has entries waiting (e.g. rate limited 429s after a regeneration).
-// Surfaces below the schedule selector on the Manage Schedules tab.
-// ----------------------------------------------------------------------------
+// Rasterize queue status indicator. Surfaces below the schedule selector on
+// the Manage Schedules tab when pending-rasterize.json has entries waiting
+// (e.g. rate-limited 429s after a regeneration).
 let _rasterizeStatusInited = false;
 
 function formatRelativeRetry(nextRetryAt) {
@@ -910,7 +894,7 @@ export async function refreshRasterizeStatus() {
     container.classList.add("is-hidden");
     return;
   }
-  // Find the soonest nextRetryAt across all entries
+  // Find the soonest nextRetryAt across all entries.
   const soonest = result.entries
     .map(e => e.nextRetryAt)
     .filter(Boolean)
@@ -944,10 +928,9 @@ export function initRasterizeStatusIndicator() {
   document.addEventListener("rasterize:changed", () => {
     refreshRasterizeStatus().catch(() => {});
   });
-  // Periodic refresh (every minute) so the "next retry in Xm" countdown updates
+  // Periodic refresh (every minute) so the "next retry in Xm" countdown updates.
   setInterval(() => {
     refreshRasterizeStatus().catch(() => {});
   }, 60 * 1000);
-  // Initial refresh
   refreshRasterizeStatus().catch(() => {});
 }

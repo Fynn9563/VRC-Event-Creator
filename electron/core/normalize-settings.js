@@ -1,15 +1,9 @@
-/**
- * Pure normalization for the user-settings object.
- *
- * Type-coerces every known field, drops any unknown ones, and supplies safe
- * defaults — the whitelist of fields here is the schema. Used by both load
- * and save paths in main.js so settings.json on disk can never carry stale
- * fields or wrong types into the running app.
- *
- * Pure functions: no fs, no Electron, no module state. Behavior must stay
- * byte-identical to the prior in-line versions in main.js — tests in
- * .dev/tests/core/normalize-settings.test.js lock this in.
- */
+// Pure normalization for the user-settings object. The whitelist of fields
+// here is the schema; unknown fields are dropped, missing ones get defaults.
+// Used on both load and save in main.js so settings.json on disk can never
+// carry stale fields or wrong types into the running app. Behavior must
+// stay byte-identical to prior in-line versions in main.js; tests in
+// .dev/tests/core/normalize-settings.test.js lock this in.
 
 function normalizeCalendarReminders(raw) {
   if (!Array.isArray(raw) || raw.length === 0) {
@@ -26,7 +20,7 @@ function normalizeCalendarReminders(raw) {
 }
 
 function normalizeSettings(raw) {
-  // Only preserve the specific settings fields we define - ignore any other fields
+  // Only preserve whitelisted fields; ignore everything else.
   const validRanges = [7, 14, 30, 90, 180, 365];
   if (!raw || typeof raw !== "object") {
     return {

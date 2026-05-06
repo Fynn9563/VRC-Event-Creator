@@ -1,8 +1,3 @@
-/**
- * Theme store module.
- * Manages theme preferences, preset files, import/export, and migration.
- */
-
 const fs = require("fs");
 const path = require("path");
 

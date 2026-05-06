@@ -25,19 +25,17 @@ const STABLE_USERDATA_NAME = "VRCEventCreator";
 const STABLE_USERDATA_PATH = path.join(app.getPath("appData"), STABLE_USERDATA_NAME);
 // Honor an explicit --user-data-dir CLI override (set by E2E test harness or
 // any user who really wants it). Without this guard, the setPath below would
-// silently overwrite that override and route every launch back to the
-// installed app's real data directory — making isolated test runs impossible.
+// silently overwrite the override and route every launch back to the installed
+// app's real data directory, making isolated test runs impossible.
 if (!process.argv.some(a => a.startsWith("--user-data-dir=")) && !process.env.VRCEC_E2E) {
   app.setPath("userData", STABLE_USERDATA_PATH);
 }
 
-// Disable GPU cache to suppress warnings
 app.commandLine.appendSwitch("disable-gpu-shader-disk-cache");
 
 const APP_NAME = "VRChat Event Creator";
 const IS_DEV = !app.isPackaged;
 
-// Enforce single instance
 const gotInstanceLock = app.requestSingleInstanceLock();
 if (!gotInstanceLock) {
   app.quit();
@@ -55,7 +53,7 @@ if (!gotInstanceLock) {
   });
 }
 
-// Debug logging — delegated to core/debug-log.js
+// Debug logging delegates to core/debug-log.js.
 function initDebugLog() {
   debugModule.init(app.getPath("userData"), IS_DEV);
 }
@@ -75,11 +73,9 @@ const UPDATE_REPO_OWNER = pkg.build?.publish?.owner || "Cynacedia";
 const UPDATE_REPO_NAME = pkg.build?.publish?.repo || "VRC-Event-Creator";
 const UPDATE_REPO_URL = `https://github.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}`;
 
-// Auto-updater configuration
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
-// Track update state
 let updateDownloaded = false;
 let updateDownloading = false;
 let updateProgress = 0;
@@ -103,13 +99,12 @@ autoUpdater.on("update-downloaded", (info) => {
   }
 });
 
-// Allow the app to fully quit during updates (avoid tray/minimize intercept)
+// Allow full quit during updates (avoid tray/minimize intercept).
 autoUpdater.on("before-quit-for-update", () => {
   isQuitting = true;
   destroyTray();
 });
 
-// Force update checks in dev mode for testing
 if (IS_DEV) {
   autoUpdater.forceDevUpdateConfig = true;
 }
@@ -122,7 +117,7 @@ let profiles = {};
 let twoFactorRequest = null;
 const AUTOSTART_ARG = "--autostart";
 
-// These will be initialized after app is ready
+// Initialized after app is ready.
 let DATA_DIR;
 let PROFILES_PATH;
 let SERIES_PATH;
@@ -199,20 +194,19 @@ function loadSettings() {
   }
 }
 
-// Gallery cache — delegated to core/gallery-cache.js (initialized in initializePaths)
+// Gallery cache delegates to core/gallery-cache.js (initialized in initializePaths).
 
 function saveSettings(nextSettings) {
   settings = normalizeSettings(nextSettings);
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
 
-  // Manage tray based on minimizeToTray setting
   if (settings.minimizeToTray && !appTray) {
     createTray();
   } else if (!settings.minimizeToTray && appTray) {
     destroyTray();
   }
 
-  // Manage startup on login setting (only for packaged builds)
+  // Startup-on-login only applies to packaged builds.
   if (!IS_DEV) {
     app.setLoginItemSettings({
       openAtLogin: settings.startOnStartup,
@@ -224,7 +218,7 @@ function saveSettings(nextSettings) {
   return settings;
 }
 
-// --- Discord token encryption helpers ---
+// Discord token encryption helpers.
 
 function encryptToken(plainText) {
   if (!plainText) return "";
@@ -246,15 +240,13 @@ function decryptToken(stored) {
       return "";
     }
   }
-  // Plain text fallback (not yet encrypted, or encryption unavailable)
+  // Plain text fallback (not yet encrypted, or encryption unavailable).
   return stored;
 }
 
-// --- Discord sync helper ---
-
 /**
- * Create a Discord scheduled event. Returns a promise resolving to
- * { eventId, guildId } on success, or null if skipped/failed.
+ * Create a Discord scheduled event. Resolves to { eventId, guildId } on
+ * success, or null if skipped/failed.
  */
 async function tryDiscordSync(groupId, profileKey, eventData, startsAtUtc, endsAtUtc) {
   if (!settings.discordEnabled) return null;
@@ -266,14 +258,13 @@ async function tryDiscordSync(groupId, profileKey, eventData, startsAtUtc, endsA
   const guildId = groupData.discordGuildId;
   if (!botToken || !guildId) return null;
 
-  // eventData.discordSync is the source of truth: loaded from the
-  // template at form-open time (events.js applyProfileToEventForm), and
-  // resolved from the profile for automation events (resolveEventDetails).
-  // The form can override in either direction; we just trust the value.
+  // eventData.discordSync is the source of truth: loaded from the template
+  // at form-open time (events.js applyProfileToEventForm), and resolved from
+  // the profile for automation events (resolveEventDetails). The form can
+  // override in either direction; trust the value.
   if (eventData?.discordSync !== true) return null;
 
   try {
-    // Resolve image base64 if available
     const imageBase64 = eventData.imageId
       ? await getImageBase64ForDiscord(eventData.imageId).catch(() => null)
       : null;
@@ -314,13 +305,12 @@ async function tryDiscordSync(groupId, profileKey, eventData, startsAtUtc, endsA
 
 async function getImageBase64ForDiscord(imageId) {
   if (!imageId) return null;
-  // Try to read from gallery cache first
   const cachePath = path.join(GALLERY_CACHE_DIR, `${imageId}.png`);
   if (fs.existsSync(cachePath)) {
     const data = fs.readFileSync(cachePath);
     return `data:image/png;base64,${data.toString("base64")}`;
   }
-  // Download from VRChat API
+  // Fall back to VRChat API.
   const imageUrl = `https://api.vrchat.cloud/api/1/file/${imageId}/1`;
   try {
     const response = await fetch(imageUrl);
@@ -334,16 +324,16 @@ async function getImageBase64ForDiscord(imageId) {
   }
 }
 
-// --- Calendar / Webhook sync helper ---
+// Calendar / Webhook sync helper.
 
 async function getImageBufferForWebhook(fileId) {
   if (!fileId) return null;
-  // Try gallery cache first (event images are often pre-cached)
+  // Event images are often pre-cached in the gallery cache.
   const cachePath = path.join(GALLERY_CACHE_DIR, `${fileId}.png`);
   if (fs.existsSync(cachePath)) {
     return fs.readFileSync(cachePath);
   }
-  // Download via authenticated VRChat SDK
+  // Fall back to authenticated SDK download.
   try {
     const fileRes = await vrchat.getFile({
       path: { fileId },
@@ -371,8 +361,8 @@ function truncateText(str, maxLength) {
 }
 
 /**
- * Generate ICS content and build filename for an event.
- * Shared helper used by both tryWebhookPost (for attachment) and tryIcsAutoSave.
+ * Generate ICS content and filename for an event. Shared by tryWebhookPost
+ * (attachment) and tryIcsAutoSave.
  * @returns {{ icsContent: string, filename: string }|null}
  */
 function generateIcsForEvent(groupId, profileKey, eventData, startsAtUtc, endsAtUtc) {
@@ -381,7 +371,7 @@ function generateIcsForEvent(groupId, profileKey, eventData, startsAtUtc, endsAt
 
   const profile = groupData.profiles?.[profileKey];
 
-  // Resolve reminders: from eventData (per-event), fallback to profile, fallback to default
+  // Reminders: per-event override, then profile, then empty.
   let reminders = [];
   if (eventData?.calendarRemindersEnabled && Array.isArray(eventData.calendarReminders)) {
     reminders = eventData.calendarReminders;
@@ -389,7 +379,7 @@ function generateIcsForEvent(groupId, profileKey, eventData, startsAtUtc, endsAt
     reminders = profile.calendarReminders;
   }
 
-  // Generate deterministic UID
+  // Deterministic UID derived from groupId + start time.
   const startMs = new Date(startsAtUtc).getTime();
   const uid = `${groupId}-${startMs}@vrceventcreator`;
 
@@ -404,7 +394,7 @@ function generateIcsForEvent(groupId, profileKey, eventData, startsAtUtc, endsAt
     reminders
   });
 
-  // Build filename: "Event Name - [YYYY-MM-DD].ics"
+  // Filename: "Event Name - [YYYY-MM-DD].ics".
   const safeTitle = sanitizeFilename(eventData.title || "event", { fallback: "event", maxLength: 50 });
   const dateTag = new Date(startsAtUtc).toISOString().slice(0, 10);
   const filename = sanitizeFilename(`${safeTitle} - ${dateTag}`, { extension: ".ics", maxLength: 80 });
@@ -412,9 +402,6 @@ function generateIcsForEvent(groupId, profileKey, eventData, startsAtUtc, endsAt
   return { icsContent, filename };
 }
 
-/**
- * Check if ICS calendar creation is enabled for this event context.
- */
 function isIcsEnabled(groupId, profileKey, eventData) {
   if (!settings.calendarEnabled) return false;
   // eventData.calendarCreate is the source of truth (template default +
@@ -424,14 +411,14 @@ function isIcsEnabled(groupId, profileKey, eventData) {
 
 /**
  * Post a message to a Discord webhook. Independent of Discord events and ICS.
- * If ICS is also enabled, attaches the .ics file. If a Discord event was created,
- * includes the event URL in the message (link mode instead of embed).
+ * Attaches the .ics file when ICS is enabled. When a Discord event was
+ * created, includes the event URL in the message (link mode instead of embed).
  * @param {string} groupId
  * @param {string} profileKey
  * @param {object} eventData
  * @param {string} startsAtUtc
  * @param {string} endsAtUtc
- * @param {{ eventId: string, guildId: string }|null} discordEvent - Discord event info if created
+ * @param {{ eventId: string, guildId: string }|null} discordEvent
  */
 function tryWebhookPost(groupId, profileKey, eventData, startsAtUtc, endsAtUtc, discordEvent) {
   // eventData.webhookPost is the source of truth (template default + form
@@ -441,11 +428,10 @@ function tryWebhookPost(groupId, profileKey, eventData, startsAtUtc, endsAtUtc, 
   const groupData = profiles[groupId];
   if (!groupData) return;
 
-  // Webhook URL must exist
   const webhookUrl = decryptToken(groupData.webhookUrl);
   if (!webhookUrl) return;
 
-  // Generate ICS if calendar is also enabled (attach to webhook)
+  // Attach an ICS file when calendar is also enabled.
   let icsContent = null;
   let icsFilename = null;
   if (isIcsEnabled(groupId, profileKey, eventData)) {
@@ -458,15 +444,14 @@ function tryWebhookPost(groupId, profileKey, eventData, startsAtUtc, endsAtUtc, 
 
   const defaultAvatarUrl = `https://raw.githubusercontent.com/${UPDATE_REPO_OWNER}/${UPDATE_REPO_NAME}/main/electron/app.png`;
 
-  // Apply kit overrides if a valid kit exists for this group
+  // Kit overrides (avatar, display name, embed color, custom message/image)
+  // are gated on hasGroupKit so non-kit groups always use defaults.
   const hasGroupKit = eckit.hasKit(groupId);
   const kitAvatarUrl = hasGroupKit && groupData.webhookAvatarUrl ? groupData.webhookAvatarUrl : defaultAvatarUrl;
   const kitWebhookName = hasGroupKit && groupData.webhookDisplayName ? groupData.webhookDisplayName : undefined;
 
-  // Custom message from event data (kit-unlocked feature)
   const customMessage = hasGroupKit && eventData?.webhookMessage ? eventData.webhookMessage : "";
 
-  // Custom attachment from event data (kit-unlocked feature)
   const customImagePath = hasGroupKit && eventData?.webhookImagePath ? eventData.webhookImagePath : "";
   const customImageFilename = customImagePath ? path.basename(customImagePath) : null;
   const customImagePromise = customImagePath
@@ -476,7 +461,7 @@ function tryWebhookPost(groupId, profileKey, eventData, startsAtUtc, endsAtUtc, 
   let webhookPromise;
 
   if (discordEvent) {
-    // Discord event was created — post event link (+ optional .ics)
+    // Discord event already created: post the event link (+ optional .ics).
     const eventUrl = `https://discord.com/events/${discordEvent.guildId}/${discordEvent.eventId}`;
     const messageContent = customMessage ? `${customMessage}\n${eventUrl}` : eventUrl;
     webhookPromise = customImagePromise.then(customImageBuffer => {
@@ -492,11 +477,10 @@ function tryWebhookPost(groupId, profileKey, eventData, startsAtUtc, endsAtUtc, 
       });
     });
   } else {
-    // No Discord event — use embed with event details (+ optional .ics)
+    // No Discord event: use embed with event details (+ optional .ics).
     const startUnix = Math.floor(new Date(startsAtUtc).getTime() / 1000);
     const endUnix = Math.floor(new Date(endsAtUtc).getTime() / 1000);
 
-    // Apply kit embed color override
     const embedColor = hasGroupKit && groupData.webhookEmbedColor
       ? parseInt(groupData.webhookEmbedColor.replace("#", ""), 16) || 0x1FC3AD
       : 0x1FC3AD;
@@ -512,8 +496,8 @@ function tryWebhookPost(groupId, profileKey, eventData, startsAtUtc, endsAtUtc, 
       ]
     };
 
-    // Resolve event image + group icon (non-blocking, parallel)
-    // Custom image takes priority over VRChat event image
+    // Resolve event image + group icon in parallel. Custom image (kit) takes
+    // priority over the VRChat event image.
     const imagePromise = customImagePath
       ? customImagePromise
       : (eventData.imageId ? getImageBufferForWebhook(eventData.imageId).catch(() => null) : Promise.resolve(null));
@@ -568,8 +552,8 @@ function tryWebhookPost(groupId, profileKey, eventData, startsAtUtc, endsAtUtc, 
 }
 
 /**
- * Auto-save an .ics calendar file to disk. Independent of webhook and Discord events.
- * Always runs when ICS is enabled, regardless of webhook state.
+ * Auto-save an .ics calendar file to disk. Independent of webhook and Discord
+ * events; always runs when ICS is enabled.
  * @param {string} groupId
  * @param {string} profileKey
  * @param {object} eventData
@@ -587,19 +571,19 @@ function tryIcsAutoSave(groupId, profileKey, eventData, startsAtUtc, endsAtUtc) 
 
   const { icsContent, filename } = icsResult;
 
-  // Auto-create default save directory if not set
+  // Auto-create the default save directory if unset.
   if (!settings.calendarSaveDir) {
     const docsDir = app.getPath("documents");
     settings.calendarSaveDir = path.join(docsDir, "VRC Event Creator .ics");
     saveSettings(settings);
   }
   try {
-    // Save into group subfolder: {saveDir}/{GroupName}/{filename}
+    // Layout: {saveDir}/{GroupName}/{filename}.
     const safeGroupName = sanitizeFilename(groupData.groupName || "Unknown Group", { fallback: "Group", maxLength: 80 });
     const groupDir = path.join(settings.calendarSaveDir, safeGroupName);
     fs.mkdirSync(groupDir, { recursive: true });
     const savePath = path.join(groupDir, filename);
-    // Belt-and-suspenders: refuse to write outside the configured save dir
+    // Belt-and-suspenders: refuse to write outside the configured save dir.
     if (!pathIsWithin(settings.calendarSaveDir, savePath)) {
       debugLog("calendar", "ICS auto-save blocked: path escape attempt", savePath);
       return;
@@ -618,8 +602,8 @@ function tryIcsAutoSave(groupId, profileKey, eventData, startsAtUtc, endsAtUtc) 
 }
 
 /**
- * Format a recurrence object as a human-readable string for announcement messages.
- * E.g. "Weekly on Wednesdays, ends after 10 occurrences"
+ * Format a recurrence object as a human-readable string for announcement
+ * messages, e.g. "Weekly on Wednesdays, ends after 10 occurrences".
  */
 function recurrenceToHumanString(recurrence) {
   if (!recurrence) return "";
@@ -648,17 +632,18 @@ function recurrenceToHumanString(recurrence) {
 }
 
 /**
- * Run announcement actions for a series creation/update.
- * - Generates a single .ics with RRULE if calendarCreate is enabled
- * - Posts a webhook announcement (with optional .ics attachment) if webhookPost is enabled
+ * Run announcement actions for a series creation/update:
+ * - Generate a single .ics with RRULE if calendarCreate is enabled.
+ * - Post a webhook announcement (with optional .ics attachment) if webhookPost
+ *   is enabled.
  * Discord recurring event creation is deferred (more complex API surface).
  *
  * @param {string} groupId
- * @param {object} seriesData - { seriesId, label, recurrence, eventTemplate, ... }
- * @param {string} startsAtUtc - first occurrence start
- * @param {string} endsAtUtc - first occurrence end
- * @param {object} announcementFlags - { calendarCreate, webhookPost, customMessage }
- * @param {string} verb - "created" | "updated"
+ * @param {{ seriesId: string, label: string, recurrence: object, eventTemplate: object }} seriesData
+ * @param {string} startsAtUtc First occurrence start.
+ * @param {string} endsAtUtc First occurrence end.
+ * @param {{ calendarCreate: boolean, webhookPost: boolean, customMessage?: object }} announcementFlags
+ * @param {"created"|"updated"} verb
  */
 function trySeriesAnnouncements(groupId, seriesData, startsAtUtc, endsAtUtc, announcementFlags, verb) {
   const groupData = profiles[groupId];
@@ -669,7 +654,7 @@ function trySeriesAnnouncements(groupId, seriesData, startsAtUtc, endsAtUtc, ann
   const label = seriesData.label || tpl.title || "Series";
   const humanRule = recurrenceToHumanString(seriesData.recurrence);
 
-  // Create a recurring Discord scheduled event mirroring the VRChat recurrence
+  // Mirror the VRChat recurrence as a Discord scheduled event.
   if (discordSync && settings.discordEnabled && verb === "created") {
     const botToken = decryptToken(groupData.discordBotToken);
     const guildId = groupData.discordGuildId;
@@ -712,7 +697,6 @@ function trySeriesAnnouncements(groupId, seriesData, startsAtUtc, endsAtUtc, ann
     }
   }
 
-  // Generate ICS with RRULE if calendar is enabled
   let icsContent = null;
   let icsFilename = null;
   if (calendarCreate && settings.calendarEnabled) {
@@ -733,7 +717,6 @@ function trySeriesAnnouncements(groupId, seriesData, startsAtUtc, endsAtUtc, ann
     const safeTitle = sanitizeFilename(tpl.title || label, { fallback: "Series", maxLength: 50 });
     icsFilename = sanitizeFilename(`${safeTitle} - Series`, { extension: ".ics", maxLength: 80 });
 
-    // Auto-save the .ics to disk
     try {
       if (!settings.calendarSaveDir) {
         const docsDir = app.getPath("documents");
@@ -744,7 +727,7 @@ function trySeriesAnnouncements(groupId, seriesData, startsAtUtc, endsAtUtc, ann
       const groupDir = path.join(settings.calendarSaveDir, safeGroupName);
       fs.mkdirSync(groupDir, { recursive: true });
       const savePath = path.join(groupDir, icsFilename);
-      // Belt-and-suspenders: refuse to write outside the configured save dir
+      // Belt-and-suspenders: refuse to write outside the configured save dir.
       if (!pathIsWithin(settings.calendarSaveDir, savePath)) {
         debugLog("series", "Series ICS save blocked: path escape attempt", savePath);
         return;
@@ -762,7 +745,6 @@ function trySeriesAnnouncements(groupId, seriesData, startsAtUtc, endsAtUtc, ann
     }
   }
 
-  // Post webhook announcement if enabled
   if (webhookPost) {
     const webhookUrl = decryptToken(groupData.webhookUrl);
     if (!webhookUrl) return;
@@ -791,7 +773,6 @@ function trySeriesAnnouncements(groupId, seriesData, startsAtUtc, endsAtUtc, ann
       ]
     };
 
-    // Resolve event image + group icon
     const customImagePath = hasGroupKit && customMessage?.imagePath ? customMessage.imagePath : "";
     const customImagePromise = customImagePath
       ? fs.promises.readFile(customImagePath).catch(() => null)
@@ -881,7 +862,6 @@ function normalizeProfile(raw) {
   if (!raw || typeof raw !== "object") {
     return null;
   }
-  // Normalize automation field if present
   const automation = raw.automation ? normalizeAutomation(raw.automation) : normalizeAutomation({});
   return {
     ...raw,
@@ -898,7 +878,6 @@ function normalizeProfiles(raw) {
     if (!groupData || typeof groupData !== "object") {
       return;
     }
-    // Normalize each profile within the group
     const normalizedProfiles = {};
     const profilesData = groupData.profiles || {};
     Object.entries(profilesData).forEach(([profileKey, profileData]) => {
@@ -913,7 +892,7 @@ function normalizeProfiles(raw) {
       discordBotToken: typeof groupData.discordBotToken === "string" ? groupData.discordBotToken : "",
       discordGuildId: typeof groupData.discordGuildId === "string" ? groupData.discordGuildId : "",
       webhookUrl: typeof groupData.webhookUrl === "string" ? groupData.webhookUrl : "",
-      // Kit-unlocked webhook customization (user-editable when kit is active)
+      // Kit-unlocked webhook customization (user-editable when kit is active).
       webhookDisplayName: typeof groupData.webhookDisplayName === "string" ? groupData.webhookDisplayName : "",
       webhookAvatarUrl: typeof groupData.webhookAvatarUrl === "string" ? groupData.webhookAvatarUrl : "",
       webhookEmbedColor: typeof groupData.webhookEmbedColor === "string" ? groupData.webhookEmbedColor : "",
@@ -937,7 +916,7 @@ function saveProfiles(nextProfiles) {
   fs.writeFileSync(PROFILES_PATH, JSON.stringify(profiles, null, 2));
 }
 
-// Series storage — local metadata for VRChat native recurring series
+// Local metadata for VRChat native recurring series.
 let series = {};
 
 function normalizeRecurrence(raw) {
@@ -1021,20 +1000,18 @@ function saveSeries(nextSeries) {
   fs.writeFileSync(SERIES_PATH, JSON.stringify(series, null, 2));
 }
 
-// ----------------------------------------------------------------------------
-// Rasterize queue — persistent queue of post-regeneration work that needs to
-// happen against VRChat's API. Modifications captured before deleting an old
-// series are saved here so they survive crashes and rate-limit cooldowns.
-// Entries are drained on app start and again every hour by drainRasterizeQueue.
-// ----------------------------------------------------------------------------
+// Rasterize queue: persistent queue of post-regeneration work against
+// VRChat's API. Modifications captured before deleting an old series are
+// saved here so they survive crashes and rate-limit cooldowns. Entries
+// drain on app start and every hour via drainRasterizeQueue.
 let rasterizeQueue = [];
 let rasterizeDraining = false;
 
 // Strip series-only fields from a standalone create body and ensure the
-// fields createGroupCalendarEvent expects are present. Pre-fix entries
-// queued before we knew the right shape get repaired on load.
+// fields createGroupCalendarEvent expects are present. Entries queued
+// before the shape was finalized get repaired on load.
 // Returns { cleaned, migrated } so the caller can reset retry state when the
-// shape was actually wrong (so the user doesn't keep waiting on a dead backoff).
+// shape was actually wrong (so the user isn't waiting on a dead backoff).
 function normalizeStandaloneBody(payload) {
   if (!payload || typeof payload !== "object") return { cleaned: payload, migrated: false };
   const hadStaleFields = ("seriesId" in payload) || ("parentId" in payload)
@@ -1071,7 +1048,7 @@ function normalizeRasterizeEntry(raw) {
     type: raw.type,
     payload,
     createdAt: typeof raw.createdAt === "string" ? raw.createdAt : new Date().toISOString(),
-    // If we migrated the body shape, the prior backoff is meaningless — clear
+    // If the body shape was migrated, prior backoff is meaningless. Clear
     // retry state so the next drain pass actually attempts the entry.
     attemptCount: bodyMigrated ? 0 : (Number.isFinite(raw.attemptCount) && raw.attemptCount >= 0 ? Math.floor(raw.attemptCount) : 0),
     nextRetryAt: bodyMigrated ? null : (typeof raw.nextRetryAt === "string" ? raw.nextRetryAt : null),
@@ -1123,10 +1100,10 @@ function removeRasterizeEntry(id) {
 
 function createClient() {
   // E2E test mode: swap in the stub VRChat client. The stub lives under
-  // .dev/tests/stubs/ (gitignored — test infrastructure, not shipped). It
-  // reads a fixture from <userDataDir>/e2e-fixture.json on construction and
-  // serves canned responses. Production launches never hit this branch; the
-  // require is only resolved when VRCEC_E2E is explicitly set.
+  // .dev/tests/stubs/ (gitignored test infrastructure, not shipped). It reads
+  // a fixture from <userDataDir>/e2e-fixture.json on construction and serves
+  // canned responses. Production launches never hit this branch; the require
+  // only resolves when VRCEC_E2E is explicitly set.
   if (process.env.VRCEC_E2E) {
     const stubPath = path.join(__dirname, "..", ".dev", "tests", "stubs", "vrchat-stub.js");
     // eslint-disable-next-line global-require, import/no-dynamic-require
@@ -1262,7 +1239,6 @@ function createTray() {
   appTray.setToolTip(APP_NAME);
   appTray.setContextMenu(contextMenu);
 
-  // Double-click tray icon to show window
   appTray.on("double-click", () => {
     if (mainWindow) {
       mainWindow.show();
@@ -1305,8 +1281,7 @@ function createWindow(options = {}) {
   });
 
   // Defense in depth: refuse any window-open requests from the renderer.
-  // The app doesn't open new windows; if a future change needs to, this
-  // hook is the right place to allow-list specific URLs.
+  // The app doesn't open new windows; if that changes, allow-list URLs here.
   mainWindow.webContents.setWindowOpenHandler(() => {
     return { action: "deny" };
   });
@@ -1334,7 +1309,7 @@ function createWindow(options = {}) {
   });
 
   if (IS_DEV) {
-    // Auto-open dev tools on startup (temporary for series API test harness)
+    // Auto-open dev tools on startup (temporary for series API test harness).
     mainWindow.webContents.openDevTools({ mode: "detach" });
     mainWindow.webContents.on("before-input-event", (event, input) => {
       if (!input || input.type !== "keyDown") {
@@ -1355,13 +1330,12 @@ function createWindow(options = {}) {
     mainWindow.webContents.send("window:maximized", false);
   });
 
-  // Handle window close - show prompt or minimize to tray
+  // On close: prompt, minimize to tray, or allow normal close.
   mainWindow.on("close", (event) => {
     if (isQuitting) {
-      return; // Allow quit
+      return;
     }
 
-    // If tray is enabled, hide to tray
     if (settings?.minimizeToTray) {
       event.preventDefault();
       mainWindow.hide();
@@ -1371,12 +1345,10 @@ function createWindow(options = {}) {
       return;
     }
 
-    // If prompt hasn't been shown yet, show it
     if (!settings?.trayPromptShown) {
       event.preventDefault();
       mainWindow.webContents.send("window:show-tray-prompt");
     }
-    // Otherwise, allow normal close
   });
 }
 
@@ -1405,15 +1377,15 @@ function buildEventTimes({ selectedDateIso, manualDate, manualTime, timezone, du
   };
 }
 
-// Track recently created events locally (VRChat API has ~10-15s delay)
-const recentlyCreatedEvents = new Map(); // key: "groupId::startsAtUtc", value: { title, createdAt }
-const RECENT_EVENT_TTL = 60 * 60 * 1000; // 1 hour TTL
+// Track recently created events locally (VRChat API has ~10-15s delay).
+// Keyed by "groupId::startsAtUtc"; values { title, createdAt }.
+const recentlyCreatedEvents = new Map();
+const RECENT_EVENT_TTL = 60 * 60 * 1000;
 
 function trackCreatedEvent(groupId, startsAtUtc, title) {
   const key = `${groupId}::${startsAtUtc}`;
   recentlyCreatedEvents.set(key, { title, createdAt: Date.now() });
   debugLog("trackCreatedEvent", `Tracked event: ${key} - ${title}`);
-  // Clean up old entries
   const now = Date.now();
   for (const [k, v] of recentlyCreatedEvents) {
     if (now - v.createdAt > RECENT_EVENT_TTL) {
@@ -1443,7 +1415,7 @@ function findLocalConflict(groupId, startsAtUtc) {
 }
 
 async function findConflictingEvent(groupId, startsAtUtc) {
-  // First check local tracking (handles VRChat API delay)
+  // Local tracking first (handles VRChat API delay).
   const localConflict = findLocalConflict(groupId, startsAtUtc);
   if (localConflict) {
     return localConflict;
@@ -1464,7 +1436,6 @@ async function findConflictingEvent(groupId, startsAtUtc) {
     const results = getCalendarEventList(currentEvents.data);
     const targetTime = DateTime.fromISO(startsAtUtc);
 
-    // Find event at same start time
     for (const event of results) {
       const eventStart = parseEventDateValue(getEventStartValue(event));
       if (eventStart && eventStart.isValid) {
@@ -1577,7 +1548,7 @@ function mapGroupCalendarEvents(results, groupId, options = {}) {
           durationMinutes,
           timezone: getEventField(event, "timezone") || null,
           featured: Boolean(featured),
-          // Series fields (native VRChat recurring event support)
+          // Series fields (native VRChat recurring event support).
           seriesId: getEventField(event, "seriesId") || null,
           occurrenceKind: getEventField(event, "occurrenceKind") || null,
           occurrenceModified: Boolean(getEventField(event, "occurrenceModified"))
@@ -1862,7 +1833,7 @@ ipcMain.handle("app:checkUpdate", async () => {
   try {
     const result = await autoUpdater.checkForUpdates();
     const latestVersion = result?.updateInfo?.version || null;
-    // Only report update if latest version is actually newer
+    // Only report when latest is strictly newer than current.
     const updateAvailable = latestVersion && compareVersions(latestVersion, APP_VERSION) > 0;
     return {
       updateAvailable,
@@ -1901,18 +1872,17 @@ ipcMain.handle("app:installUpdate", () => {
   autoUpdater.quitAndInstall(true, true);
 });
 
-// Allowed URL schemes for shell.openExternal. Anything else (especially
-// file:, javascript:, data:, plus arbitrary custom schemes that could
-// trigger OS handlers) is refused. File-path inputs (calendar save dir
-// "Open" button) get routed to shell.openPath instead, which is the
-// proper API for that and doesn't honor URL schemes at all.
+// Allowed URL schemes for shell.openExternal. Anything else (file:,
+// javascript:, data:, arbitrary custom schemes that could trigger OS
+// handlers) is refused. File-path inputs (calendar save dir "Open" button)
+// route to shell.openPath instead, which doesn't honor URL schemes.
 const ALLOWED_OPEN_EXTERNAL_SCHEMES = /^(https?|mailto):/i;
 
 ipcMain.handle("app:openExternal", (_, target) => {
   if (!target || typeof target !== "string") {
     return false;
   }
-  // If it parses as a URL with an explicit scheme, the scheme must be allow-listed
+  // Explicit scheme: must be allow-listed.
   if (/^[a-z][a-z0-9+.-]*:/i.test(target)) {
     if (!ALLOWED_OPEN_EXTERNAL_SCHEMES.test(target)) {
       const scheme = target.slice(0, target.indexOf(":")).toLowerCase();
@@ -1922,8 +1892,8 @@ ipcMain.handle("app:openExternal", (_, target) => {
     shell.openExternal(target);
     return true;
   }
-  // No scheme → treat as a local path and route to the appropriate API.
-  // shell.openPath returns "" on success, error string on failure.
+  // No scheme: treat as a local path. shell.openPath returns "" on success,
+  // error string on failure.
   shell.openPath(target);
   return true;
 });
@@ -1982,8 +1952,8 @@ ipcMain.handle("window:isMaximized", () => {
   return mainWindow.isMaximized();
 });
 
-// TEMPORARY: renderer-side debug logger that writes to the persistent debug log
-// so we can read it after the fact. Remove with the rest of the test harness.
+// TEMPORARY: renderer-side debug logger that writes to the persistent debug
+// log for after-the-fact reading. Remove with the rest of the test harness.
 ipcMain.handle("debug:log", (_, payload) => {
   const { context = "renderer", message = "" } = payload || {};
   debugLog(`renderer:${context}`, message);
@@ -1997,7 +1967,7 @@ ipcMain.handle("settings:set", (_, payload) => {
   return saveSettings({ ...settings, ...next });
 });
 
-// --- Discord IPC handlers ---
+// Discord IPC handlers.
 
 ipcMain.handle("discord:testConnection", async (_, botToken) => {
   if (!botToken) return { ok: false, error: "No bot token provided." };
@@ -2012,7 +1982,7 @@ ipcMain.handle("discord:updateGroupDiscord", (_, { groupId, discordBotToken, dis
   if (typeof discordGuildId === "string") {
     profiles[groupId].discordGuildId = discordGuildId;
   }
-  // Kit-unlocked customization fields
+  // Kit-unlocked customization fields.
   if (typeof webhookDisplayName === "string") profiles[groupId].webhookDisplayName = webhookDisplayName;
   if (typeof webhookAvatarUrl === "string") profiles[groupId].webhookAvatarUrl = webhookAvatarUrl;
   if (typeof webhookEmbedColor === "string") profiles[groupId].webhookEmbedColor = webhookEmbedColor;
@@ -2028,7 +1998,7 @@ ipcMain.handle("discord:getGroupDiscord", (_, groupId) => {
   };
 });
 
-// --- Calendar / Webhook IPC handlers ---
+// Calendar / Webhook IPC handlers.
 
 ipcMain.handle("webhook:test", async (_, webhookUrl) => {
   if (!webhookUrl) return { ok: false, error: "No webhook URL provided." };
@@ -2105,13 +2075,13 @@ ipcMain.handle("eckit:selectImage", async () => {
   let fd;
   try {
     // Open + fstat + read against a single FD so the size check and read
-    // operate on the same inode — closes the TOCTOU window between
-    // checking the size and reading the file.
+    // operate on the same inode. Closes the TOCTOU window between checking
+    // the size and reading the file.
     fd = fs.openSync(filePath, "r");
     const stat = fs.fstatSync(fd);
     // Discord's webhook execute endpoint caps each attachment at 10 MiB
-    // (empirically verified — 10 MiB single file passes, 10.25 MiB returns
-    // 413/code 40005). The cap is per-file, not total-request: an .ics
+    // (empirically verified: 10 MiB single file passes, 10.25 MiB returns
+    // 413/code 40005). The cap is per-file, not total-request, so an .ics
     // co-attachment rides on its own quota and doesn't eat into this one.
     if (stat.size > 10 * 1024 * 1024) {
       return { ok: false, error: "File must be under 10 MB." };
@@ -2144,7 +2114,7 @@ ipcMain.handle("eckit:selectImage", async () => {
 });
 
 
-// --- EC Kit IPC handlers ---
+// EC Kit IPC handlers.
 
 ipcMain.handle("eckit:import", async () => {
   if (!mainWindow) return { ok: false, error: "No window." };
@@ -2214,8 +2184,8 @@ ipcMain.handle("events:importJson", async () => {
   } catch (err) {
     return { ok: false, error: { code: "FILE_INVALID", message: "Could not parse JSON file." } };
   }
-  // Schema-validate the imported event: drops unknown fields, type-coerces
-  // each known field, rejects __proto__/constructor/prototype attacks.
+  // Schema validation drops unknown fields, type-coerces known fields, and
+  // rejects __proto__/constructor/prototype attacks.
   const validated = validateEventImport(raw);
   if (!validated.ok) {
     debugLog("import", "Event import rejected:", validated.error);
@@ -2263,9 +2233,9 @@ ipcMain.handle("profiles:importJson", async () => {
   } catch (err) {
     return { ok: false, error: { code: "FILE_INVALID", message: "Could not parse JSON file." } };
   }
-  // Schema-validate the imported profile: drops unknown fields, type-coerces
-  // each known field, rejects __proto__/constructor/prototype attacks,
-  // and strips dangerous keys nested inside automation.
+  // Schema validation drops unknown fields, type-coerces known fields,
+  // rejects __proto__/constructor/prototype attacks, and strips dangerous
+  // keys nested inside automation.
   const validated = validateProfileImport(raw);
   if (!validated.ok) {
     debugLog("import", "Profile import rejected:", validated.error);
@@ -2317,10 +2287,10 @@ ipcMain.handle("auth:twofactor:submit", async (_, code) => {
 });
 
 ipcMain.handle("groups:list", async (_, options) => {
-  // When `force: true` is passed (Resync invokes it this way), drop the
-  // per-group caches so we re-query VRChat for current permissions /
-  // privacy / tags. Without this, server-side role changes don't surface
-  // until logout or app restart — the caches outlive everything else.
+  // `force: true` (Resync) drops the per-group caches so VRChat is re-queried
+  // for current permissions / privacy / tags. Without this, server-side role
+  // changes don't surface until logout or app restart, since the caches
+  // outlive everything else.
   if (options?.force) {
     groupPermissionCache.clear();
     groupPrivacyCache.clear();
@@ -2337,8 +2307,8 @@ ipcMain.handle("groups:list", async (_, options) => {
   const limitedGroups = groupsResponse.data || [];
   const enriched = [];
   // Track whether every getGroup permission lookup in this pass succeeded.
-  // If any failed, we can't trust the resulting "known groups" set — applying
-  // it would suspend/cancel automation jobs based on bad data.
+  // If any failed, the resulting "known groups" set isn't trustworthy;
+  // applying it would suspend/cancel automation jobs based on bad data.
   let permissionLookupsClean = true;
   for (const group of limitedGroups) {
     const groupId = group.groupId || group.id;
@@ -2373,7 +2343,7 @@ ipcMain.handle("groups:list", async (_, options) => {
           permissions = [];
         }
       }
-      // Only cache successful results — caching [] from a failed lookup
+      // Only cache successful results. Caching [] from a failed lookup
       // would make the bad answer sticky for the rest of the session.
       if (!lookupFailed) {
         groupPermissionCache.set(groupId, permissions);
@@ -2386,9 +2356,9 @@ ipcMain.handle("groups:list", async (_, options) => {
       permissions.includes("*") || permissions.includes("group-calendar-manage");
     enriched.push({ ...group, groupId, canManageCalendar, privacy: privacy ?? group.privacy });
   }
-  // Only apply the known-group filter when we have a definitive answer for
-  // every group. A partial answer can wrongly suspend automation jobs for
-  // groups the user actually still manages (e.g. one getGroup hit a 429).
+  // Apply the known-group filter only when every group has a definitive
+  // answer. A partial answer can wrongly suspend automation jobs for groups
+  // the user actually still manages (e.g. one getGroup hit a 429).
   if (automationEngine.isInitialized() && permissionLookupsClean) {
     const knownGroupIds = enriched
       .filter(group => group.canManageCalendar)
@@ -2402,7 +2372,7 @@ ipcMain.handle("groups:list", async (_, options) => {
       );
     }
   } else if (automationEngine.isInitialized() && !permissionLookupsClean) {
-    debugLog("Automation", "Skipped group filter update — permission lookup had failures");
+    debugLog("Automation", "Skipped group filter update; permission lookup had failures");
   }
   return enriched;
 });
@@ -2413,10 +2383,8 @@ ipcMain.handle("groups:checkFeatureFlags", async (_, groupId) => {
   }
 
   try {
-    // Check cache first
     let tags = groupTagsCache.get(groupId);
 
-    // If not cached, fetch group details
     if (!tags) {
       debugApiCall("getGroup (checkFeatureFlags)", { groupId });
       const groupRes = await requestGet(
@@ -2429,14 +2397,13 @@ ipcMain.handle("groups:checkFeatureFlags", async (_, groupId) => {
       groupTagsCache.set(groupId, tags);
     }
 
-    // Return boolean flags, NOT the actual tags
+    // Return boolean flags only, never the raw tags.
     return {
       hasFeaturedEvents: tags.includes("admin_featured_events_enabled"),
       hasGroupFair: tags.includes("admin_vrc_event_group_fair_enabled")
     };
   } catch (err) {
     debugApiResponse("getGroup (checkFeatureFlags)", null, err);
-    // On error, return false for both (safe default)
     return { hasFeaturedEvents: false, hasGroupFair: false };
   }
 });
@@ -2499,7 +2466,7 @@ ipcMain.handle("profiles:update", async (_, payload) => {
   profiles[groupId].profiles[profileKey] = data;
   saveProfiles(profiles);
 
-  // Trigger automation recalculation for this profile
+  // Trigger automation recalculation for this profile.
   if (automationEngine.isInitialized()) {
     try {
       await ensureUser();
@@ -2537,7 +2504,7 @@ ipcMain.handle("profiles:delete", async (_, payload) => {
     delete profiles[groupId].profiles[profileKey];
     saveProfiles(profiles);
 
-    // Clean up pending events for deleted profile
+    // Clean up pending events for the deleted profile.
     if (automationEngine.isInitialized()) {
       automationEngine.purgeProfilePendingEvents(groupId, profileKey);
     }
@@ -2551,7 +2518,7 @@ ipcMain.handle("profiles:delete", async (_, payload) => {
   return profiles;
 });
 
-// --- Series IPC handlers (VRChat native recurring events) ---
+// Series IPC handlers (VRChat native recurring events).
 
 ipcMain.handle("series:list", async (_, payload) => {
   const { groupId } = payload || {};
@@ -2583,7 +2550,7 @@ ipcMain.handle("series:create", async (_, payload) => {
       featured: false,
       isDraft: false,
       roleIds: Array.isArray(eventTemplate.roleIds) ? eventTemplate.roleIds : [],
-      // Series fields (not in SDK types yet — passed raw)
+      // Series fields aren't in the SDK types yet, so pass raw.
       occurrenceKind: "series",
       recurrence: normalizeRecurrence(recurrence)
     };
@@ -2616,7 +2583,7 @@ ipcMain.handle("series:create", async (_, payload) => {
     series[groupId][seriesId] = stored;
     saveSeries(series);
 
-    // Fire announcement actions (webhook, ICS) — fire and forget
+    // Fire-and-forget announcement actions (webhook, ICS).
     if (announcements) {
       try {
         trySeriesAnnouncements(groupId, stored, startsAtUtc, endsAtUtc, announcements, "created");
@@ -2638,7 +2605,7 @@ ipcMain.handle("series:update", async (_, payload) => {
       groupId, seriesId, eventTemplate, recurrence, label,
       startsAtUtc, endsAtUtc, announcements,
       modificationStrategy,   // "keep" | "discard" | undefined (default discard)
-      modifiedOccurrences     // [{ id, startsAtUtc, body }] — required when strategy === "keep"
+      modifiedOccurrences     // [{ id, startsAtUtc, body }]; required when strategy === "keep"
     } = payload || {};
     if (!groupId || !seriesId) {
       throw new Error("Missing series payload fields.");
@@ -2646,7 +2613,7 @@ ipcMain.handle("series:update", async (_, payload) => {
     await ensureUser();
     await ensureCalendarPermission(groupId);
 
-    // Build minimal request body — only include fields that are present
+    // Minimal request body: include only fields that are present.
     const requestBody = {};
     if (eventTemplate) {
       if (typeof eventTemplate.title === "string") requestBody.title = eventTemplate.title;
@@ -2663,9 +2630,9 @@ ipcMain.handle("series:update", async (_, payload) => {
       requestBody.recurrence = normalizeRecurrence(recurrence);
     }
     // startsAt / endsAt drive the first occurrence's date+time. Without these,
-    // VRChat receives a no-op recurrence update and the series stays anchored
-    // at its original first occurrence — silently. Always pass through when
-    // the renderer supplied them.
+    // VRChat receives a no-op recurrence update and the series silently stays
+    // anchored at its original first occurrence. Always pass through when the
+    // renderer supplied them.
     if (typeof startsAtUtc === "string" && startsAtUtc) requestBody.startsAt = startsAtUtc;
     if (typeof endsAtUtc === "string" && endsAtUtc) requestBody.endsAt = endsAtUtc;
 
@@ -2677,14 +2644,13 @@ ipcMain.handle("series:update", async (_, payload) => {
         body: requestBody
       });
     } catch (parseErr) {
-      // VRChat returns 200 OK with empty body for series updates, which trips up the SDK's JSON parser.
-      // Suppress that specific case but rethrow real errors.
+      // VRChat returns 200 OK with empty body for series updates, which
+      // trips the SDK's JSON parser. Suppress that case; rethrow real errors.
       if (parseErr?.message !== "Unexpected end of JSON input") {
         throw parseErr;
       }
     }
 
-    // Update local metadata
     if (!series[groupId]) series[groupId] = {};
     const existing = series[groupId][seriesId] || {};
     const stored = {
@@ -2693,7 +2659,7 @@ ipcMain.handle("series:update", async (_, payload) => {
       groupId,
       seriesId,
       lastSyncedAt: new Date().toISOString(),
-      // Preserve the original first occurrence timestamps (only update if explicitly provided)
+      // Preserve original first-occurrence timestamps unless explicitly provided.
       firstOccurrenceUtc: startsAtUtc || existing.firstOccurrenceUtc || null,
       firstOccurrenceEndUtc: endsAtUtc || existing.firstOccurrenceEndUtc || null,
       recurrence: recurrence ? normalizeRecurrence(recurrence) : existing.recurrence,
@@ -2741,15 +2707,15 @@ ipcMain.handle("series:update", async (_, payload) => {
         if (entry) snapshotEntries.push({ entry, originalDate: isoDateOnly(mod.startsAtUtc) });
       }
 
-      // Classify against the regenerated occurrences (still under the same seriesId).
-      // Two important things:
-      //   1. Skip requestGet — its 10s dedupe window will hand back the
+      // Classify against the regenerated occurrences (still under the same
+      // seriesId). Two important things:
+      //   1. Skip requestGet. Its 10s dedupe window would hand back the
       //      pre-update list cached by the renderer's recent
-      //      seriesCheckModifications call, which makes us classify against
-      //      stale occurrence IDs and silently drop modifications.
-      //   2. Poll for the new occurrences — VRChat regenerates asynchronously
-      //      after the PUT returns 200, and the lag is variable. We retry up
-      //      to 5 times (10s total) until the new occurrences actually appear.
+      //      seriesCheckModifications call, classifying against stale
+      //      occurrence IDs and silently dropping modifications.
+      //   2. Poll for new occurrences. VRChat regenerates asynchronously
+      //      after the PUT returns 200, and the lag is variable. Retry up to
+      //      5 times (10s total) until the new occurrences appear.
       let newOccurrencesByDate = new Map();
       try {
         for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -2775,7 +2741,7 @@ ipcMain.handle("series:update", async (_, payload) => {
           debugLog("rasterize", `Post-update poll attempt ${attempt + 1}: 0 occurrences yet for seriesId ${seriesId}, retrying.`);
         }
         if (newOccurrencesByDate.size === 0) {
-          debugLog("rasterize", `Post-update classify: gave up after 5 polls — VRChat hasn't regenerated yet. Modifications will stay as standalones.`);
+          debugLog("rasterize", `Post-update classify: gave up after 5 polls (VRChat hasn't regenerated yet). Modifications will stay as standalones.`);
         }
         let convertedCount = 0;
         for (const entry of rasterizeQueue) {
@@ -2798,11 +2764,10 @@ ipcMain.handle("series:update", async (_, payload) => {
       } catch (classifyErr) {
         debugLog("rasterize", "Could not classify overlaps post-update:", classifyErr.message);
       }
-      // Kick off a drain in the background
       drainRasterizeQueue().catch(err => debugLog("rasterize", "Drain error:", err.message));
     }
 
-    // Fire announcement actions when explicitly requested (and we have start/end times for ICS)
+    // Fire announcement actions when requested and start/end times exist (ICS).
     if (announcements && startsAtUtc && endsAtUtc) {
       try {
         trySeriesAnnouncements(groupId, stored, startsAtUtc, endsAtUtc, announcements, "updated");
@@ -2885,7 +2850,7 @@ ipcMain.handle("series:checkModifications", async (_, payload) => {
           title: getEventField(e, "title") || "",
           startsAtUtc,
           endsAtUtc,
-          // Full body suitable for rasterization (POST as standalone) or merge (PUT to occurrence)
+          // Full body suitable for rasterization (POST as standalone) or merge (PUT to occurrence).
           body: {
             title: getEventField(e, "title") || "",
             description: getEventField(e, "description") || "",
@@ -2931,7 +2896,6 @@ ipcMain.handle("series:reconcile", async (_, payload) => {
         throwOnError: true,
         path: { groupId, calendarId: seriesId }
       });
-      // Update lastSyncedAt on success
       if (series[groupId][seriesId]) {
         series[groupId][seriesId].lastSyncedAt = new Date().toISOString();
       }
@@ -2947,13 +2911,12 @@ ipcMain.handle("series:reconcile", async (_, payload) => {
   return { ok: true, orphaned };
 });
 
-// ----------------------------------------------------------------------------
 // Series regeneration: delete an existing series and create a new one with a
 // changed recurrence rule, while preserving the data of any modified
-// occurrences either by re-applying them to overlapping new occurrences (PUT)
-// or rasterizing them as standalone events (POST). All POST/PUT work is
-// queued in pending-rasterize.json so it survives crashes and rate limits.
-// ----------------------------------------------------------------------------
+// occurrences. Modifications are either re-applied to overlapping new
+// occurrences (PUT) or rasterized as standalone events (POST). All POST/PUT
+// work is queued in pending-rasterize.json so it survives crashes and rate
+// limits.
 
 function isRateLimitErr(err) {
   return err?.response?.status === 429;
@@ -2973,8 +2936,8 @@ function rateLimitRetrySeconds(err) {
 }
 
 /** Build a renderer-friendly error object from an SDK error. Replaces opaque
- *  429s with a clear "rate limited — try again in Xm" message so the toast
- *  is actionable instead of just whatever VRChat happened to write. */
+ *  429s with a clear "rate limited, try again in Xm" message so the toast is
+ *  actionable instead of whatever VRChat happened to write. */
 function shapeApiError(err, fallbackMessage) {
   const status = err?.response?.status || null;
   if (status === 429) {
@@ -3004,14 +2967,13 @@ async function drainRasterizeQueue() {
   let processed = 0;
   try {
     if (!vrchat) {
-      // Not authed yet — try later.
+      // Not authed yet; try later.
       return { processed: 0, remaining: rasterizeQueue.length };
     }
     const now = Date.now();
-    // Process a snapshot to avoid mutation surprises during await
+    // Snapshot to avoid mutation surprises during await.
     const snapshot = rasterizeQueue.slice();
     for (const entry of snapshot) {
-      // Respect nextRetryAt
       if (entry.nextRetryAt && Date.parse(entry.nextRetryAt) > now) continue;
       try {
         if (entry.type === "standalone") {
@@ -3046,14 +3008,14 @@ async function drainRasterizeQueue() {
           message: err?.message || "Unknown error"
         };
         if (isRateLimitErr(err)) {
-          // Push retry to ~1 hour from now (matches existing automation engine cadence)
+          // ~1 hour matches the automation engine cadence.
           entry.nextRetryAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
           debugLog("rasterize", `Rate limited on ${entry.id}, retrying after ${entry.nextRetryAt}`);
           saveRasterizeQueue();
-          // Stop draining for this group — further work for the same group will also 429
+          // Stop draining: further work for the same group will also 429.
           break;
         }
-        // Non-429 error: back off but keep entry so user can intervene
+        // Non-429 error: back off but keep the entry so the user can intervene.
         entry.nextRetryAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
         debugLog("rasterize", `Failed entry ${entry.id} (${entry.lastError.status}): ${entry.lastError.message}`);
         saveRasterizeQueue();
@@ -3088,11 +3050,11 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
     const sourceSeriesLabel = series[groupId]?.[oldSeriesId]?.label || label || "Untitled Series";
     const mods = Array.isArray(modifiedOccurrences) ? modifiedOccurrences : [];
 
-    // Order matters: create the new series FIRST. If create fails, nothing is
-    // destroyed and the user can retry without data loss. We accept a brief
-    // window where both old and new series exist if the subsequent delete
-    // fails — much better than the previous order which lost the old series
-    // when create failed.
+    // Order matters: create the new series FIRST. If create fails, nothing
+    // is destroyed and the user can retry without data loss. A brief window
+    // where both old and new series exist (if the subsequent delete fails)
+    // is preferable to the previous order, which lost the old series when
+    // create failed.
     const requestBody = {
       title: eventTemplate.title,
       description: eventTemplate.description || "",
@@ -3124,10 +3086,10 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
       return { ok: false, error: { message: "Series regenerated but no ID returned." } };
     }
 
-    // Now snapshot modifications to the persistent queue. Past this point, if
+    // Snapshot modifications to the persistent queue. Past this point, if
     // anything fails, modifications are recoverable from pending-rasterize.json.
     // The standalone body must match what createGroupCalendarEvent expects for
-    // a non-series event — strip series-related fields, add isDraft and
+    // a non-series event: strip series-related fields, add isDraft and
     // sendCreationNotification.
     const snapshotEntries = [];
     if (modificationStrategy === "keep" && mods.length) {
@@ -3140,8 +3102,8 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
           startsAt: b.startsAt,
           endsAt: b.endsAt,
           category: b.category || "hangout",
-          // Hardcoded false: we don't want to fire a "new event" notification
-          // for a rasterized event since the original announcement already happened.
+          // Hardcoded false: rasterized events don't fire a "new event"
+          // notification since the original announcement already happened.
           sendCreationNotification: false,
           accessType: b.accessType || "public",
           languages: Array.isArray(b.languages) ? b.languages : [],
@@ -3149,7 +3111,7 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
           tags: Array.isArray(b.tags) ? b.tags : [],
           imageId: b.imageId || null,
           featured: Boolean(b.featured),
-          // Preserve the user's draft state if they had one; otherwise default published.
+          // Preserve user's draft state if set; otherwise default published.
           isDraft: Boolean(b.isDraft),
           ...(Array.isArray(b.roleIds) ? { roleIds: b.roleIds } : {})
         };
@@ -3167,7 +3129,7 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
 
     // Delete the old series. If this fails the new series is already up; the
     // user has duplicates briefly but no data is lost. Errors here are
-    // non-fatal — log and continue.
+    // non-fatal: log and continue.
     try {
       debugApiCall("deleteGroupCalendarEvent (regenerate)", { groupId, oldSeriesId });
       await vrchat.deleteGroupCalendarEvent({
@@ -3184,7 +3146,6 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
       debugLog("series", `Old series ${oldSeriesId} not deleted (${delErr?.response?.status || "?"}); user may need to remove manually.`);
     }
 
-    // Save new series record
     if (!series[groupId]) series[groupId] = {};
     const stored = {
       label: label || sourceSeriesLabel,
@@ -3201,13 +3162,13 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
     saveSeries(series);
 
     // Post-create: convert overlapping standalone queue entries to occurrence
-    // PUTs. We sweep both this attempt's entries AND any leftover from prior
-    // failed attempts that target the same source series — those represent
-    // committed user intent ("Keep") that survived the failure and shouldn't
-    // be left as standalones if the new series now hits their dates.
+    // PUTs. Sweep this attempt's entries AND any leftover from prior failed
+    // attempts that target the same source series. Those represent committed
+    // user intent ("Keep") that survived the failure and shouldn't be left
+    // as standalones if the new series now hits their dates.
     // Skip requestGet (its dedupe cache may serve a pre-create snapshot from
-    // a recent seriesCheckModifications call) and poll for the new occurrences
-    // — VRChat regenerates asynchronously after the create returns.
+    // a recent seriesCheckModifications call) and poll for the new
+    // occurrences. VRChat regenerates asynchronously after create returns.
     let newOccurrencesByDate = new Map();
     try {
       for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -3233,14 +3194,15 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
         debugLog("rasterize", `Post-create poll attempt ${attempt + 1}: 0 occurrences yet for seriesId ${newSeriesId}, retrying.`);
       }
       if (newOccurrencesByDate.size === 0) {
-        debugLog("rasterize", `Post-create classify: gave up after 5 polls — VRChat hasn't regenerated yet. Modifications will stay as standalones.`);
+        debugLog("rasterize", `Post-create classify: gave up after 5 polls (VRChat hasn't regenerated yet). Modifications will stay as standalones.`);
       }
 
       // Identify which queue entries to sweep. Match by:
       //   - Same group, AND
-      //   - Same sourceSeriesId (preferred), OR same sourceSeriesLabel as fallback
-      //     for entries written before sourceSeriesId was tracked, AND
-      //   - Type still "standalone" (already-converted entries are skipped)
+      //   - Same sourceSeriesId (preferred), OR same sourceSeriesLabel
+      //     fallback for entries written before sourceSeriesId was tracked,
+      //     AND
+      //   - Type still "standalone" (already-converted entries are skipped).
       let convertedCount = 0;
       for (const entry of rasterizeQueue) {
         if (entry.groupId !== groupId) continue;
@@ -3248,8 +3210,8 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
         const sameSourceById = entry.sourceSeriesId && entry.sourceSeriesId === oldSeriesId;
         const sameSourceByLabel = !entry.sourceSeriesId && entry.sourceSeriesLabel === sourceSeriesLabel;
         if (!sameSourceById && !sameSourceByLabel) continue;
-        // Get the originalDate. For entries from this attempt we have it in
-        // snapshotEntries; for older entries we read it from the payload's startsAt.
+        // originalDate: snapshotEntries holds it for this attempt's entries;
+        // older entries derive it from the payload's startsAt.
         const originalDate = isoDateOnly(entry.payload?.startsAt);
         if (!originalDate) continue;
         const matchOccurrenceId = newOccurrencesByDate.get(originalDate);
@@ -3265,10 +3227,9 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
       saveRasterizeQueue();
     } catch (err) {
       debugLog("rasterize", "Could not classify overlaps post-create:", err.message);
-      // Non-fatal — entries stay as standalones, which is the safe fallback
+      // Non-fatal: entries stay as standalones (the safe fallback).
     }
 
-    // Fire announcements for the new series
     if (announcements) {
       try {
         trySeriesAnnouncements(groupId, stored, startsAtUtc, endsAtUtc, announcements, "created");
@@ -3277,7 +3238,7 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
       }
     }
 
-    // Kick off a drain in the background — no await
+    // Kick off a background drain (no await).
     drainRasterizeQueue().catch(err => debugLog("rasterize", "Drain error:", err.message));
 
     return {
@@ -3341,7 +3302,7 @@ ipcMain.handle("events:create", async (_, payload) => {
     }
     await ensureCalendarPermission(groupId);
 
-    // Validate admin tags if using featured or group fair
+    // Validate admin tags when using featured or group fair.
     if (eventData.featured || eventData.tags?.includes("vrc_event_group_fair")) {
       debugApiCall("getGroup (validateFeatures)", { groupId });
       const groupRes = await requestGet(
@@ -3353,14 +3314,12 @@ ipcMain.handle("events:create", async (_, payload) => {
 
       const groupTags = groupRes.data?.tags || [];
 
-      // Validate featured event permission
       if (eventData.featured && !groupTags.includes("admin_featured_events_enabled")) {
         const error = new Error("FEATURED_PERMISSION_REVOKED");
         error.code = "FEATURED_PERMISSION_REVOKED";
         throw error;
       }
 
-      // Validate group fair permission
       if (eventData.tags?.includes("vrc_event_group_fair") &&
           !groupTags.includes("admin_vrc_event_group_fair_enabled")) {
         const error = new Error("GROUP_FAIR_PERMISSION_REVOKED");
@@ -3395,7 +3354,7 @@ ipcMain.handle("events:create", async (_, payload) => {
     });
     debugApiResponse("createGroupCalendarEvent", response);
     const eventId = getEventId(response.data);
-    // Track locally created event for conflict detection (VRChat API has delay)
+    // Track locally for conflict detection (VRChat API has delay).
     trackCreatedEvent(groupId, startsAtUtc, eventData.title);
     if (automationEngine.isInitialized() && profileKey) {
       const profile = profiles?.[groupId]?.profiles?.[profileKey];
@@ -3404,7 +3363,7 @@ ipcMain.handle("events:create", async (_, payload) => {
         automationEngine.updatePendingEventsForProfile(groupId, profileKey, profile);
       }
     }
-    // Post-creation actions: Discord event, webhook, and ICS are independent
+    // Post-creation actions: Discord event, webhook, and ICS are independent.
     tryDiscordSync(groupId, profileKey, eventData, startsAtUtc, endsAtUtc).then(discordEvent => {
       tryWebhookPost(groupId, profileKey, eventData, startsAtUtc, endsAtUtc, discordEvent);
     });
@@ -3457,7 +3416,8 @@ ipcMain.handle("events:listGroup", async (_, payload) => {
     })
   );
   debugApiResponse("getGroupCalendarEvents (listGroup)", response);
-  // Log raw event fields for recurring event API discovery (SDK may lag behind VRChat API)
+  // Log raw event fields for recurring event API discovery; SDK may lag the
+  // VRChat API.
   const rawResults = getCalendarEventList(response.data);
   if (rawResults.length > 0) {
     const knownFields = new Set([
@@ -3609,7 +3569,7 @@ ipcMain.handle("files:listGallery", async (_, payload) => {
     };
   });
 
-  // Cache invalidation: remove images no longer in gallery
+  // Cache invalidation: drop images no longer in the gallery.
   if (offset === 0) {
     const currentIds = mappedFiles.map(f => f.id);
     galleryCacheModule.removeDeletedFromGalleryCache(currentIds);
@@ -3659,7 +3619,7 @@ ipcMain.handle("files:uploadGallery", async () => {
       return { ok: false, error: { code: "FILE_TYPE" } };
     }
 
-    // Read file atomically using file descriptor to avoid race condition
+    // Atomic FD-based read to avoid TOCTOU between size check and read.
     const fd = fs.openSync(filePath, "r");
     try {
       const stats = fs.fstatSync(fd);
@@ -3724,7 +3684,7 @@ ipcMain.handle("files:uploadGalleryBase64", async (_, payload) => {
   }
 
   try {
-    // Parse data URL format: data:image/png;base64,iVBOR...
+    // Parse data URL: data:image/png;base64,iVBOR...
     const match = base64Data.match(/^data:([^;]+);base64,(.+)$/);
     if (!match) {
       return { ok: false, error: { code: "INVALID_FORMAT", message: "Invalid base64 data URL format." } };
@@ -3734,13 +3694,12 @@ ipcMain.handle("files:uploadGalleryBase64", async (_, payload) => {
     const base64Content = match[2];
     const buffer = Buffer.from(base64Content, "base64");
 
-    // Validate file size (max 10MB)
+    // 10 MB cap.
     const maxBytes = 10 * 1024 * 1024;
     if (buffer.length >= maxBytes) {
       return { ok: false, error: { code: "FILE_TOO_LARGE" } };
     }
 
-    // Validate image
     const image = nativeImage.createFromBuffer(buffer);
     if (image.isEmpty()) {
       return { ok: false, error: { code: "FILE_TYPE", message: "Invalid image data." } };
@@ -3753,7 +3712,6 @@ ipcMain.handle("files:uploadGalleryBase64", async (_, payload) => {
       return { ok: false, error: { code: "DIMENSIONS_TOO_LARGE" } };
     }
 
-    // Determine file extension
     const extMap = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp" };
     const ext = extMap[mimeType] || "png";
     const fileName = `imported-${Date.now()}.${ext}`;
@@ -3782,9 +3740,7 @@ ipcMain.handle("files:uploadGalleryBase64", async (_, payload) => {
   }
 });
 
-// ============================================
-// Gallery Cache IPC Handlers
-// ============================================
+// Gallery Cache IPC handlers.
 
 ipcMain.handle("gallery:getCachedImage", async (_, payload) => {
   const { imageId } = payload || {};
@@ -3796,13 +3752,11 @@ ipcMain.handle("gallery:getImageAsBase64", async (_, payload) => {
   const { imageId } = payload || {};
   if (!imageId) return null;
 
-  // First check if already cached
   let dataUrl = galleryCacheModule.getCachedImageAsDataUrl(imageId);
   if (dataUrl) return dataUrl;
 
-  // Not cached, try to download using authenticated SDK method
+  // Not cached: download via authenticated SDK method.
   try {
-    // Get file info to determine version and mime type
     debugLog("gallery", `Fetching file info for ${imageId}`);
     const fileRes = await vrchat.getFile({
       path: { fileId: imageId },
@@ -3814,14 +3768,14 @@ ipcMain.handle("gallery:getImageAsBase64", async (_, payload) => {
       return null;
     }
 
-    // Get the latest version - use the version field from the last entry
+    // Latest version: use the version field from the last entry.
     const lastVersion = file.versions?.[file.versions.length - 1];
     const versionNum = lastVersion?.version ?? 1;
     const mimeType = file.mimeType || "image/png";
 
     debugLog("gallery", `Downloading ${imageId} version ${versionNum} via SDK (versions array length: ${file.versions?.length})`);
 
-    // Use SDK's downloadFileVersion which handles authentication
+    // SDK's downloadFileVersion handles authentication.
     const downloadRes = await vrchat.downloadFileVersion({
       path: { fileId: imageId, versionId: versionNum },
       throwOnError: true
@@ -3833,7 +3787,6 @@ ipcMain.handle("gallery:getImageAsBase64", async (_, payload) => {
       return null;
     }
 
-    // Convert Blob to Buffer
     const arrayBuffer = await blob.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
@@ -3866,7 +3819,6 @@ ipcMain.handle("gallery:getImageAsBase64", async (_, payload) => {
 
     fs.writeFileSync(localPath, buffer);
 
-    // Update manifest
     const manifest = galleryCacheModule.loadGalleryCacheManifest();
     manifest.images[imageId] = {
       localPath: localFileName,
@@ -3888,7 +3840,7 @@ ipcMain.handle("gallery:checkImageExists", async (_, payload) => {
   if (!imageId) return false;
 
   try {
-    // Try to get file info - if it succeeds, the image exists in user's gallery
+    // If getFile succeeds, the image exists in the user's gallery.
     const fileRes = await vrchat.getFile({
       path: { fileId: imageId },
       throwOnError: false
@@ -3925,19 +3877,16 @@ ipcMain.handle("gallery:triggerBackgroundCache", async (_, payload) => {
 
   if (toDownload.length === 0) return;
 
-  // Download images in background with throttling
+  // Background download with 100ms throttle to avoid rate limiting.
   setImmediate(async () => {
     for (const img of toDownload) {
       await galleryCacheModule.downloadGalleryImage(img.id, img.previewUrl, img.mimeType || "image/png");
-      // Throttle: 100ms delay between downloads to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 100));
     }
   });
 });
 
-// ============================================
-// Pending Events & Automation IPC Handlers
-// ============================================
+// Pending Events & Automation IPC handlers.
 
 ipcMain.handle("pending:list", async (_, payload) => {
   if (!automationEngine.isInitialized()) {
@@ -3948,7 +3897,7 @@ ipcMain.handle("pending:list", async (_, payload) => {
   const missedCount = automationEngine.getMissedCount(groupId);
   const queuedCount = automationEngine.getQueuedCount(groupId);
 
-  // Resolve event details for each pending event for display
+  // Resolve event details for display.
   const events = rawEvents.map(event => {
     const resolvedDetails = automationEngine.resolveEventDetails(event.id);
     return {
@@ -4075,8 +4024,8 @@ ipcMain.handle("automation:projectFutureEvents", async (_, payload) => {
     return { events: [] };
   }
   const projected = automationEngine.projectFutureEvents(groupId, fromMs, toMs);
-  // Resolve each projected event so the renderer gets the same shape it gets
-  // from pending:list (event + resolvedDetails). Pass the projected object
+  // Resolve each projected event so the renderer gets the same shape as
+  // pending:list (event + resolvedDetails). Pass the projected object
   // directly since it's not in the pendingEvents array.
   const events = projected.map(event => ({
     ...event,
@@ -4122,7 +4071,7 @@ ipcMain.handle("automation:getRestorableCount", async (_, payload) => {
   return automationEngine.getRestorableCount(groupId, profileKey);
 });
 
-// --- TEMPORARY: Series API test harness (remove before release) ---
+// TEMPORARY: Series API test harness (remove before release).
 
 ipcMain.handle("test:createSeries", async (_, payload) => {
   const { groupId } = payload || {};
@@ -4148,7 +4097,7 @@ ipcMain.handle("test:createSeries", async (_, payload) => {
     isDraft: false,
     parentId: null,
     roleIds: [],
-    // Series-specific fields (not in SDK types yet)
+    // Series-specific fields (not in SDK types yet).
     occurrenceKind: "series",
     recurrence: {
       frequency: "weekly",
@@ -4302,7 +4251,7 @@ ipcMain.handle("test:createWithParentId", async (_, payload) => {
   }
 });
 
-// --- END TEMPORARY ---
+// END TEMPORARY.
 
 app.whenReady().then(() => {
   initDebugLog();
@@ -4329,14 +4278,13 @@ app.whenReady().then(() => {
     drainRasterizeQueue().catch(err => debugLog("rasterize", "Hourly drain error:", err.message));
   }, 60 * 60 * 1000);
 
-  // Initialize automation engine after 2 seconds to allow UI to fully load
+  // Initialize automation engine 2s after launch (lets the UI finish loading).
   setTimeout(() => {
     automationEngine.initializeAutomation({
       pendingEventsPath: PENDING_EVENTS_PATH,
       automationStatePath: AUTOMATION_STATE_PATH,
       profiles,
       createEventFn: async (groupId, eventData, startsAtUtc, endsAtUtc) => {
-        // This function is called by the automation engine to create events
         try {
           await ensureCalendarPermission(groupId);
           const requestBody = {
@@ -4381,31 +4329,28 @@ app.whenReady().then(() => {
         }
       },
       onMissedEvent: (pendingEvent) => {
-        // Notify renderer about missed events
         if (mainWindow) {
           mainWindow.webContents.send("automation:missed", pendingEvent);
         }
       },
       onEventCreated: (pendingEvent, eventId) => {
-        // Notify renderer about successfully created events
         if (mainWindow) {
           const eventDetails = automationEngine.resolveEventDetails(pendingEvent.id, profiles);
           mainWindow.webContents.send("automation:created", { pendingEvent, eventId, eventDetails });
         }
-        // Regenerate pending events to top-up the queue after a successful post.
-        // This keeps the automation self-sustaining as events get published.
+        // Top up the pending queue after a successful post so automation
+        // stays self-sustaining as events get published.
         const { groupId, profileKey } = pendingEvent;
         const profile = profiles?.[groupId]?.profiles?.[profileKey];
         if (profile?.automation?.enabled) {
           automationEngine.updatePendingEventsForProfile(groupId, profileKey, profile);
         }
-        // Discord sync for automated events
         const details = automationEngine.resolveEventDetails(pendingEvent.id, profiles);
         if (details) {
           const startTime = new Date(pendingEvent.eventStartsAt);
           const durationMs = (details.duration || 120) * 60 * 1000;
           const endTime = new Date(startTime.getTime() + durationMs);
-          // Post-creation actions: Discord event, webhook, and ICS are independent
+          // Post-creation actions: Discord event, webhook, and ICS are independent.
           tryDiscordSync(groupId, profileKey, details, startTime.toISOString(), endTime.toISOString()).then(discordEvent => {
             tryWebhookPost(groupId, profileKey, details, startTime.toISOString(), endTime.toISOString(), discordEvent);
           });

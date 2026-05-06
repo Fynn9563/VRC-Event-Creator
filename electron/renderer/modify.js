@@ -12,23 +12,20 @@ const MODIFY_RATE_LIMIT_KEYS = {
   delete: "events:delete",
   refresh: "events:refresh"
 };
-const REFRESH_BACKOFF_SEQUENCE = [2000, 5000, 10000, 20000, 40000, 60000]; // 2s, 5s, 10s, 20s, 40s, 60s
+const REFRESH_BACKOFF_SEQUENCE = [2000, 5000, 10000, 20000, 40000, 60000]; // 2s, 5s, 10s, 20s, 40s, 60s.
 const REFRESH_DEDUP_MS = 3000;
 let modifyApi = null;
 
-// In-memory cache for image data URLs
 const modifyImageDataUrlCache = new Map();
 
 async function loadCachedImageForElement(imgElement, imageId, fallbackUrl) {
   if (!imageId || !modifyApi?.getCachedImage) return;
 
-  // Check in-memory cache first
   if (modifyImageDataUrlCache.has(imageId)) {
     imgElement.src = modifyImageDataUrlCache.get(imageId);
     return;
   }
 
-  // Try to get from disk cache
   try {
     const dataUrl = await modifyApi.getCachedImage(imageId);
     if (dataUrl) {
@@ -36,13 +33,13 @@ async function loadCachedImageForElement(imgElement, imageId, fallbackUrl) {
       imgElement.src = dataUrl;
     }
   } catch {
-    // Silently fail - image will continue using remote URL
+    // Silent fail; image continues using remote URL.
   }
 }
 
 function extractImageIdFromUrl(url) {
   if (!url) return null;
-  // VRChat file URLs contain file ID like "file_abc123"
+  // VRChat file URLs contain file IDs like "file_abc123".
   const match = url.match(/file_[a-zA-Z0-9-]+/);
   return match ? match[0] : null;
 }
@@ -240,12 +237,10 @@ function updateRefreshButtonState() {
     dom.modifyRefresh.textContent = `${t("common.refresh")} (${seconds}s)`;
     dom.modifyRefresh.disabled = true;
 
-    // Clear existing timer
     if (refreshButtonTimer) {
       clearTimeout(refreshButtonTimer);
     }
 
-    // Schedule next update
     refreshButtonTimer = setTimeout(updateRefreshButtonState, 1000);
   } else {
     dom.modifyRefresh.textContent = t("common.refresh");
@@ -261,13 +256,11 @@ function updateRefreshButtonState() {
 async function handleRefreshClick() {
   const now = Date.now();
 
-  // Check if still in backoff period
   if (state.modify.refreshBackoffUntil > now) {
     updateRefreshButtonState();
     return;
   }
 
-  // Respect deduplication window
   const timeSinceLastRefresh = now - state.modify.lastRefreshTime;
   if (timeSinceLastRefresh < REFRESH_DEDUP_MS) {
     updateRefreshButtonState();
@@ -278,10 +271,8 @@ async function handleRefreshClick() {
 
   try {
     await refreshModifyEvents(modifyApi, { bypassCache: true });
-    // Success - reset backoff
     clearRefreshBackoff();
   } catch (err) {
-    // Check if 429 error
     if (isRateLimitError(err)) {
       applyRefreshBackoff();
       showToast(t("common.rateLimitError"), true, { duration: 8000 });
@@ -419,10 +410,9 @@ function formatEventDisplayDate(value) {
 }
 
 /**
- * Format date in a specific timezone with timezone abbreviation
  * @param {string} value - ISO date string
  * @param {string} timeZone - IANA timezone string
- * @returns {string} Formatted date with timezone code
+ * @returns {string} Formatted date with timezone code.
  */
 function formatDateInTimezone(value, timeZone) {
   if (!value) {
@@ -444,20 +434,17 @@ function formatDateInTimezone(value, timeZone) {
   return `${formatted} ${tzAbbr}`;
 }
 
-/**
- * Get system local timezone
- * @returns {string} IANA timezone string
- */
+/** @returns {string} IANA timezone string. */
 function getSystemTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 }
 
 /**
- * Setup hover-to-convert behavior for a date element
- * Shows local time with timezone code on hover, original on mouse leave
- * @param {HTMLElement} element - The element to attach hover behavior to
- * @param {string} isoDate - The ISO date string
- * @param {string} originalTimezone - The original timezone for normal display
+ * Setup hover-to-convert behavior on a date element. Shows local time with
+ * timezone code on hover, original on mouse leave.
+ * @param {HTMLElement} element
+ * @param {string} isoDate
+ * @param {string} originalTimezone
  */
 function setupDateHoverConvert(element, isoDate, originalTimezone) {
   const systemTz = getSystemTimezone();
@@ -494,7 +481,6 @@ function renderModifyCount() {
     count: totalCount
   });
 
-  // Append missed automation text if count > 0
   const missedCount = state.modify.missedCount || 0;
   if (missedCount > 0) {
     const missedKey = missedCount === 1
@@ -504,7 +490,6 @@ function renderModifyCount() {
     countText += ` <strong>${missedText}</strong>`;
   }
 
-  // Append queued automation text if count > 0
   const queuedCount = state.modify.queuedCount || 0;
   if (queuedCount > 0) {
     const queuedKey = queuedCount === 1
@@ -514,11 +499,11 @@ function renderModifyCount() {
     countText += ` <strong>${queuedText}</strong>`;
   }
 
-  dom.modifyCount.innerHTML = countText; // Use innerHTML to support <strong> tags
+  dom.modifyCount.innerHTML = countText; // innerHTML supports the <strong> tags above.
 }
 
 function getMergedEvents() {
-  // Merge real events and pending events, sorted by event start time
+  // Merge real and pending events, sorted by event start time.
   const realEvents = state.modify.events.map(e => ({
     ...e,
     isPending: false,
@@ -546,8 +531,8 @@ function getMergedEvents() {
   });
 
   // Defensive filter for projected events whose profile has been deleted
-  // since the last refresh — without this, stale entries cling to the cached
-  // pendingEvents until the next full refresh. Profile-delete now broadcasts
+  // since the last refresh. Without this, stale entries cling to the cached
+  // pendingEvents until the next full refresh. Profile-delete broadcasts
   // profiles:updated which triggers a refresh, but this is a belt-and-
   // suspenders safety net for any other state-sync gap.
   const groupId = dom.modifyGroup?.value;
@@ -557,7 +542,7 @@ function getMergedEvents() {
       .filter(p => !state.modify.optimisticEvents.has(p.id))
       .filter(p => {
         if (p.isProjected && p.profileKey && !profilesForGroup[p.profileKey]) {
-          return false; // Orphan projected event — profile was deleted.
+          return false; // Orphan projected event; profile was deleted.
         }
         return true;
       })
@@ -571,8 +556,11 @@ function getMergedEvents() {
   return [...realEvents, ...filteredOptimistic, ...pendingEvents].sort((a, b) => a.sortTime - b.sortTime);
 }
 
-/** Reset all session-scoped Modify Events filters to their default (everything visible).
- *  Called on group change and tab navigation. Time range is NOT reset (it's persisted). */
+/**
+ * Reset session-scoped Modify Events filters to default (everything visible).
+ * Called on group change and tab navigation. Time range is NOT reset
+ * (it's persisted).
+ */
 export function resetModifyFilters() {
   state.modify.filters = {
     pending: true,
@@ -581,30 +569,28 @@ export function resetModifyFilters() {
     series: {},
     templates: {}
   };
-  // Sync UI checkboxes
   if (dom.modifyFilterPending) dom.modifyFilterPending.checked = true;
   if (dom.modifyFilterStandalone) dom.modifyFilterStandalone.checked = true;
   if (dom.modifyFilterModified) dom.modifyFilterModified.checked = true;
-  // Hide the panel (collapsed state on reset)
+  // Collapsed state on reset.
   if (dom.modifyFiltersPanel) dom.modifyFiltersPanel.classList.add("is-hidden");
-  // Clear and hide the per-series checkbox group
   if (dom.modifyFilterSeriesGroup) dom.modifyFilterSeriesGroup.classList.add("is-hidden");
   if (dom.modifyFilterSeriesList) dom.modifyFilterSeriesList.innerHTML = "";
-  // Same for the per-template chips
   if (dom.modifyFilterTemplatesGroup) dom.modifyFilterTemplatesGroup.classList.add("is-hidden");
   if (dom.modifyFilterTemplatesList) dom.modifyFilterTemplatesList.innerHTML = "";
-  // Keep state.modify.showPending in sync for legacy code paths
+  // Keep state.modify.showPending in sync for legacy code paths.
   state.modify.showPending = true;
 }
 
 // Build the per-template filter chip list. Templates are surfaced from any
-// pending/projected event that has a profileKey — so every committed and
-// projected automation event contributes to the visible chip set. Standalone
-// (manually-created) events have no profileKey and don't show up here.
+// pending/projected event with a profileKey, so every committed and
+// projected automation event contributes to the visible chip set.
+// Standalone (manually-created) events have no profileKey, so they are
+// not represented here.
 //
-// Per Phase D design: there's no per-card template badge, only this filter.
-// The filter is purely additive — unchecking a chip hides every event from
-// that template. State persists in state.modify.filters.templates.
+// Phase D: no per-card template badge, only this filter. Purely additive:
+// unchecking a chip hides every event from that template. State persists
+// in state.modify.filters.templates.
 function populateTemplatesFilterOptions(groupId, pendingEvents) {
   if (!dom.modifyFilterTemplatesGroup || !dom.modifyFilterTemplatesList) return;
 
@@ -622,8 +608,8 @@ function populateTemplatesFilterOptions(groupId, pendingEvents) {
   const profilesForGroup = state.profiles?.[groupId]?.profiles || {};
 
   if (!state.modify.filters.templates) state.modify.filters.templates = {};
-  // New chips default to checked; entries for templates that no longer have
-  // any visible events get pruned so toggling old templates doesn't linger.
+  // New chips default to checked. Entries for templates with no visible
+  // events get pruned so toggling old templates doesn't linger.
   profileKeys.forEach(pk => {
     if (state.modify.filters.templates[pk] === undefined) {
       state.modify.filters.templates[pk] = true;
@@ -661,12 +647,10 @@ function populateTemplatesFilterOptions(groupId, pendingEvents) {
 
 function populateSeriesFilterOptions(groupId, events) {
   if (!dom.modifyFilterSeriesGroup || !dom.modifyFilterSeriesList) return;
-  // Collect unique seriesIds present in current events
   const seriesIds = new Set();
   (events || []).forEach(event => {
     if (event.seriesId) seriesIds.add(event.seriesId);
   });
-  // Hide the series filter group entirely if there are no series occurrences
   if (seriesIds.size === 0) {
     dom.modifyFilterSeriesGroup.classList.add("is-hidden");
     return;
@@ -674,19 +658,18 @@ function populateSeriesFilterOptions(groupId, events) {
   dom.modifyFilterSeriesGroup.classList.remove("is-hidden");
 
   const seriesMap = state.series?.[groupId] || {};
-  // Initialize filter state for any new seriesIds (default visible)
+  // New seriesIds default to visible.
   if (!state.modify.filters.series) state.modify.filters.series = {};
   seriesIds.forEach(sid => {
     if (state.modify.filters.series[sid] === undefined) {
       state.modify.filters.series[sid] = true;
     }
   });
-  // Drop entries for series no longer present
+  // Drop entries for series no longer present.
   Object.keys(state.modify.filters.series).forEach(sid => {
     if (!seriesIds.has(sid)) delete state.modify.filters.series[sid];
   });
 
-  // Rebuild the checkbox list
   dom.modifyFilterSeriesList.innerHTML = "";
   Array.from(seriesIds).sort().forEach(seriesId => {
     const label = seriesMap[seriesId]?.label
@@ -726,39 +709,36 @@ function renderModifyEventGrid() {
   const filters = state.modify.filters || {};
   const seriesFilter = filters.series || {};
   const templatesFilter = filters.templates || {};
-  // Time range cutoff: only events starting within timeRangeDays from now
+  // Time range cutoff: only events starting within timeRangeDays from now.
   const rangeDays = Number.isFinite(state.modify.timeRangeDays) ? state.modify.timeRangeDays : 30;
   const cutoffMs = Date.now() + rangeDays * 24 * 60 * 60 * 1000;
 
   let hiddenByRange = 0;
   const mergedEvents = allMergedEvents.filter(event => {
-    // Time range
     const startMs = event.sortTime || (event.startsAtUtc ? Date.parse(event.startsAtUtc) : null);
     if (startMs && startMs > cutoffMs) {
       hiddenByRange++;
       return false;
     }
-    // Pending toggle (also captured by getMergedEvents but kept here for clarity)
+    // Pending toggle (also captured by getMergedEvents; kept here for clarity).
     if (event.isPending && filters.pending === false) return false;
-    // Per-template filter chips (Phase D): a pending/projected event tied to
-    // an unchecked template is hidden. profileKey is what links these events
-    // to a template; standalone events have no profileKey and aren't gated
-    // by this filter.
+    // Phase D per-template chips: a pending/projected event tied to an
+    // unchecked template is hidden. profileKey links these events to a
+    // template; standalone events have no profileKey and aren't gated.
     if (event.isPending && event.profileKey && templatesFilter[event.profileKey] === false) {
       return false;
     }
-    // Series occurrence: hide if its series is unchecked
     if (event.seriesId) {
       if (seriesFilter[event.seriesId] === false) return false;
-      // Modified occurrences: filter only if filter is unchecked
+      // Modified-occurrence filter only applies when unchecked.
       if (event.occurrenceModified && filters.modified === false) return false;
       return true;
     }
-    // Standalone (non-pending, non-series)
+    // Standalone (non-pending, non-series).
     if (!event.isPending && filters.standalone === false) return false;
     return true;
   });
-  // Stash the count of events hidden by the range filter so the count line can mention it
+  // Stash range-hidden count so the count line can surface it.
   state.modify._hiddenByRange = hiddenByRange;
 
   if (!mergedEvents.length) {
@@ -804,7 +784,6 @@ function renderPublishedCard(event) {
       thumb.appendChild(fallback);
     });
     thumb.appendChild(img);
-    // Try to use cached version
     const imageId = getImageIdForEvent(event);
     if (imageId) {
       loadCachedImageForElement(img, imageId, imageUrl);
@@ -820,7 +799,6 @@ function renderPublishedCard(event) {
   title.className = "event-title";
   title.textContent = event.title || t("modify.untitled");
 
-  // Series and modified badges
   const badgeRow = document.createElement("div");
   badgeRow.className = "event-badge-row";
   if (event.seriesId) {
@@ -841,7 +819,7 @@ function renderPublishedCard(event) {
 
   const date = document.createElement("div");
   date.className = "event-date";
-  // Published events: show local time, on hover show with timezone code
+  // Published events: show local time; hover shows with timezone code.
   const eventDateValue = event.startsAtUtc || event.endsAtUtc;
   const systemTz = getSystemTimezone();
   const normalDateText = formatEventDisplayDate(eventDateValue);
@@ -899,7 +877,6 @@ function renderPendingCard(pendingEvent) {
   const thumb = document.createElement("div");
   thumb.className = "event-thumb";
 
-  // Get resolved event details for display
   const details = pendingEvent.resolvedDetails || {};
   const imageUrl = details.imageUrl || getGroupBanner(pendingEvent.groupId);
   if (imageUrl) {
@@ -915,7 +892,6 @@ function renderPendingCard(pendingEvent) {
       thumb.appendChild(fallback);
     });
     thumb.appendChild(img);
-    // Try to use cached version
     const imageId = getImageIdForEvent(details);
     if (imageId) {
       loadCachedImageForElement(img, imageId, imageUrl);
@@ -927,7 +903,7 @@ function renderPendingCard(pendingEvent) {
     thumb.appendChild(fallback);
   }
 
-  // Hover actions overlay (Post Now, Edit)
+  // Hover actions overlay (Post Now, Edit).
   const hoverActions = document.createElement("div");
   hoverActions.className = "pending-hover-actions";
 
@@ -935,7 +911,6 @@ function renderPendingCard(pendingEvent) {
   postNowBtn.type = "button";
   postNowBtn.className = "pending-action-btn pending-post-now";
   postNowBtn.textContent = t("modify.pending.postNow");
-  // Disable Post Now for queued events
   if (pendingEvent.status === "queued") {
     postNowBtn.disabled = true;
     postNowBtn.title = t("modify.pending.queuedDisabled");
@@ -961,16 +936,13 @@ function renderPendingCard(pendingEvent) {
   hoverActions.appendChild(editBtn);
   thumb.appendChild(hoverActions);
 
-  // Status badge
   if (pendingEvent.status === "missed") {
-    // Missed badge (exclamation mark)
     const missedBadge = document.createElement("div");
     missedBadge.className = "pending-missed-badge";
     missedBadge.textContent = "!";
     missedBadge.title = t("modify.pending.missedHint");
     thumb.appendChild(missedBadge);
   } else if (pendingEvent.status === "queued") {
-    // Queued badge (clock icon)
     const queuedBadge = document.createElement("div");
     queuedBadge.className = "pending-queued-badge";
     queuedBadge.textContent = "⏱";
@@ -982,31 +954,28 @@ function renderPendingCard(pendingEvent) {
   title.className = "event-title";
   title.textContent = details.title || t("modify.untitled");
 
-  // Get profile timezone from resolved details (for hover conversion)
+  // Profile timezone from resolved details (for hover conversion).
   const profileTz = details.timezone || getSystemTimezone();
 
   const dateRow = document.createElement("div");
   dateRow.className = "event-date";
   setupDateHoverConvert(dateRow, pendingEvent.eventStartsAt, profileTz);
-  // Suppress hover overlay when hovering on date row
+  // Suppress hover overlay when hovering on date row.
   dateRow.addEventListener("mouseenter", () => card.classList.add("suppress-hover-overlay"));
   dateRow.addEventListener("mouseleave", () => card.classList.remove("suppress-hover-overlay"));
 
-  // Show scheduled publish time with hover-to-convert
   const publishTime = document.createElement("div");
   publishTime.className = "pending-publish-time";
   const publishTimeSpan = document.createElement("span");
   publishTimeSpan.className = "pending-publish-time-value";
   setupDateHoverConvert(publishTimeSpan, pendingEvent.scheduledPublishTime, profileTz);
-  // Build the label with the hoverable time span
   const publishLabel = t("modify.pending.publishAt", { time: "" }).replace(/:\s*$/, ": ");
   publishTime.textContent = publishLabel;
   publishTime.appendChild(publishTimeSpan);
-  // Suppress hover overlay when hovering on publish time
   publishTime.addEventListener("mouseenter", () => card.classList.add("suppress-hover-overlay"));
   publishTime.addEventListener("mouseleave", () => card.classList.remove("suppress-hover-overlay"));
 
-  // Delete (cancel) button - same as published cards
+  // Delete (cancel) button: same as published cards.
   const deleteBtn = document.createElement("button");
   deleteBtn.type = "button";
   deleteBtn.className = "event-delete";
@@ -1026,10 +995,8 @@ function renderPendingCard(pendingEvent) {
   card.appendChild(dateRow);
   card.appendChild(publishTime);
 
-  // Click card to see details (no edit modal for pending - actions are on hover)
-  card.addEventListener("click", () => {
-    // Do nothing on card click - actions are in hover overlay
-  });
+  // Pending cards have no click action; actions are in the hover overlay.
+  card.addEventListener("click", () => {});
 
   dom.modifyEventGrid.appendChild(card);
 }
@@ -1051,7 +1018,7 @@ async function handlePendingPostNow(pendingEvent, button) {
     button.disabled = true;
   }
   try {
-    // Projected events live only in the renderer view — they aren't in the
+    // Projected events live only in the renderer view; they aren't in the
     // engine's pendingEvents array, so postNow's id lookup would fail.
     // Materialize the slot first (mirrors the Phase B edit-flow promotion),
     // then post the resulting real pending id.
@@ -1095,14 +1062,14 @@ async function handlePendingEdit(pendingEvent) {
     showToast(t("modify.pending.editFailed"), true);
     return;
   }
-  // Store selected pending event and open modify modal with its resolved details
+  // Store selected pending event and open modify modal with resolved details.
   state.modify.selectedPendingEvent = pendingEvent;
   const details = pendingEvent.resolvedDetails || {};
 
-  // Store current imageUrl for card preview after save
+  // Store current imageUrl for card preview after save.
   state.modify.selectedImageUrl = details.imageUrl || "";
 
-  // Create a fake event object for the modify form
+  // Build a fake event object for the modify form.
   const fakeEvent = {
     id: pendingEvent.id,
     groupId: pendingEvent.groupId,
@@ -1144,10 +1111,10 @@ async function handlePendingCancel(pendingEvent) {
     return;
   }
   try {
-    // Phase C of automation projection: projected (renderer-only) slots
-    // can't go through pending:action because they're not in
-    // pending-events.json. Route through tombstoneProjected instead so
-    // the engine knows never to regenerate this slot.
+    // Phase C automation projection: projected (renderer-only) slots can't
+    // go through pending:action because they're not in pending-events.json.
+    // Route through tombstoneProjected so the engine knows never to
+    // regenerate this slot.
     let result;
     if (pendingEvent.isProjected && modifyApi?.tombstoneProjected) {
       result = await modifyApi.tombstoneProjected({
@@ -1167,7 +1134,7 @@ async function handlePendingCancel(pendingEvent) {
     }
     showToast(t("modify.pending.cancelled"));
 
-    // Optimistically remove from local state
+    // Optimistically remove from local state.
     state.modify.pendingEvents = state.modify.pendingEvents.filter(p => p.id !== pendingEvent.id);
     state.modify.optimisticEvents.delete(pendingEvent.id);
     renderModifyEventGrid();
@@ -1198,13 +1165,12 @@ async function handlePendingSave() {
     ? state.modify.tagInput.getTags()
     : enforceTagsInput(dom.modifyEventTags, TAG_LIMIT, true);
 
-  // Add group fair tag if checkbox is checked
+  // Sync group fair tag with the checkbox.
   if (dom.modifyGroupFair?.checked) {
     if (!tags.includes("vrc_event_group_fair")) {
       tags.push("vrc_event_group_fair");
     }
   } else {
-    // Remove group fair tag if checkbox is unchecked
     const index = tags.indexOf("vrc_event_group_fair");
     if (index > -1) {
       tags.splice(index, 1);
@@ -1244,7 +1210,6 @@ async function handlePendingSave() {
   dom.modifySave.disabled = true;
 
   try {
-    // Build manual overrides from form data
     const manualDate = dom.modifyEventDate.value;
     const manualTime = dom.modifyEventTime.value;
     const manualTimezone = dom.modifyEventTimezone.value;
@@ -1264,7 +1229,6 @@ async function handlePendingSave() {
       timezone: manualTimezone,
       manualDate,
       manualTime,
-      // Posting options
       discordSync: dom.modifyDiscordSync?.checked ?? true,
       webhookPost: dom.modifyWebhookPost?.checked ?? false,
       calendarCreate: dom.modifyCalendarSync?.checked ?? false,
@@ -1275,11 +1239,10 @@ async function handlePendingSave() {
       webhookImagePath: dom.modifyWebhookImagePath?.value || ""
     };
 
-    // Phase B of automation projection: if the event being edited is a
-    // projected (renderer-only) slot, commit it first via commitProjected
-    // — that promotes it to a real pending event with the user's overrides
-    // applied at construction time. Existing committed events go through
-    // pending:action edit as before.
+    // Phase B automation projection: if editing a projected (renderer-only)
+    // slot, commit it first via commitProjected. That promotes it to a real
+    // pending event with the user's overrides applied at construction time.
+    // Existing committed events go through pending:action edit as before.
     let result;
     if (pendingEvent.isProjected && modifyApi?.commitProjected) {
       result = await modifyApi.commitProjected({
@@ -1398,7 +1361,7 @@ function applyModifyFormFromEvent(event) {
   void renderModifyRoleRestrictions();
   void updateModifyTogglesVisibility(event.groupId);
 
-  // Posting options — only for pending events
+  // Posting options apply only to pending events.
   const isPending = !!state.modify.selectedPendingEvent;
   if (dom.modifyPostingOptions) {
     dom.modifyPostingOptions.classList.toggle("is-hidden", !isPending);
@@ -1411,24 +1374,20 @@ function applyModifyFormFromEvent(event) {
 
     const hasWebhook = isGroupWebhookConfigured(groupId);
 
-    // Discord sync
     if (dom.modifyDiscordSyncField) dom.modifyDiscordSyncField.classList.toggle("is-hidden", !hasDiscord);
     if (dom.modifyDiscordSync) dom.modifyDiscordSync.checked = event.discordSync !== false;
 
-    // Webhook post
     if (dom.modifyWebhookPostField) dom.modifyWebhookPostField.classList.toggle("is-hidden", !hasWebhook);
     if (dom.modifyWebhookPost) dom.modifyWebhookPost.checked = Boolean(event.webhookPost);
 
-    // Calendar sync
     if (dom.modifyCalendarSyncField) dom.modifyCalendarSyncField.classList.toggle("is-hidden", !calendarEnabled);
     if (dom.modifyCalendarSync) dom.modifyCalendarSync.checked = Boolean(event.calendarCreate);
 
-    // Calendar reminders
     if (dom.modifyCalendarRemindersEnabled) dom.modifyCalendarRemindersEnabled.checked = Boolean(event.calendarRemindersEnabled);
     renderCalendarReminders(dom.modifyCalendarRemindersList, event.calendarReminders || []);
     updateModifyCalendarRemindersVisibility();
 
-    // Webhook message (depends on webhook post + kit)
+    // Webhook message depends on webhook post + kit.
     const showWebhook = hasKit && dom.modifyWebhookPost?.checked;
     if (dom.modifyWebhookMessageSection) dom.modifyWebhookMessageSection.classList.toggle("is-hidden", !showWebhook);
     if (dom.modifyWebhookMessageEnabled) dom.modifyWebhookMessageEnabled.checked = Boolean(event.webhookMessageEnabled);
@@ -1465,10 +1424,9 @@ async function updateModifyTogglesVisibility(groupId) {
   }
 
   try {
-    // Call backend to check feature flags (tags are NOT exposed to renderer)
+    // Backend feature-flag check (tags are NOT exposed to the renderer).
     const flags = await modifyApi.checkFeatureFlags(groupId);
 
-    // Show/hide toggles based on backend response
     dom.modifyFeaturedField.classList.toggle("is-hidden", !flags.hasFeaturedEvents);
     dom.modifyGroupFairField.classList.toggle("is-hidden", !flags.hasGroupFair);
 
@@ -1614,48 +1572,42 @@ async function handleDeleteEvent(event) {
     return;
   }
 
-  // Check if already pending deletion
   if (state.modify.pendingDeletions.has(event.id)) {
     return;
   }
 
-  // Optimistic UI update: immediately remove from list
+  // Optimistic UI update: remove from list immediately.
   state.modify.pendingDeletions.add(event.id);
   const eventIndex = state.modify.events.findIndex(e => e.id === event.id);
   const deletedEvent = eventIndex >= 0 ? state.modify.events[eventIndex] : null;
   const removedOptimisticEntries = removeOptimisticEntriesForEvent(event);
 
-  // Capture scroll position before render
   const scrollPos = dom.modifyEventGrid ? dom.modifyEventGrid.scrollTop : 0;
 
   if (eventIndex >= 0) {
     state.modify.events.splice(eventIndex, 1);
   }
 
-  // Re-render immediately without the deleted event
   renderModifyEventGrid();
   renderModifyCount();
 
-  // Restore scroll position
   if (dom.modifyEventGrid && scrollPos > 0) {
     dom.modifyEventGrid.scrollTop = scrollPos;
   }
 
-  // Send delete request to backend in background
+  // Backend delete in background.
   const result = await modifyApi.deleteEvent({ groupId: event.groupId, eventId: event.id });
 
-  // Remove from pending set
   state.modify.pendingDeletions.delete(event.id);
 
   if (!result?.ok) {
-    // Rollback: restore the event to the list
+    // Rollback: restore the event to the list.
     if (removedOptimisticEntries.length) {
       removedOptimisticEntries.forEach(({ pendingId, entry }) => {
         state.modify.optimisticEvents.set(pendingId, entry);
       });
     }
     if (deletedEvent) {
-      // Capture scroll before rollback render
       const rollbackScrollPos = dom.modifyEventGrid ? dom.modifyEventGrid.scrollTop : 0;
 
       if (eventIndex >= 0 && eventIndex < state.modify.events.length) {
@@ -1666,7 +1618,6 @@ async function handleDeleteEvent(event) {
       renderModifyEventGrid();
       renderModifyCount();
 
-      // Restore scroll after rollback
       if (dom.modifyEventGrid && rollbackScrollPos > 0) {
         dom.modifyEventGrid.scrollTop = rollbackScrollPos;
       }
@@ -1681,10 +1632,10 @@ async function handleDeleteEvent(event) {
     return;
   }
 
-  // Success: add to tombstone list to filter out if it reappears
+  // Tombstone so a stale list still filters this id out if it reappears.
   state.modify.deletedTombstones.set(event.id, Date.now());
 
-  // Clean up old tombstones (older than 60 seconds)
+  // Drop tombstones older than 60s.
   const now = Date.now();
   for (const [id, timestamp] of state.modify.deletedTombstones) {
     if (now - timestamp > 60000) {
@@ -1695,14 +1646,12 @@ async function handleDeleteEvent(event) {
   clearRateLimit(MODIFY_RATE_LIMIT_KEYS.delete);
   showToast(t("modify.deleted"));
 
-  // Optionally refresh in background to sync with server (but don't block UI)
-  refreshModifyEvents(modifyApi, { preserveSelection: true }).catch(() => {
-    // Ignore refresh errors - optimistic delete already succeeded
-  });
+  // Optional background sync; ignore errors since optimistic delete succeeded.
+  refreshModifyEvents(modifyApi, { preserveSelection: true }).catch(() => {});
 }
 
 async function handleModifySave() {
-  // Check if we're editing a pending event
+  // Editing a pending event has its own save path.
   if (state.modify.selectedPendingEvent) {
     await handlePendingSave();
     return;
@@ -1736,13 +1685,12 @@ async function handleModifySave() {
     ? state.modify.tagInput.getTags()
     : enforceTagsInput(dom.modifyEventTags, TAG_LIMIT, true);
 
-  // Add group fair tag if checkbox is checked
+  // Sync group fair tag with the checkbox.
   if (dom.modifyGroupFair?.checked) {
     if (!tags.includes("vrc_event_group_fair")) {
       tags.push("vrc_event_group_fair");
     }
   } else {
-    // Remove group fair tag if checkbox is unchecked
     const index = tags.indexOf("vrc_event_group_fair");
     if (index > -1) {
       tags.splice(index, 1);
@@ -1907,11 +1855,10 @@ function handleProfileLoad() {
   showToast(t("modify.profileLoaded"));
 }
 
-// Track current refresh promise to fix race conditions
+// Track current refresh promise to fix race conditions.
 let currentRefreshPromise = null;
 
 export async function refreshModifyEvents(api, options = {}) {
-  // If already refreshing, wait for it to complete
   if (currentRefreshPromise) {
     await currentRefreshPromise;
     return;
@@ -1949,7 +1896,6 @@ async function performRefresh(api, options = {}) {
     return;
   }
 
-  // Capture scroll position before refresh
   const scrollPos = preserveScroll && dom.modifyEventGrid ? dom.modifyEventGrid.scrollTop : 0;
 
   state.modify.selectedGroupId = groupId;
@@ -1960,13 +1906,13 @@ async function performRefresh(api, options = {}) {
     // Fetch series, real events, pending events, and projected future events
     // in parallel.
     //
-    // Series load is required so populateSeriesFilterOptions can resolve human
-    // labels — without it, the filter shows fallback "Series (cal_xxxxxxxx)"
-    // IDs. This also covers single-group users (no group switch ever fires)
-    // and refresh-button presses where the group hasn't changed.
+    // Series load is required so populateSeriesFilterOptions can resolve
+    // human labels; without it, the filter shows "Series (cal_xxxxxxxx)"
+    // fallback IDs. This also covers single-group users (no group switch
+    // ever fires) and refresh-button presses where the group hasn't changed.
     //
-    // Projection (Phase A): the engine generates pending events out to ~3
-    // months. When the user picks a longer view filter (e.g., 6 months, 1
+    // Phase A projection: the engine generates pending events out to ~3
+    // months. When the user picks a longer view filter (e.g. 6 months, 1
     // year), projection synthesizes additional pending-shaped events from
     // template patterns past the engine's horizon. They render identically
     // to scheduled pending events; only an isProjected flag differentiates
@@ -1988,26 +1934,24 @@ async function performRefresh(api, options = {}) {
 
     let filteredEvents = Array.isArray(events) ? events : [];
 
-    // Filter out tombstoned (recently deleted) events
+    // Filter out tombstoned (recently deleted) events.
     const now = Date.now();
     filteredEvents = filteredEvents.filter(event => {
       const tombstoneTime = state.modify.deletedTombstones.get(event.id);
       if (tombstoneTime && now - tombstoneTime < 60000) {
-        return false; // Event was recently deleted, filter it out
+        return false;
       }
       return true;
     });
 
     state.modify.events = filteredEvents;
 
-    // Populate the series filter dropdown based on series visible in current events
     populateSeriesFilterOptions(groupId, filteredEvents);
 
-    // Process pending events with resolved details. Merge projected events
-    // into the same array — the renderer treats them identically. Order: real
-    // pending first, then projected. Both are sorted by scheduledPublishTime
-    // downstream in renderModifyEventGrid, so the merge order doesn't matter
-    // for display.
+    // Merge projected events into pending; the renderer treats them
+    // identically. Order: real pending first, then projected. Both are
+    // sorted by scheduledPublishTime downstream in renderModifyEventGrid,
+    // so the merge order doesn't matter for display.
     const pendingEvents = pendingResult?.events || [];
     const projectedEvents = projectedResult?.events || [];
     const combinedPending = pendingEvents.concat(projectedEvents);
@@ -2020,15 +1964,13 @@ async function performRefresh(api, options = {}) {
     populateTemplatesFilterOptions(groupId, combinedPending);
     reconcileOptimisticEvents(filteredEvents, combinedPending, groupId);
 
-    // Success - clear any refresh backoff
     if (options.bypassCache) {
       clearRefreshBackoff();
     }
   } catch (err) {
-    // Check for 429 rate limit
     if (isRateLimitError(err)) {
       applyRefreshBackoff();
-      throw err; // Re-throw to be handled by caller
+      throw err; // Re-throw for caller.
     }
 
     showToast(t("modify.loadFailed"), true);
@@ -2040,7 +1982,6 @@ async function performRefresh(api, options = {}) {
     renderModifyCount();
     updateMissedBadge();
 
-    // Restore scroll position
     if (preserveScroll && dom.modifyEventGrid && scrollPos > 0) {
       dom.modifyEventGrid.scrollTop = scrollPos;
     }
@@ -2048,7 +1989,7 @@ async function performRefresh(api, options = {}) {
 }
 
 function updateMissedBadge() {
-  // Update the badge on the Modify Events nav button
+  // Badge on the Modify Events nav button.
   const modifyNavBtn = Array.from(dom.navButtons || []).find(btn =>
     btn.dataset.view === "modify"
   );
@@ -2056,13 +1997,11 @@ function updateMissedBadge() {
     return;
   }
 
-  // Remove existing badge
   const existingBadge = modifyNavBtn.querySelector(".nav-badge");
   if (existingBadge) {
     existingBadge.remove();
   }
 
-  // Add badge if there are missed events
   if (state.modify.missedCount > 0) {
     const badge = document.createElement("span");
     badge.className = "nav-badge";
@@ -2079,7 +2018,7 @@ export function initModifyEvents(api) {
     return;
   }
 
-  // Listen for automated event creation to refresh the view
+  // Refresh the view when an automated event is created.
   if (api?.onAutomationCreated) {
     api.onAutomationCreated((payload) => {
       if (payload?.pendingEvent) {
@@ -2091,34 +2030,31 @@ export function initModifyEvents(api) {
 
   dom.modifyRefresh.addEventListener("click", () => { void handleRefreshClick(); });
   dom.modifyGroup.addEventListener("change", async () => {
-    // Clear backoff and tombstones when switching groups
+    // Clear backoff and tombstones when switching groups.
     clearRefreshBackoff();
     state.modify.deletedTombstones.clear();
     state.modify.lastRefreshTime = 0;
     state.modify.optimisticEvents.clear();
-    // Reset filters when changing groups (filters are scoped per session per group)
+    // Filters are scoped per session per group.
     resetModifyFilters();
-    // Series load now happens inside refreshModifyEvents so it covers
-    // refresh-button presses + single-group users too. No duplicate fetch
-    // needed here.
+    // Series load happens inside refreshModifyEvents so it covers
+    // refresh-button presses and single-group users; no duplicate fetch here.
     void refreshModifyEvents(modifyApi);
   });
-  // Time range dropdown — persists across restarts via settings
+  // Time range dropdown persists across restarts via settings.
   if (dom.modifyTimeRange) {
     dom.modifyTimeRange.addEventListener("change", () => {
       const prevRangeDays = Number.isFinite(state.modify.timeRangeDays) ? state.modify.timeRangeDays : 30;
       const days = parseInt(dom.modifyTimeRange.value, 10);
       const newRangeDays = Number.isFinite(days) ? days : 90;
       state.modify.timeRangeDays = newRangeDays;
-      // Persist to settings so the choice survives restart
       if (modifyApi?.updateSettings) {
         modifyApi.updateSettings({ modifyTimeRangeDays: newRangeDays }).catch(() => {});
       }
-      // Expanding the range needs new projection data (the engine's
-      // hard-generated horizon plus what was projected last refresh covers
-      // only up to the previous toMs). Trigger a full refresh in that case.
-      // Narrowing is purely a re-render — already-fetched projections cover
-      // the smaller window.
+      // Expanding range needs new projection data (engine's hard-generated
+      // horizon plus the prior projection covers only up to the previous
+      // toMs); trigger a full refresh. Narrowing is purely a re-render
+      // since already-fetched projections cover the smaller window.
       if (newRangeDays > prevRangeDays) {
         void refreshModifyEvents(modifyApi, { preserveScroll: true });
       } else {
@@ -2126,17 +2062,15 @@ export function initModifyEvents(api) {
       }
     });
   }
-  // Filters button toggles the panel
   if (dom.modifyFiltersBtn && dom.modifyFiltersPanel) {
     dom.modifyFiltersBtn.addEventListener("click", () => {
       dom.modifyFiltersPanel.classList.toggle("is-hidden");
     });
   }
-  // Filter checkboxes
   if (dom.modifyFilterPending) {
     dom.modifyFilterPending.addEventListener("change", () => {
       state.modify.filters.pending = dom.modifyFilterPending.checked;
-      state.modify.showPending = dom.modifyFilterPending.checked; // keep legacy in sync
+      state.modify.showPending = dom.modifyFilterPending.checked; // legacy mirror
       renderModifyEventGrid();
     });
   }
@@ -2214,7 +2148,7 @@ export function initModifyEvents(api) {
     wrapperEl: dom.modifyTagsInput,
     maxTags: TAG_LIMIT
   });
-  // Listen for gallery selection to capture image URL for pending event preview
+  // Capture image URL from gallery selection for pending-event preview.
   if (dom.modifyEventImageId) {
     dom.modifyEventImageId.addEventListener("gallerySelect", evt => {
       state.modify.selectedImageUrl = evt.detail?.url || "";

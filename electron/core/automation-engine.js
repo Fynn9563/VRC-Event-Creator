@@ -1,8 +1,3 @@
-/**
- * Automation Engine for VRC Event Creator
- * Handles automated event posting based on profile patterns
- */
-
 const fs = require("fs");
 const { generateDateOptionsFromPatterns } = require("./date-utils");
 
@@ -74,14 +69,13 @@ function getOrCreateProfileState(profileStateKey) {
 
 // Update the active-group filter without destroying pending data. When a
 // group falls outside the known set (account switch, transient permission
-// loss, etc.) we suspend its scheduled jobs but keep the events in memory
-// and on disk — re-entering the known set re-schedules them. Account-swap
-// scenarios used to silently nuke an automation queue here; that's exactly
-// the failure mode this guards against.
+// loss, etc.), suspend its scheduled jobs but keep the events in memory
+// and on disk; re-entering the known set re-schedules them. Account-swap
+// scenarios used to silently nuke an automation queue here.
 function setKnownGroupIds(groupIds) {
   if (!Array.isArray(groupIds)) {
     knownGroupIds = null;
-    // Filter cleared — any scheduled event without a live job gets one back.
+    // Filter cleared; any scheduled event without a live job gets one back.
     let resumed = 0;
     for (const event of pendingEvents) {
       if (event.status === "scheduled" && !scheduledJobs.has(event.id)) {
@@ -488,24 +482,21 @@ function normalizePendingStore() {
   return changed;
 }
 
-/**
- * Check if automation engine is initialized
- * @returns {boolean}
- */
+/** @returns {boolean} */
 function isInitialized() {
   return initialized;
 }
 
 /**
- * Initialize the automation engine
- * @param {object} config - Configuration object
- * @param {string} config.pendingEventsPath - Path to pending events JSON file
- * @param {string} config.automationStatePath - Path to automation state JSON file
- * @param {object} config.profiles - All profiles from main process
- * @param {function} config.createEventFn - Function to create an event via API
- * @param {function} config.onMissedEvent - Callback when an event is marked as missed
- * @param {function} config.onEventCreated - Callback when an event is successfully created
- * @param {function} config.debugLog - Debug logging function
+ * Initialize the automation engine.
+ * @param {object} config
+ * @param {string} config.pendingEventsPath
+ * @param {string} config.automationStatePath
+ * @param {object} config.profiles - All profiles from main process.
+ * @param {function} config.createEventFn - Creates an event via API.
+ * @param {function} config.onMissedEvent
+ * @param {function} config.onEventCreated
+ * @param {function} config.debugLog
  */
 function initializeAutomation(config) {
   const {
@@ -562,9 +553,6 @@ function initializeAutomation(config) {
   return { pendingEvents, automationState };
 }
 
-/**
- * Load pending events from file
- */
 function loadPendingEvents() {
   try {
     if (fs.existsSync(PENDING_EVENTS_PATH)) {
@@ -595,9 +583,6 @@ function loadPendingEvents() {
   }
 }
 
-/**
- * Save pending events to file
- */
 function savePendingEvents() {
   try {
     const data = {
@@ -611,26 +596,17 @@ function savePendingEvents() {
   }
 }
 
-/**
- * Get pending events settings
- * @returns {object} Settings object
- */
+/** @returns {object} */
 function getPendingSettings() {
   return { ...pendingSettings };
 }
 
-/**
- * Update pending events settings
- * @param {object} newSettings - New settings to merge
- */
+/** @param {object} newSettings - Merged into existing settings. */
 function updatePendingSettings(newSettings) {
   pendingSettings = { ...pendingSettings, ...newSettings };
   savePendingEvents();
 }
 
-/**
- * Load automation state from file
- */
 function loadAutomationState() {
   try {
     if (fs.existsSync(AUTOMATION_STATE_PATH)) {
@@ -644,9 +620,6 @@ function loadAutomationState() {
   }
 }
 
-/**
- * Save automation state to file
- */
 function saveAutomationState() {
   try {
     fs.writeFileSync(AUTOMATION_STATE_PATH, JSON.stringify(automationState, null, 2));
@@ -656,14 +629,14 @@ function saveAutomationState() {
 }
 
 /**
- * Calculate pending events for a profile
- * @param {string} groupId - Group ID
- * @param {string} profileKey - Profile key
- * @param {object} profile - Profile data
- * @param {number} maxEvents - Maximum number of pending events to generate (default 10)
- * @param {object} options - Optional generation options
- * @param {number|null} options.minEventStartMs - Skip events on/before this UTC millis value
- * @returns {Array} Array of pending event objects
+ * Calculate pending events for a profile.
+ * @param {string} groupId
+ * @param {string} profileKey
+ * @param {object} profile
+ * @param {number} maxEvents - Default 10.
+ * @param {object} options
+ * @param {number|null} options.minEventStartMs - Skip events on/before this UTC millis.
+ * @returns {Array}
  */
 function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, options = {}) {
   if (!profile || !profile.automation?.enabled || !profile.patterns?.length) {
@@ -788,10 +761,10 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
       }
     }
 
-    // Threshold for the past-time recovery below — the silent 30-min clamp
+    // Threshold for the past-time recovery below. The silent 30-min clamp
     // that used to live here was removed because it overrode user-specified
-    // automation timing without any UI signal (e.g. user enters 1 min, engine
-    // forced 30 min). Trust the user's input. Form-side validation can warn
+    // automation timing without any UI signal (user enters 1 min, engine
+    // forced 30 min). Trust the user's input; form-side validation can warn
     // for tight intervals, but the engine no longer rewrites them.
     const MIN_BUFFER_MS = 30 * 60 * 1000;
 
@@ -806,9 +779,9 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
       }
     }
 
-    // Create pending event object (dynamic - only store references, not full details)
-    // Use deterministic ID based on groupId + profileKey + eventStartTime
-    // This ensures the same pattern-slot always generates the same ID
+    // Dynamic pending event: store references only, not full details.
+    // Deterministic ID (groupId + profileKey + eventStartTime) ensures the
+    // same pattern-slot always generates the same ID.
     const slotKey = buildPendingEventId(groupId, profileKey, eventStartTime.toISOString());
     const pendingEvent = {
       id: slotKey || `pending_${groupId}_${profileKey}_${eventStartTime.getTime()}`,
@@ -829,31 +802,28 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
 }
 
 /**
- * Project additional pending events from template patterns past the engine's
- * generated horizon. Returns synthetic pending-event objects (status:
- * "scheduled", isProjected: true) that the renderer can show alongside real
- * pending events. Slot keys are deterministic (groupId + profileKey +
- * eventStartTime) and match what the engine would generate when its horizon
- * eventually catches up — so projected and committed entries align exactly.
+ * Project additional pending events from template patterns past the
+ * engine's generated horizon. Returns synthetic pending-event objects
+ * (status: "scheduled", isProjected: true) that the renderer can show
+ * alongside real pending events. Slot keys are deterministic (groupId +
+ * profileKey + eventStartTime) and match what the engine would generate
+ * when its horizon catches up, so projected and committed entries align
+ * exactly.
  *
  * Excludes:
  *  - Slots already in pendingEvents (engine already generated them).
  *  - Slots in deletedEvents (user explicitly tombstoned them).
- *  - (Published slots are tracked in publishedEventSlots when looked up via
- *    pendingEvents — published events are kept in pendingEvents with
- *    status="published" until cleanup, so the existingSlotKeys set covers
- *    them too.)
+ *  - (Published slots are tracked via pendingEvents because they're kept
+ *    with status="published" until cleanup; the existingSlotKeys set
+ *    covers them.)
  *
  * Respects the profile's count limit: stops projecting once the total
  * projected-plus-existing count would exceed automation.repeatCount.
  *
- * @param {string} groupId - Group ID to project for
- * @param {number} fromMs - Lower bound (exclusive) — events at or before this
- *   millisecond are skipped (used to skip past events).
- * @param {number} toMs - Upper bound (inclusive) — events past this are not
- *   projected (matches the modify view's filter range).
- * @returns {Array} Array of projected pending-event objects, each with
- *   isProjected: true.
+ * @param {string} groupId
+ * @param {number} fromMs - Exclusive lower bound; events at or before are skipped.
+ * @param {number} toMs - Inclusive upper bound; matches the modify view's filter range.
+ * @returns {Array} Projected pending-event objects, each with isProjected: true.
  */
 function projectFutureEvents(groupId, fromMs, toMs) {
   if (!groupId || !profilesRef || !Number.isFinite(fromMs) || !Number.isFinite(toMs)) {
@@ -864,8 +834,8 @@ function projectFutureEvents(groupId, fromMs, toMs) {
   const groupProfiles = profilesRef[groupId]?.profiles || {};
   const projected = [];
 
-  // Pre-compute the slot-key blocklist for this group so we don't generate
-  // entries that would collide with already-generated/tombstoned ones.
+  // Pre-compute the slot-key blocklist for this group so projection won't
+  // generate entries that collide with already-generated/tombstoned ones.
   const existingSlotKeys = new Set();
   for (const e of pendingEvents) {
     if (e.groupId === groupId && e.slotKey) existingSlotKeys.add(e.slotKey);
@@ -956,7 +926,7 @@ function projectFutureEvents(groupId, fromMs, toMs) {
  * Side effects:
  *   - Pushes a new pending-event entry to the in-memory array.
  *   - Persists to pending-events.json.
- *   - Schedules the job so it'll actually publish at scheduledPublishTime.
+ *   - Schedules the job so it publishes at scheduledPublishTime.
  *
  * @param {object} payload - { groupId, profileKey, eventStartsAt, overrides? }
  * @returns {object} { ok: true, pendingEventId, eventDetails } on success;
@@ -1044,9 +1014,9 @@ function commitProjectedSlot(payload) {
  * Idempotent: if the slot is already tombstoned, returns ok without
  * adding a duplicate entry.
  *
- * If the slot is currently committed in pendingEvents, this delegates to
- * the existing cancel path (handleMissedEvent action: "cancel") which
- * already does the right thing — moves the entry to deletedEvents.
+ * If the slot is currently committed in pendingEvents, delegates to the
+ * existing cancel path (handleMissedEvent action: "cancel"), which moves
+ * the entry to deletedEvents.
  *
  * @param {object} payload - { groupId, profileKey, eventStartsAt }
  * @returns {object} { ok: true, slotKey, alreadyTombstoned } on success;
@@ -1092,7 +1062,7 @@ function tombstoneProjectedSlot(payload) {
     return { ok: true, slotKey, alreadyTombstoned: false, viaCancel: true };
   }
 
-  // Pure projected slot — add a synthetic tombstone entry. The engine's
+  // Pure projected slot: add a synthetic tombstone entry. The engine's
   // regenerate cycle skips slotKeys that appear in deletedEvents, so this
   // is enough to prevent the slot from ever being recreated.
   const tombstone = {
@@ -1126,10 +1096,7 @@ function getRecheckIntervalMs(delayMs) {
   return null;
 }
 
-/**
- * Schedule a job to execute at the pending event's publish time
- * @param {object} pendingEvent - Pending event object
- */
+/** @param {object} pendingEvent */
 function scheduleJob(pendingEvent) {
   const publishTime = new Date(pendingEvent.scheduledPublishTime).getTime();
   const now = Date.now();
@@ -1172,10 +1139,7 @@ function scheduleJob(pendingEvent) {
   debugLogFn("Automation", `Scheduled job for ${pendingEvent.id} (${profileLabel}) in ${Math.round(delay / 1000 / 60)} minutes`);
 }
 
-/**
- * Cancel a scheduled job
- * @param {string} pendingEventId - ID of the pending event
- */
+/** @param {string} pendingEventId */
 function cancelJob(pendingEventId) {
   const timeoutId = scheduledJobs.get(pendingEventId);
   if (timeoutId) {
@@ -1187,9 +1151,6 @@ function cancelJob(pendingEventId) {
   dequeueEventPost(pendingEventId);
 }
 
-/**
- * Cancel all scheduled jobs
- */
 function cancelAllJobs() {
   for (const timeoutId of scheduledJobs.values()) {
     clearTimeout(timeoutId);
@@ -1205,11 +1166,7 @@ function cancelAllJobs() {
   rateLimitState.processing = false;
 }
 
-/**
- * Cancel all jobs for a specific profile
- * @param {string} groupId - Group ID
- * @param {string} profileKey - Profile key
- */
+/** @param {string} groupId @param {string} profileKey */
 function cancelJobsForProfile(groupId, profileKey) {
   const toCancel = pendingEvents
     .filter(e => e.groupId === groupId && e.profileKey === profileKey)
@@ -1251,11 +1208,11 @@ function purgeProfilePendingEvents(groupId, profileKey) {
 }
 
 /**
- * Resolve event details from profile at runtime
- * Pulls latest profile data and applies manual overrides
- * @param {string} pendingEventId - ID of the pending event
- * @param {object} profiles - Current profiles data (optional, uses stored ref if not provided)
- * @returns {object|null} Resolved event details or null if profile not found
+ * Resolve event details from profile at runtime: pulls latest profile data
+ * and applies manual overrides.
+ * @param {string|object} pendingEventOrId - Pending event ID or object.
+ * @param {object} [profiles] - Current profiles data; defaults to stored ref.
+ * @returns {object|null}
  */
 function resolveEventDetails(pendingEventOrId, profiles = null) {
   const profilesData = profiles || profilesRef;
@@ -1279,12 +1236,11 @@ function resolveEventDetails(pendingEventOrId, profiles = null) {
     return null;
   }
 
-  // Start with profile data
-  // Construct image URL from imageId if available
+  // Construct image URL from imageId when available.
   const imageId = profile.imageId || null;
   let imageUrl = profile.imageUrl || null;
   if (imageId && !imageUrl) {
-    // VRChat gallery image URL format
+    // VRChat gallery image URL format.
     imageUrl = `https://api.vrchat.cloud/api/1/file/${imageId}/1`;
   }
 
@@ -1336,11 +1292,7 @@ function resolveEventDetails(pendingEventOrId, profiles = null) {
   };
 }
 
-/**
- * Get or initialize rate limit state for a group
- * @param {string} groupId - Group ID
- * @returns {object} Rate limit state for the group
- */
+/** @param {string} groupId @returns {object} */
 function getRateLimitState(groupId) {
   if (!rateLimitState.groups[groupId]) {
     rateLimitState.groups[groupId] = {
@@ -1352,21 +1304,14 @@ function getRateLimitState(groupId) {
   return rateLimitState.groups[groupId];
 }
 
-/**
- * Prune old timestamps from rate limit history
- * @param {string} groupId - Group ID
- */
+/** @param {string} groupId */
 function pruneRateLimitHistory(groupId) {
   const state = getRateLimitState(groupId);
   const cutoff = Date.now() - EVENT_HOURLY_WINDOW_MS;
   state.history = state.history.filter(ts => ts >= cutoff);
 }
 
-/**
- * Check if group is currently rate limited
- * @param {string} groupId - Group ID
- * @returns {boolean} True if rate limited
- */
+/** @param {string} groupId @returns {boolean} */
 function isGroupRateLimited(groupId) {
   const state = getRateLimitState(groupId);
 
@@ -1386,11 +1331,7 @@ function isGroupRateLimited(groupId) {
   return state.history.length >= EVENT_HOURLY_LIMIT;
 }
 
-/**
- * Get remaining time until rate limit expires
- * @param {string} groupId - Group ID
- * @returns {number} Milliseconds until rate limit expires, or 0
- */
+/** @param {string} groupId @returns {number} Milliseconds until expiry, or 0. */
 function getRateLimitWaitMs(groupId) {
   const state = getRateLimitState(groupId);
 
@@ -1413,10 +1354,7 @@ function getRateLimitWaitMs(groupId) {
   return 0;
 }
 
-/**
- * Record successful event creation for rate limiting
- * @param {string} groupId - Group ID
- */
+/** @param {string} groupId */
 function recordEventCreation(groupId) {
   const state = getRateLimitState(groupId);
   state.history.push(Date.now());
@@ -1428,22 +1366,19 @@ function recordEventCreation(groupId) {
   debugLogFn("Automation", `Recorded event for ${groupId}, count: ${state.history.length}/${EVENT_HOURLY_LIMIT}`);
 }
 
-/**
- * Handle rate limit error (429 response)
- * @param {string} groupId - Group ID
- */
+/** Handle a 429 from the API. @param {string} groupId */
 function handleRateLimitError(groupId) {
   const state = getRateLimitState(groupId);
 
-  // Check if we've already hit the known 10/hour limit
+  // Check whether the known 10/hour limit has been hit.
   pruneRateLimitHistory(groupId);
   if (state.history.length >= EVENT_HOURLY_LIMIT) {
-    // Lock until oldest entry expires
+    // Lock until oldest entry expires.
     const oldest = Math.min(...state.history);
     state.lockUntil = oldest + EVENT_HOURLY_WINDOW_MS;
     debugLogFn("Automation", `Hit 10/hour limit for ${groupId}, locked until ${new Date(state.lockUntil).toISOString()}`);
   } else {
-    // Cross-platform or unknown limit - use exponential backoff
+    // Cross-platform or unknown limit; use exponential backoff.
     const backoffMinutes = BACKOFF_SEQUENCE[state.backoffIndex];
     state.backoffIndex = Math.min(state.backoffIndex + 1, BACKOFF_SEQUENCE.length - 1);
     state.lockUntil = Date.now() + (backoffMinutes * 60 * 1000);
@@ -1452,10 +1387,9 @@ function handleRateLimitError(groupId) {
 }
 
 /**
- * Add event to queue for rate-limited posting
- * @param {string} pendingEventId - Pending event ID
- * @param {string} groupId - Group ID
- * @param {number} priority - Priority (timestamp of event start, lower = sooner)
+ * @param {string} pendingEventId
+ * @param {string} groupId
+ * @param {number} priority - Event start timestamp; lower means sooner.
  */
 function queueEventPost(pendingEventId, groupId, priority) {
   // Check if already in queue
@@ -1474,10 +1408,7 @@ function queueEventPost(pendingEventId, groupId, priority) {
   processQueue();
 }
 
-/**
- * Remove event from queue
- * @param {string} pendingEventId - Pending event ID
- */
+/** @param {string} pendingEventId */
 function dequeueEventPost(pendingEventId) {
   const index = rateLimitState.queue.findIndex(item => item.pendingEventId === pendingEventId);
   if (index !== -1) {
@@ -1486,9 +1417,6 @@ function dequeueEventPost(pendingEventId) {
   }
 }
 
-/**
- * Process the queue of pending event posts
- */
 async function processQueue() {
   // Already processing
   if (rateLimitState.processing) {
@@ -1566,10 +1494,7 @@ async function processQueue() {
   }
 }
 
-/**
- * Internal function to execute automated post (called by queue processor)
- * @param {object} pendingEvent - Pending event object
- */
+/** Called by the queue processor. @param {object} pendingEvent */
 async function executeAutomatedPostInternal(pendingEvent) {
   debugLogFn("Automation", `Executing automated post for ${pendingEvent.id}`);
 
@@ -1649,22 +1574,15 @@ async function executeAutomatedPostInternal(pendingEvent) {
   }
 }
 
-/**
- * Execute an automated event post (public wrapper that uses queue)
- * @param {object} pendingEvent - Pending event object
- */
+/** Public wrapper that queues the event for rate-limited posting. */
 async function executeAutomatedPost(pendingEvent) {
-  // Queue the event for rate-limited posting
   const priority = new Date(pendingEvent.eventStartsAt).getTime();
   queueEventPost(pendingEvent.id, pendingEvent.groupId, priority);
 }
 
-/**
- * Schedule a retry for a failed job
- * @param {object} pendingEvent - Pending event object
- */
+/** Schedule a 15-minute retry for a failed job. */
 function scheduleRetry(pendingEvent) {
-  const RETRY_DELAY = 15 * 60 * 1000; // 15 minutes
+  const RETRY_DELAY = 15 * 60 * 1000;
 
   const timeoutId = setTimeout(async () => {
     await executeAutomatedPost(pendingEvent);
@@ -1675,9 +1593,8 @@ function scheduleRetry(pendingEvent) {
 }
 
 /**
- * Handle a missed pending event
- * @param {string} pendingEventId - ID of the pending event
- * @param {string} action - Action to take: "postNow", "reschedule", "cancel"
+ * @param {string} pendingEventId
+ * @param {"postNow"|"reschedule"|"cancel"} action
  */
 async function handleMissedEvent(pendingEventId, action) {
   const eventIndex = pendingEvents.findIndex(e => e.id === pendingEventId);
@@ -1764,11 +1681,7 @@ async function handleMissedEvent(pendingEventId, action) {
   return { ok: false, error: { message: "Unknown action" } };
 }
 
-/**
- * Get all pending events, optionally filtered by group
- * @param {string} groupId - Optional group ID to filter by
- * @returns {Array} Array of pending events
- */
+/** @param {string} [groupId] @returns {Array} */
 function getPendingEvents(groupId = null) {
   if (groupId) {
     return pendingEvents.filter(e => e.groupId === groupId && e.status !== "cancelled" && e.status !== "published");
@@ -1776,11 +1689,7 @@ function getPendingEvents(groupId = null) {
   return pendingEvents.filter(e => e.status !== "cancelled" && e.status !== "published");
 }
 
-/**
- * Get missed events count (truly missed, not queued)
- * @param {string} groupId - Optional group ID to filter by
- * @returns {number} Count of missed pending events
- */
+/** Truly missed, not queued. @param {string} [groupId] @returns {number} */
 function getMissedCount(groupId = null) {
   if (groupId) {
     return pendingEvents.filter(e => e.groupId === groupId && e.status === "missed").length;
@@ -1788,11 +1697,7 @@ function getMissedCount(groupId = null) {
   return pendingEvents.filter(e => e.status === "missed").length;
 }
 
-/**
- * Get queued events count (waiting for rate limits)
- * @param {string} groupId - Optional group ID to filter by
- * @returns {number} Count of queued pending events
- */
+/** Waiting for rate limits. @param {string} [groupId] @returns {number} */
 function getQueuedCount(groupId = null) {
   if (groupId) {
     return pendingEvents.filter(e => e.groupId === groupId && e.status === "queued").length;
@@ -1801,10 +1706,9 @@ function getQueuedCount(groupId = null) {
 }
 
 /**
- * Update or add pending events for a profile
- * @param {string} groupId - Group ID
- * @param {string} profileKey - Profile key
- * @param {object} profile - Profile data
+ * @param {string} groupId
+ * @param {string} profileKey
+ * @param {object} profile
  */
 function updatePendingEventsForProfile(groupId, profileKey, profile) {
   if (!isKnownGroupId(groupId)) {
@@ -1938,11 +1842,7 @@ function recordManualEvent(groupId, profileKey, eventStartsAt) {
   return true;
 }
 
-/**
- * Update manual overrides for a pending event
- * @param {string} pendingEventId - ID of the pending event
- * @param {object} overrides - Manual override fields
- */
+/** @param {string} pendingEventId @param {object} overrides */
 function updatePendingEventOverrides(pendingEventId, overrides) {
   const event = pendingEvents.find(e => e.id === pendingEventId);
   if (!event) {
@@ -2125,12 +2025,7 @@ function reconcilePublishedEvents(groupId, upcomingEvents = []) {
   return { ok: true, removed, updated, reconciled };
 }
 
-/**
- * Get automation status for a profile
- * @param {string} groupId - Group ID
- * @param {string} profileKey - Profile key
- * @returns {object} Automation status
- */
+/** @param {string} groupId @param {string} profileKey @returns {object} */
 function getAutomationStatus(groupId, profileKey) {
   const profileStateKey = `${groupId}::${profileKey}`;
   const state = automationState.profiles[profileStateKey] || { eventsCreated: 0 };
@@ -2146,11 +2041,7 @@ function getAutomationStatus(groupId, profileKey) {
   };
 }
 
-/**
- * Reset automation state for a profile (when settings change)
- * @param {string} groupId - Group ID
- * @param {string} profileKey - Profile key
- */
+/** Called when profile settings change. @param {string} groupId @param {string} profileKey */
 function resetAutomationState(groupId, profileKey) {
   const profileStateKey = `${groupId}::${profileKey}`;
   automationState.profiles[profileStateKey] = { eventsCreated: 0 };
@@ -2158,10 +2049,9 @@ function resetAutomationState(groupId, profileKey) {
 }
 
 /**
- * Calculate publish time for an event based on profile automation settings
- * @param {string} eventStartsAt - ISO string of event start time
- * @param {object} profile - Profile data with automation settings
- * @returns {Date} Calculated publish time
+ * @param {string} eventStartsAt - ISO string.
+ * @param {object} profile - Includes automation settings.
+ * @returns {Date|null}
  */
 function calculatePublishTime(eventStartsAt, profile) {
   const automation = profile?.automation;
@@ -2211,17 +2101,12 @@ function calculatePublishTime(eventStartsAt, profile) {
     publishTime = new Date(eventStartTime.getTime() - offsetMs);
   }
 
-  // Silent 30-min clamp removed (see calculatePendingEvents above) — trust
+  // Silent 30-min clamp removed (see calculatePendingEvents above); trust
   // the user's automation timing input.
   return publishTime;
 }
 
-/**
- * Restore deleted pending events for a profile
- * @param {string} groupId - Group ID
- * @param {string} profileKey - Profile key
- * @returns {object} Result with restoredCount
- */
+/** @param {string} groupId @param {string} profileKey @returns {{ ok: boolean, restoredCount?: number, error?: object }} */
 function restoreDeletedEvents(groupId, profileKey) {
   const deletedForProfile = deletedEvents.filter(e =>
     e.groupId === groupId && e.profileKey === profileKey
@@ -2337,12 +2222,7 @@ function restoreDeletedEvents(groupId, profileKey) {
   return { ok: true, restoredCount };
 }
 
-/**
- * Get count of restorable deleted events for a profile
- * @param {string} groupId - Group ID
- * @param {string} profileKey - Profile key
- * @returns {number} Count of restorable events
- */
+/** @param {string} groupId @param {string} profileKey @returns {number} */
 function getRestorableCount(groupId, profileKey) {
   const profileStateKey = getProfileStateKey(groupId, profileKey);
   const profileState = getOrCreateProfileState(profileStateKey);
