@@ -81,6 +81,10 @@ export function applySeriesToWizard(seriesData) {
   if (dom.profileImageId) dom.profileImageId.value = tpl.imageId || "";
   if (dom.profileSendNotification) dom.profileSendNotification.checked = Boolean(tpl.sendCreationNotification);
   if (dom.profileAccess) dom.profileAccess.value = tpl.accessType || "public";
+  if (dom.profileFeatured) dom.profileFeatured.checked = Boolean(tpl.featured);
+  if (dom.profileGroupFair) {
+    dom.profileGroupFair.checked = Array.isArray(tpl.tags) && tpl.tags.includes("vrc_event_group_fair");
+  }
 
   // Step 3: recurrence. Fill series-specific inputs.
   const rec = seriesData.recurrence || { frequency: "weekly", interval: 1 };
@@ -172,6 +176,14 @@ export function readSeriesFromWizard() {
   if (state.profile?.tagInput?.getTags) {
     tags = state.profile.tagInput.getTags();
   }
+  // Sync the Group Fair tag with the checkbox state. Add-and-strip (vs.
+  // add-only) so toggling off after a save actually removes the tag.
+  if (dom.profileGroupFair?.checked) {
+    if (!tags.includes("vrc_event_group_fair")) tags.push("vrc_event_group_fair");
+  } else {
+    const idx = tags.indexOf("vrc_event_group_fair");
+    if (idx > -1) tags.splice(idx, 1);
+  }
   const eventTemplate = {
     title,
     description,
@@ -181,6 +193,7 @@ export function readSeriesFromWizard() {
     platforms: Array.isArray(state.profile?.platforms) ? state.profile.platforms.slice() : [],
     tags,
     imageId: dom.profileImageId?.value.trim() || null,
+    featured: Boolean(dom.profileFeatured?.checked),
     roleIds: dom.profileAccess?.value === "group" && Array.isArray(state.profile?.roleIds)
       ? state.profile.roleIds.filter(id => typeof id === "string" && id.trim())
       : [],

@@ -1244,6 +1244,13 @@ function resolveEventDetails(pendingEventOrId, profiles = null) {
     imageUrl = `https://api.vrchat.cloud/api/1/file/${imageId}/1`;
   }
 
+  // Group fair is a profile-level boolean that maps to the vrc_event_group_fair
+  // tag at create time, mirroring the one-off create flow in events.js.
+  const tags = Array.isArray(profile.tags) ? [...profile.tags] : [];
+  if (profile.groupFair && !tags.includes("vrc_event_group_fair")) {
+    tags.push("vrc_event_group_fair");
+  }
+
   const eventDetails = {
     title: profile.name || "Untitled Event",
     description: profile.description || "",
@@ -1251,9 +1258,10 @@ function resolveEventDetails(pendingEventOrId, profiles = null) {
     accessType: profile.accessType || "public",
     languages: Array.isArray(profile.languages) ? [...profile.languages] : [],
     platforms: Array.isArray(profile.platforms) ? [...profile.platforms] : [],
-    tags: Array.isArray(profile.tags) ? [...profile.tags] : [],
+    tags,
     imageId,
     imageUrl,
+    featured: Boolean(profile.featured),
     roleIds: Array.isArray(profile.roleIds) ? [...profile.roleIds] : [],
     sendCreationNotification: profile.sendNotification ?? false,
     // Posting flags (profile defaults, overridable via manualOverrides)

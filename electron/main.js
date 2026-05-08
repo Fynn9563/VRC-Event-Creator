@@ -955,6 +955,7 @@ function normalizeSeriesEventTemplate(raw) {
     platforms: Array.isArray(raw.platforms) ? raw.platforms.filter(s => typeof s === "string") : [],
     tags: Array.isArray(raw.tags) ? raw.tags.filter(s => typeof s === "string") : [],
     imageId: typeof raw.imageId === "string" ? raw.imageId : null,
+    featured: Boolean(raw.featured),
     roleIds: Array.isArray(raw.roleIds) ? raw.roleIds.filter(s => typeof s === "string") : [],
     sendCreationNotification: Boolean(raw.sendCreationNotification)
   };
@@ -2377,6 +2378,67 @@ ipcMain.handle("groups:list", async (_, options) => {
   return enriched;
 });
 
+// Silently strip privileged flags (featured, vrc_event_group_fair) from a
+// create/update body when the group no longer has the matching admin tag.
+// Renderer hides the toggles in this case, but stored values can survive
+// from before perms were revoked or via imported profiles. Mutates body.
+async function coerceGroupFeatureFlags(groupId, body) {
+  if (!groupId || !body) return;
+  const wantsFeatured = body.featured === true;
+  const wantsGroupFair = Array.isArray(body.tags) && body.tags.includes("vrc_event_group_fair");
+  if (!wantsFeatured && !wantsGroupFair) return;
+  let tags = groupTagsCache.get(groupId);
+  if (!tags) {
+    try {
+      debugApiCall("getGroup (coerceFeatureFlags)", { groupId });
+      const groupRes = await requestGet(
+        "getGroup",
+        { path: { groupId } },
+        () => vrchat.getGroup({ path: { groupId } })
+      );
+      debugApiResponse("getGroup (coerceFeatureFlags)", groupRes);
+      tags = groupRes.data?.tags || [];
+      groupTagsCache.set(groupId, tags);
+    } catch (err) {
+      debugApiResponse("getGroup (coerceFeatureFlags)", null, err);
+      // Group lookup failed; leave body untouched and let the caller's
+      // existing error handling deal with the eventual VRChat response.
+      return;
+    }
+  }
+  if (wantsFeatured && !tags.includes("admin_featured_events_enabled")) {
+    debugLog("featureFlags", `Coerced featured=false for ${groupId} (admin tag missing)`);
+    body.featured = false;
+  }
+  if (wantsGroupFair && !tags.includes("admin_vrc_event_group_fair_enabled")) {
+    debugLog("featureFlags", `Stripped vrc_event_group_fair tag for ${groupId} (admin tag missing)`);
+    body.tags = body.tags.filter(t => t !== "vrc_event_group_fair");
+  }
+}
+
+// Defensive fallback for the privileged-flag flow: if VRChat returns 403 and
+// the body carried featured/vrc_event_group_fair, strip those and retry once.
+// Catches the cache-staleness window where coerceGroupFeatureFlags read tags
+// that have since gone stale. Mutates body in place; invalidates the tag
+// cache so subsequent calls in this session re-fetch.
+async function withFeatureFlagFallback(body, groupId, label, executor) {
+  try {
+    return await executor();
+  } catch (err) {
+    const status = err?.response?.status || err?.status;
+    const hadFeatured = body.featured === true;
+    const hadGroupFair = Array.isArray(body.tags) && body.tags.includes("vrc_event_group_fair");
+    if (status !== 403 || (!hadFeatured && !hadGroupFair)) {
+      throw err;
+    }
+    debugLog("featureFlags", `Retrying ${label} for ${groupId} without privileged flags after 403`);
+    if (groupId) groupTagsCache.delete(groupId);
+    if (hadFeatured) body.featured = false;
+    if (hadGroupFair) body.tags = body.tags.filter(t => t !== "vrc_event_group_fair");
+    return await executor();
+  }
+}
+
 ipcMain.handle("groups:checkFeatureFlags", async (_, groupId) => {
   if (!groupId) {
     return { hasFeaturedEvents: false, hasGroupFair: false };
@@ -2547,7 +2609,7 @@ ipcMain.handle("series:create", async (_, payload) => {
       platforms: Array.isArray(eventTemplate.platforms) ? eventTemplate.platforms : [],
       tags: Array.isArray(eventTemplate.tags) ? eventTemplate.tags : [],
       imageId: eventTemplate.imageId || null,
-      featured: false,
+      featured: Boolean(eventTemplate.featured),
       isDraft: false,
       roleIds: Array.isArray(eventTemplate.roleIds) ? eventTemplate.roleIds : [],
       // Series fields aren't in the SDK types yet, so pass raw.
@@ -2555,12 +2617,16 @@ ipcMain.handle("series:create", async (_, payload) => {
       recurrence: normalizeRecurrence(recurrence)
     };
 
+    await coerceGroupFeatureFlags(groupId, requestBody);
     debugApiCall("createGroupCalendarEvent (series)", { groupId, body: requestBody });
-    const response = await vrchat.createGroupCalendarEvent({
-      throwOnError: true,
-      path: { groupId },
-      body: requestBody
-    });
+    const response = await withFeatureFlagFallback(
+      requestBody, groupId, "createGroupCalendarEvent (series)",
+      () => vrchat.createGroupCalendarEvent({
+        throwOnError: true,
+        path: { groupId },
+        body: requestBody
+      })
+    );
     debugApiResponse("createGroupCalendarEvent (series)", response);
 
     const seriesId = getEventId(response.data);
@@ -2625,6 +2691,7 @@ ipcMain.handle("series:update", async (_, payload) => {
       if (Array.isArray(eventTemplate.tags)) requestBody.tags = eventTemplate.tags;
       if (Array.isArray(eventTemplate.roleIds)) requestBody.roleIds = eventTemplate.roleIds;
       if (eventTemplate.imageId !== undefined) requestBody.imageId = eventTemplate.imageId;
+      if (typeof eventTemplate.featured === "boolean") requestBody.featured = eventTemplate.featured;
     }
     if (recurrence) {
       requestBody.recurrence = normalizeRecurrence(recurrence);
@@ -2636,13 +2703,17 @@ ipcMain.handle("series:update", async (_, payload) => {
     if (typeof startsAtUtc === "string" && startsAtUtc) requestBody.startsAt = startsAtUtc;
     if (typeof endsAtUtc === "string" && endsAtUtc) requestBody.endsAt = endsAtUtc;
 
+    await coerceGroupFeatureFlags(groupId, requestBody);
     debugApiCall("updateGroupCalendarEvent (series)", { groupId, seriesId, body: requestBody });
     try {
-      await vrchat.updateGroupCalendarEvent({
-        throwOnError: true,
-        path: { groupId, calendarId: seriesId },
-        body: requestBody
-      });
+      await withFeatureFlagFallback(
+        requestBody, groupId, "updateGroupCalendarEvent (series)",
+        () => vrchat.updateGroupCalendarEvent({
+          throwOnError: true,
+          path: { groupId, calendarId: seriesId },
+          body: requestBody
+        })
+      );
     } catch (parseErr) {
       // VRChat returns 200 OK with empty body for series updates, which
       // trips the SDK's JSON parser. Suppress that case; rethrow real errors.
@@ -3067,18 +3138,22 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
       platforms: Array.isArray(eventTemplate.platforms) ? eventTemplate.platforms : [],
       tags: Array.isArray(eventTemplate.tags) ? eventTemplate.tags : [],
       imageId: eventTemplate.imageId || null,
-      featured: false,
+      featured: Boolean(eventTemplate.featured),
       isDraft: false,
       roleIds: Array.isArray(eventTemplate.roleIds) ? eventTemplate.roleIds : [],
       occurrenceKind: "series",
       recurrence: normalizeRecurrence(recurrence)
     };
+    await coerceGroupFeatureFlags(groupId, requestBody);
     debugApiCall("createGroupCalendarEvent (regenerate)", { groupId, body: requestBody });
-    const response = await vrchat.createGroupCalendarEvent({
-      throwOnError: true,
-      path: { groupId },
-      body: requestBody
-    });
+    const response = await withFeatureFlagFallback(
+      requestBody, groupId, "createGroupCalendarEvent (regenerate)",
+      () => vrchat.createGroupCalendarEvent({
+        throwOnError: true,
+        path: { groupId },
+        body: requestBody
+      })
+    );
     debugApiResponse("createGroupCalendarEvent (regenerate)", response);
 
     const newSeriesId = getEventId(response.data);
@@ -3302,6 +3377,12 @@ ipcMain.handle("events:create", async (_, payload) => {
     }
     await ensureCalendarPermission(groupId);
 
+    // Silently flip privileged flags off when the group lacks the admin tag.
+    // Mutates eventData so the validation block below sees the coerced state
+    // and the requestBody is built from the coerced values. Validation
+    // remains as defensive backstop in case coercion's lookup fails.
+    await coerceGroupFeatureFlags(groupId, eventData);
+
     // Validate admin tags when using featured or group fair.
     if (eventData.featured || eventData.tags?.includes("vrc_event_group_fair")) {
       debugApiCall("getGroup (validateFeatures)", { groupId });
@@ -3347,11 +3428,14 @@ ipcMain.handle("events:create", async (_, payload) => {
     };
     debugLog("createEvent", "Featured flag:", requestBody.featured);
     debugApiCall("createGroupCalendarEvent", { groupId, body: requestBody });
-    const response = await vrchat.createGroupCalendarEvent({
-      throwOnError: true,
-      path: { groupId },
-      body: requestBody
-    });
+    const response = await withFeatureFlagFallback(
+      requestBody, groupId, "createGroupCalendarEvent",
+      () => vrchat.createGroupCalendarEvent({
+        throwOnError: true,
+        path: { groupId },
+        body: requestBody
+      })
+    );
     debugApiResponse("createGroupCalendarEvent", response);
     const eventId = getEventId(response.data);
     // Track locally for conflict detection (VRChat API has delay).
@@ -4304,13 +4388,17 @@ app.whenReady().then(() => {
             parentId: null,
             roleIds: Array.isArray(eventData.roleIds) ? eventData.roleIds : []
           };
+          await coerceGroupFeatureFlags(groupId, requestBody);
           debugLog("createEvent (automation)", "Featured flag:", requestBody.featured);
           debugApiCall("createGroupCalendarEvent (automation)", { groupId, body: requestBody });
-          const response = await vrchat.createGroupCalendarEvent({
-            throwOnError: true,
-            path: { groupId },
-            body: requestBody
-          });
+          const response = await withFeatureFlagFallback(
+            requestBody, groupId, "createGroupCalendarEvent (automation)",
+            () => vrchat.createGroupCalendarEvent({
+              throwOnError: true,
+              path: { groupId },
+              body: requestBody
+            })
+          );
           debugApiResponse("createGroupCalendarEvent (automation)", response);
           const eventId = getEventId(response.data);
           trackCreatedEvent(groupId, startsAtUtc, eventData.title);

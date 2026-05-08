@@ -2,6 +2,15 @@
 
 All notable changes to VRChat Event Creator will be documented in this file.
 
+## [1.2.1] - 2026-05-08
+
+### Fixed
+- Featured Event and Group Fair toggles on series and scheduled (template-driven) events now take effect. Previously the manual one-off create flow respected both toggles, but series creation/update/regenerate hardcoded `featured: false` and dropped `vrc_event_group_fair` from the tag list, and the automation engine's profile-to-event projection never read either field. Editing an existing series now also restores the toggles' state instead of showing them unchecked.
+
+### Changed
+- Featured / Group Fair flags are now silently coerced off at create time when the group lacks the matching admin tag, across all five mutation paths (manual create, series create/update/regenerate, automation). Mirrors the renderer's existing visibility behavior: if the toggle isn't shown, the value is treated as false on the wire — no surprise 403 from VRChat, no error toast. Stored profile/series values are left intact so they reactivate cleanly if the group regains the admin tag.
+- Privileged-flag requests that still 403 from VRChat (e.g. cached group tags went stale between fetch and create) now retry once with the flag stripped instead of failing the entire create. Featured / Group Fair are best-effort: an event will always be created, just without the privileged flag if the group can't carry it.
+
 ## [1.2.0] - 2026-05-05
 
 ### Added
