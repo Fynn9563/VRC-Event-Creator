@@ -20,6 +20,7 @@ const eckit = require("./core/eckit");
 const { normalizeSettings } = require("./core/normalize-settings");
 const { sanitizeFilename, pathIsWithin } = require("./core/filename-sanitizer");
 const { validateEventImport, validateProfileImport } = require("./core/import-validator");
+const { writeJsonAtomic, readJsonSafe } = require("./core/atomic-store");
 
 const STABLE_USERDATA_NAME = "VRCEventCreator";
 const STABLE_USERDATA_PATH = path.join(app.getPath("appData"), STABLE_USERDATA_NAME);
@@ -186,19 +187,15 @@ function initializePaths() {
 }
 
 function loadSettings() {
-  try {
-    const raw = JSON.parse(fs.readFileSync(SETTINGS_PATH, "utf8"));
-    return normalizeSettings(raw);
-  } catch (err) {
-    return normalizeSettings({});
-  }
+  const { data } = readJsonSafe(SETTINGS_PATH, {});
+  return normalizeSettings(data && typeof data === "object" ? data : {});
 }
 
 // Gallery cache delegates to core/gallery-cache.js (initialized in initializePaths).
 
 function saveSettings(nextSettings) {
   settings = normalizeSettings(nextSettings);
-  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
+  writeJsonAtomic(SETTINGS_PATH, settings);
 
   if (settings.minimizeToTray && !appTray) {
     createTray();
@@ -903,17 +900,13 @@ function normalizeProfiles(raw) {
 }
 
 function loadProfiles() {
-  try {
-    const raw = JSON.parse(fs.readFileSync(PROFILES_PATH, "utf8"));
-    return normalizeProfiles(raw);
-  } catch (err) {
-    return {};
-  }
+  const { data } = readJsonSafe(PROFILES_PATH, {});
+  return normalizeProfiles(data && typeof data === "object" ? data : {});
 }
 
 function saveProfiles(nextProfiles) {
   profiles = normalizeProfiles(nextProfiles);
-  fs.writeFileSync(PROFILES_PATH, JSON.stringify(profiles, null, 2));
+  writeJsonAtomic(PROFILES_PATH, profiles);
 }
 
 // Local metadata for VRChat native recurring series.
@@ -988,17 +981,13 @@ function normalizeSeries(raw) {
 }
 
 function loadSeries() {
-  try {
-    const raw = JSON.parse(fs.readFileSync(SERIES_PATH, "utf8"));
-    return normalizeSeries(raw);
-  } catch (err) {
-    return {};
-  }
+  const { data } = readJsonSafe(SERIES_PATH, {});
+  return normalizeSeries(data && typeof data === "object" ? data : {});
 }
 
 function saveSeries(nextSeries) {
   series = normalizeSeries(nextSeries);
-  fs.writeFileSync(SERIES_PATH, JSON.stringify(series, null, 2));
+  writeJsonAtomic(SERIES_PATH, series);
 }
 
 // Rasterize queue: persistent queue of post-regeneration work against

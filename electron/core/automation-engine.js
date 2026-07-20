@@ -1,5 +1,6 @@
 const fs = require("fs");
 const { generateDateOptionsFromPatterns } = require("./date-utils");
+const { writeJsonAtomic, readJsonSafe } = require("./atomic-store");
 
 // In-memory job storage
 const scheduledJobs = new Map(); // pendingEventId -> timeoutId
@@ -555,8 +556,11 @@ function initializeAutomation(config) {
 
 function loadPendingEvents() {
   try {
-    if (fs.existsSync(PENDING_EVENTS_PATH)) {
-      const data = JSON.parse(fs.readFileSync(PENDING_EVENTS_PATH, "utf8"));
+    const { data, recovered } = readJsonSafe(PENDING_EVENTS_PATH, null);
+    if (data && typeof data === "object") {
+      if (recovered) {
+        debugLogFn("Automation", "Recovered pending events from backup (primary file was unreadable)");
+      }
       pendingEvents = Array.isArray(data.events) ? data.events : [];
       deletedEvents = Array.isArray(data.deletedEvents) ? data.deletedEvents : [];
       if (data.settings && typeof data.settings === "object") {
@@ -568,7 +572,7 @@ function loadPendingEvents() {
       deletedEvents = deletedEvents.filter(e => new Date(e.eventStartsAt) > now);
 
       const didNormalize = normalizePendingStore();
-      if (didNormalize) {
+      if (didNormalize || recovered) {
         savePendingEvents();
         debugLogFn("Automation", `Normalized pending events: ${pendingEvents.length} pending, ${deletedEvents.length} deleted`);
       }
@@ -590,7 +594,7 @@ function savePendingEvents() {
       deletedEvents: deletedEvents,
       settings: pendingSettings
     };
-    fs.writeFileSync(PENDING_EVENTS_PATH, JSON.stringify(data, null, 2));
+    writeJsonAtomic(PENDING_EVENTS_PATH, data);
   } catch (err) {
     debugLogFn("Automation", "Failed to save pending events:", err);
   }
@@ -609,8 +613,12 @@ function updatePendingSettings(newSettings) {
 
 function loadAutomationState() {
   try {
-    if (fs.existsSync(AUTOMATION_STATE_PATH)) {
-      automationState = JSON.parse(fs.readFileSync(AUTOMATION_STATE_PATH, "utf8"));
+    const { data, recovered } = readJsonSafe(AUTOMATION_STATE_PATH, null);
+    if (data && typeof data === "object" && data.profiles && typeof data.profiles === "object") {
+      automationState = data;
+      if (recovered) {
+        debugLogFn("Automation", "Recovered automation state from backup (primary file was unreadable)");
+      }
     } else {
       automationState = { profiles: {} };
     }
@@ -622,7 +630,7 @@ function loadAutomationState() {
 
 function saveAutomationState() {
   try {
-    fs.writeFileSync(AUTOMATION_STATE_PATH, JSON.stringify(automationState, null, 2));
+    writeJsonAtomic(AUTOMATION_STATE_PATH, automationState);
   } catch (err) {
     debugLogFn("Automation", "Failed to save automation state:", err);
   }
