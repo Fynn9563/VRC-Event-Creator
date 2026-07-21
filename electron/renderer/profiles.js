@@ -365,37 +365,89 @@ function getMinPatternFrequencyDays(patterns) {
   return minDays;
 }
 
+/** Format a millisecond offset as human text ("1 day and 3 hours"), reusing the prose keys. */
+function offsetTextFromMs(ms) {
+  const totalMin = Math.max(0, Math.round(ms / 60000));
+  const days = Math.floor(totalMin / 1440);
+  const hours = Math.floor((totalMin % 1440) / 60);
+  const minutes = totalMin % 60;
+  const parts = [];
+  if (days === 1) parts.push(t("profiles.automation.prose.day"));
+  else if (days > 1) parts.push(t("profiles.automation.prose.days", { count: days }));
+  if (hours === 1) parts.push(t("profiles.automation.prose.hour"));
+  else if (hours > 1) parts.push(t("profiles.automation.prose.hours", { count: hours }));
+  if (minutes === 1) parts.push(t("profiles.automation.prose.minute"));
+  else if (minutes > 1) parts.push(t("profiles.automation.prose.minutes", { count: minutes }));
+  if (!parts.length) return t("profiles.automation.prose.noTime");
+  if (parts.length === 1) return parts[0];
+  const and = t("profiles.automation.prose.and");
+  if (parts.length === 2) return `${parts[0]} ${and} ${parts[1]}`;
+  return `${parts.slice(0, -1).join(", ")}, ${and} ${parts[parts.length - 1]}`;
+}
+
 /**
- * Validate and auto-correct automation offset. If offset exceeds pattern
- * frequency, auto-switch mode and/or cap values.
+ * Warn (never rewrite) when an automation offset doesn't fit the events' real
+ * spacing. For "after" mode it measures the actual gap between occurrences (via
+ * the main process) instead of guessing by pattern type. Async — callers fire
+ * it without awaiting; the warning updates when the measurement returns.
  */
-export function validateAndCorrectAutomationOffset() {
+export async function validateAndCorrectAutomationOffset() {
   const warningEl = document.getElementById("automation-offset-warning");
   const enabled = dom.automationEnabled?.checked;
   const timingMode = dom.automationTimingMode?.value;
-  const minFrequency = getMinPatternFrequencyDays(state.profile.patterns);
 
   if (warningEl) warningEl.classList.add("is-hidden");
-
-  if (!enabled || timingMode === "monthly" || minFrequency === Infinity) return;
+  if (!enabled || timingMode === "monthly") return;
 
   const timing = parseAutomationTimingInput(dom.automationTimingInput?.value);
+  const offsetMs = (timing.days * 86400000) + (timing.hours * 3600000) + (timing.minutes * 60000);
+
+  if (timingMode === "after") {
+    const patterns = state.profile?.patterns || [];
+    if (!patterns.length) return;
+    const timezone = dom.profileTimezone?.value || state.profile?.timezone || "UTC";
+
+    let minGapMs = null;
+    try {
+      minGapMs = await window.vrcEvent?.getMinPatternGap?.({ patterns, timezone });
+    } catch (err) {
+      return; // couldn't measure — leave the offset as typed, engine still handles it
+    }
+    if (!minGapMs || minGapMs <= 0) return;
+
+    const durationMs = (Number(state.profile?.duration) || 120) * 60000;
+    const MIN_LEAD_MS = 15 * 60000;
+    const usable = minGapMs - durationMs; // room an "after" offset has to fit
+    if (usable <= 0) return;
+
+    if (offsetMs >= usable) {
+      // Would land at or after the next event — impossible as an "after" time.
+      if (warningEl) {
+        warningEl.textContent = t("profiles.automation.offsetImpossible");
+        warningEl.classList.remove("is-hidden");
+      }
+    } else if (offsetMs > usable / 2) {
+      // Past halfway toward the next event — will be shown/applied as "before".
+      const beforeMs = Math.max(MIN_LEAD_MS, usable - offsetMs);
+      if (warningEl) {
+        warningEl.textContent = t("profiles.automation.offsetWillAdjust", {
+          afterText: offsetTextFromMs(offsetMs),
+          beforeText: offsetTextFromMs(beforeMs)
+        });
+        warningEl.classList.remove("is-hidden");
+      }
+    }
+    return;
+  }
+
+  // "before" mode: announcements can stack, so a large offset is legal; keep a
+  // soft cap against the rough per-type estimate as a guard.
+  const minFrequency = getMinPatternFrequencyDays(state.profile.patterns);
+  if (minFrequency === Infinity) return;
   const offsetDays = timing.days + (timing.hours / 24) + (timing.minutes / 1440);
-
-  // "after" mode is left as the user typed it — the engine anchors each
-  // announcement on the previous occurrence and, if the offset would push it
-  // onto or past the next show, pulls it back to a safe lead per-event. We no
-  // longer silently rewrite the stored "after" offset into "before" (which
-  // mangled the value and broke edits that later widen a show's gap). An
-  // accurate "this offset is larger than your shows' spacing" warning needs the
-  // real occurrence gaps and is a separate, IPC-backed follow-up.
-  if (timingMode === "after") return;
-
-  // "before" mode: if offset >= frequency, cap to frequency - 1 day.
-  if (timingMode === "before" && offsetDays >= minFrequency) {
+  if (offsetDays >= minFrequency) {
     const cappedDays = Math.max(1, minFrequency - 1);
     dom.automationTimingInput.value = formatAutomationTimingValue(cappedDays, 0, 0);
-
     if (warningEl) {
       warningEl.textContent = t("profiles.automation.offsetCapped", {
         oldOffset: Math.round(offsetDays),
@@ -403,10 +455,7 @@ export function validateAndCorrectAutomationOffset() {
       });
       warningEl.classList.remove("is-hidden");
     }
-
-    if (window.updateAutomationProse) {
-      window.updateAutomationProse();
-    }
+    if (window.updateAutomationProse) window.updateAutomationProse();
   }
 }
 

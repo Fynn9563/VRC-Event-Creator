@@ -506,6 +506,8 @@ export const pt = {
       confirmEnable: "A automação requer que o aplicativo esteja em execução para publicar eventos. Automações perdidas podem ser gerenciadas na aba Modificar Eventos.",
       offsetCorrected: "O deslocamento ({oldOffset} dias) excedeu a frequência do padrão ({frequency} dias). Alterado para o modo \"antes\" com deslocamento de {newOffset} dias.",
       offsetCapped: "O deslocamento ({oldOffset} dias) excedeu a frequência do padrão. Limitado a {newOffset} dias.",
+      offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
+      offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
         day: "1 dia",
         days: "{count} dias",

@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld("vrcEvent", {
   updateProfile: payload => ipcRenderer.invoke("profiles:update", payload),
   deleteProfile: payload => ipcRenderer.invoke("profiles:delete", payload),
   getDateOptions: payload => ipcRenderer.invoke("dates:options", payload),
+  getMinPatternGap: payload => ipcRenderer.invoke("dates:minGap", payload),
   prepareEvent: payload => ipcRenderer.invoke("events:prepare", payload),
   createEvent: payload => ipcRenderer.invoke("events:create", payload),
   getUpcomingEventCount: payload => ipcRenderer.invoke("events:countUpcoming", payload),

@@ -4,6 +4,9 @@ All notable changes to VRChat Event Creator will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Accurate "after"-offset warning in Settings** — when your posting offset is larger than the real spacing between your events, the settings form now says so, measuring the actual gap between the dates your patterns produce (so "1st Monday + 1st Tuesday" is correctly seen as one day apart, not two weeks). If the offset would land after the next event, it warns it can't post after the next event; if it lands closer to the next event than the previous one, it tells you the equivalent "before" time it'll be applied at. It only warns — it never rewrites your setting.
+
 ### Fixed
 - **An "after" offset that's too big for a tight gap now mirrors to the "before" side** — if an event is edited so it sits unusually close to its neighbor, "X hours after the previous event" is re-expressed as its equivalent distance before the next event, computed from your events' regular spacing (for daily events, "23 hours after" becomes "1 hour before"), rather than being flattened to a fixed lead. It still never lands within 15 minutes of the event.
 - **Your "after" offset is no longer silently rewritten** — the settings form used to quietly convert a large "after" offset into a "before" offset and change the number, which mangled your setting and broke events later edited to a wider gap. It now leaves your "after" offset as typed; the engine places each announcement on the previous occurrence and pulls it back to a safe lead only if it would land too close to the show.

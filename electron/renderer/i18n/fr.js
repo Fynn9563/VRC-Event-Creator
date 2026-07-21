@@ -506,6 +506,8 @@ export const fr = {
       confirmEnable: "L'automatisation nécessite que l'application soit en cours d'exécution pour publier les événements. Les automatisations manquées peuvent être gérées depuis l'onglet Modifier les événements.",
       offsetCorrected: "Le décalage ({oldOffset} jours) a dépassé la fréquence du modèle ({frequency} jours). Passé en mode \"avant\" avec un décalage de {newOffset} jours.",
       offsetCapped: "Le décalage ({oldOffset} jours) a dépassé la fréquence du modèle. Limité à {newOffset} jours.",
+      offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
+      offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
         day: "1 jour",
         days: "{count} jours",

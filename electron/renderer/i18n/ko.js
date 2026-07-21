@@ -506,6 +506,8 @@ export const ko = {
       confirmEnable: "자동화를 사용하려면 이벤트를 게시하기 위해 앱이 실행 중이어야 합니다. 놓친 자동화는 이벤트 수정 탭에서 처리할 수 있습니다.",
       offsetCorrected: "오프셋({oldOffset}일)이 패턴 빈도({frequency}일)를 초과했습니다. \"전\" 모드로 전환하고 {newOffset}일 오프셋으로 설정했습니다.",
       offsetCapped: "오프셋({oldOffset}일)이 패턴 빈도를 초과했습니다. {newOffset}일로 제한되었습니다.",
+      offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
+      offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
         day: "1일",
         days: "{count}일",

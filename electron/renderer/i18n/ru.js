@@ -506,6 +506,8 @@ export const ru = {
       confirmEnable: "Для автоматизации требуется запущенное приложение для публикации событий. Пропущенные автоматизации можно обработать на вкладке Изменить события.",
       offsetCorrected: "Смещение ({oldOffset} дней) превысило частоту шаблона ({frequency} дней). Переключено в режим \"до\" со смещением {newOffset} дней.",
       offsetCapped: "Смещение ({oldOffset} дней) превысило частоту шаблона. Ограничено до {newOffset} дней.",
+      offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
+      offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
         day: "1 день",
         days: "{count} дней",

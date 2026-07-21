@@ -640,6 +640,8 @@ export const en = {
       confirmEnable: "Automations require the app to be running to post events. Missed automations can be handled from the Modify Events tab.",
       offsetCorrected: "Offset ({oldOffset} days) exceeded pattern frequency ({frequency} days). Switched to \"before\" mode with {newOffset}-day offset.",
       offsetCapped: "Offset ({oldOffset} days) exceeded pattern frequency. Capped to {newOffset} days.",
+      offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
+      offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
         day: "1 day",
         days: "{count} days",

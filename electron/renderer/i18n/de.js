@@ -506,6 +506,8 @@ export const de = {
       confirmEnable: "Die Automatisierung erfordert, dass die App läuft, um Ereignisse zu veröffentlichen. Verpasste Automatisierungen können auf der Registerkarte \"Ereignisse ändern\" verwaltet werden.",
       offsetCorrected: "Der Versatz ({oldOffset} Tage) überschritt die Musterhäufigkeit ({frequency} Tage). In den \"Vorher\"-Modus gewechselt mit {newOffset}-Tage-Versatz.",
       offsetCapped: "Der Versatz ({oldOffset} Tage) überschritt die Musterhäufigkeit. Auf {newOffset} Tage begrenzt.",
+      offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
+      offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
         day: "1 Tag",
         days: "{count} Tage",

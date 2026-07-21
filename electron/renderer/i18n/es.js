@@ -506,6 +506,8 @@ export const es = {
       confirmEnable: "La automatización requiere que la aplicación esté en ejecución para publicar eventos. Las automatizaciones perdidas se pueden gestionar desde la pestaña Modificar Eventos.",
       offsetCorrected: "El desplazamiento ({oldOffset} días) excedió la frecuencia del patrón ({frequency} días). Se cambió al modo \"antes\" con desplazamiento de {newOffset} días.",
       offsetCapped: "El desplazamiento ({oldOffset} días) excedió la frecuencia del patrón. Limitado a {newOffset} días.",
+      offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
+      offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
         day: "1 día",
         days: "{count} días",

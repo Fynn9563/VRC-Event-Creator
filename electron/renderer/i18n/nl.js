@@ -506,6 +506,8 @@ export const nl = {
       confirmEnable: "Automatiseringen vereisen dat de app actief is om evenementen te plaatsen. Gemiste automatiseringen kunnen worden afgehandeld via het tabblad Evenementen wijzigen.",
       offsetCorrected: "Offset ({oldOffset} dagen) overschreed patroonfrequentie ({frequency} dagen). Overgeschakeld naar \"vooraf\"-modus met {newOffset}-dagen-offset.",
       offsetCapped: "Offset ({oldOffset} dagen) overschreed patroonfrequentie. Afgekapt op {newOffset} dagen.",
+      offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
+      offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
         day: "1 dag",
         days: "{count} dagen",

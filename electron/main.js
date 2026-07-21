@@ -7,7 +7,7 @@ const crypto = require("crypto");
 const { DateTime } = require("luxon");
 const { VRChat } = require("vrchat");
 const { KeyvFile } = require("keyv-file");
-const { generateDateOptionsFromPatterns, safeZone } = require("./core/date-utils");
+const { generateDateOptionsFromPatterns, safeZone, minPatternGapMs } = require("./core/date-utils");
 const automationEngine = require("./core/automation-engine");
 const discord = require("./core/discord");
 const ics = require("./core/ics");
@@ -3341,6 +3341,14 @@ ipcMain.handle("series:rasterizeDrain", async () => {
 ipcMain.handle("dates:options", async (_, payload) => {
   const { patterns, monthsAhead, timezone } = payload || {};
   return generateDateOptionsFromPatterns(patterns || [], monthsAhead || 6, timezone || "UTC");
+});
+
+// The smallest real gap (ms) between the events a set of patterns produces, so
+// the settings form can warn accurately about an "after" offset that's larger
+// than the events' actual spacing (instead of guessing by pattern type).
+ipcMain.handle("dates:minGap", async (_, payload) => {
+  const { patterns, timezone } = payload || {};
+  return minPatternGapMs(patterns || [], 13, timezone || "UTC");
 });
 
 ipcMain.handle("events:prepare", async (_, payload) => {
