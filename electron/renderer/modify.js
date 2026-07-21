@@ -431,7 +431,9 @@ function formatDateInTimezone(value, timeZone) {
     minute: "2-digit",
     timeZone
   });
-  const tzAbbr = getTimeZoneAbbr(timeZone);
+  // Abbreviation for the event's own date, so a winter event doesn't show a
+  // summer zone label (or vice versa) when viewed in another season.
+  const tzAbbr = getTimeZoneAbbr(timeZone, date);
   return `${formatted} ${tzAbbr}`;
 }
 

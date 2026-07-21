@@ -96,7 +96,11 @@ export function getMaxEventDateString() {
   return formatDateInput(max);
 }
 
-export function getTimeZoneAbbr(timeZone) {
+export function getTimeZoneAbbr(timeZone, date = new Date()) {
+  // `date` picks which side of daylight saving the abbreviation reflects. Pass
+  // the event's own date for a card label — otherwise a January event viewed in
+  // July would show the summer abbreviation (CDT) for an event that's on
+  // standard time (CST). Defaults to now for generic/system labels.
   // Override timezones that would otherwise show generic/conflicting abbreviations.
   const customMappings = {
     "Asia/Tokyo": "JST",
@@ -118,7 +122,7 @@ export function getTimeZoneAbbr(timeZone) {
     const parts = new Intl.DateTimeFormat("en-US", {
       timeZone,
       timeZoneName: "short"
-    }).formatToParts(new Date());
+    }).formatToParts(date);
     const part = parts.find(p => p.type === "timeZoneName");
     return part ? part.value : timeZone;
   } catch (err) {
