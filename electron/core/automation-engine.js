@@ -1526,6 +1526,19 @@ async function executeAutomatedPostInternal(pendingEvent) {
 
     // Calculate end time
     const startTime = new Date(pendingEvent.eventStartsAt);
+
+    // Never create an event whose start time has already passed. VRChat would
+    // otherwise receive a past-dated event, and a show that already happened
+    // should not be posted. This is the single chokepoint for every posting
+    // path — the scheduled timer, queue retries, and manual Post Now all funnel
+    // through here — so guarding it once covers them all.
+    if (startTime.getTime() <= Date.now()) {
+      debugLogFn("Automation", `Refusing to post ${pendingEvent.id}: event start ${pendingEvent.eventStartsAt} is already in the past`);
+      pendingEvent.status = "cancelled";
+      savePendingEvents();
+      return;
+    }
+
     const durationMs = (eventDetails.duration || 120) * 60 * 1000;
     const endTime = new Date(startTime.getTime() + durationMs);
 
@@ -1624,6 +1637,13 @@ async function handleMissedEvent(pendingEventId, action) {
     // Prevent posting if event is queued (waiting for rate limits)
     if (pendingEvent.status === "queued") {
       return { ok: false, error: { message: "Event is queued waiting for rate limits to clear. Please wait." } };
+    }
+
+    // Can't post an event whose start time has already passed — the show has
+    // already begun or ended. (The engine also backstops this, but refusing
+    // here gives the button honest, immediate feedback.)
+    if (new Date(pendingEvent.eventStartsAt).getTime() <= Date.now()) {
+      return { ok: false, error: { message: "This event's start time has already passed and can no longer be posted." } };
     }
 
     // Execute immediately
