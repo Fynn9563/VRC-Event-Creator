@@ -1,5 +1,5 @@
 const fs = require("fs");
-const { generateDateOptionsFromPatterns, weekdayInZone } = require("./date-utils");
+const { generateDateOptionsFromPatterns, weekdayInZone, monthlyPublishMs } = require("./date-utils");
 const { writeJsonAtomic, readJsonSafe } = require("./atomic-store");
 
 // In-memory job storage
@@ -28,6 +28,73 @@ const EVENT_HOURLY_WINDOW_MS = 60 * 60 * 1000;
 const BACKOFF_SEQUENCE = [2, 4, 8, 16, 32, 60]; // minutes, caps at 60
 const VALID_PENDING_STATUSES = new Set(["scheduled", "missed", "queued", "published", "cancelled", "deleted"]);
 const ACTIVE_PENDING_STATUSES = new Set(["scheduled", "missed", "queued"]);
+
+// Minimum lead an "after"-mode announcement must keep before the show it
+// announces, so it can never land after (or right on top of) the show start.
+const MIN_LEAD_MS = 15 * 60 * 1000;
+
+/** Offset (ms) from a profile's automation timing fields. */
+function offsetMsOf(automation) {
+  return (automation.daysOffset || 0) * 24 * 60 * 60 * 1000 +
+    (automation.hoursOffset || 0) * 60 * 60 * 1000 +
+    (automation.minutesOffset || 0) * 60 * 1000;
+}
+
+/**
+ * The single source of truth for when an event is announced.
+ * @param {number} eventStartMs
+ * @param {object} automation - profile.automation
+ * @param {number} durationMs - event length
+ * @param {number|null} prevOccurrenceStartMs - start of the previous occurrence
+ *   in the series (for "after" mode); null if unknown/none.
+ * @param {string} timezone
+ * @returns {number|null} publish instant (ms), or null when "after" mode has no
+ *   previous occurrence to anchor to.
+ */
+function computePublishTimeMs(eventStartMs, automation, durationMs, prevOccurrenceStartMs, timezone) {
+  const offset = offsetMsOf(automation);
+
+  if (automation.timingMode === "monthly") {
+    return monthlyPublishMs(
+      new Date(eventStartMs).toISOString(),
+      automation.monthlyDay,
+      automation.monthlyHour,
+      automation.monthlyMinute,
+      timezone
+    );
+  }
+
+  if (automation.timingMode === "after") {
+    if (prevOccurrenceStartMs === null || prevOccurrenceStartMs === undefined) {
+      return null;
+    }
+    // "X after the previous show ends" = previous start + its length + offset.
+    const afterInstant = prevOccurrenceStartMs + durationMs + offset;
+    // Never later than a safe lead before this show — if the offset would push
+    // the announcement onto or past the show, pull it back to that lead. For a
+    // valid offset this clamp is a no-op; it only catches a too-large offset.
+    return Math.min(afterInstant, eventStartMs - MIN_LEAD_MS);
+  }
+
+  // "before" (and any unknown mode) — X before this show's own start.
+  return eventStartMs - offset;
+}
+
+/**
+ * The previous occurrence to anchor an "after"-mode head event on: the most
+ * recent event this profile actually posted (a real pattern occurrence, not a
+ * wall-clock stamp), falling back to the activation event. Returns ms or null.
+ */
+function getHeadPreviousOccurrenceMs(groupId, profileKey, profileState) {
+  let bestMs = null;
+  for (const e of pendingEvents) {
+    if (e.groupId !== groupId || e.profileKey !== profileKey || e.status !== "published") continue;
+    const ms = parseEventStartMs(e.eventStartsAt);
+    if (ms !== null && (bestMs === null || ms > bestMs)) bestMs = ms;
+  }
+  if (bestMs !== null) return bestMs;
+  return getActivationStartMs(profileState);
+}
 
 // Rate limit tracking per group
 const rateLimitState = {
@@ -440,7 +507,7 @@ function normalizePendingStore() {
     }
     if (!event.scheduledPublishTime && event.status !== "published") {
       const profile = profilesRef?.[event.groupId]?.profiles?.[event.profileKey];
-      const newPublishTime = calculatePublishTime(event.eventStartsAt, profile);
+      const newPublishTime = calculatePublishTime(event.eventStartsAt, profile, event.groupId, event.profileKey);
       if (newPublishTime) {
         event.scheduledPublishTime = newPublishTime.toISOString();
         changed = true;
@@ -760,85 +827,24 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
     if (minEventStartMs !== null && eventStartTime.getTime() <= minEventStartMs) {
       continue;
     }
-    let publishTime;
+    // "after" mode anchors on the previous occurrence in the series: the last
+    // event already placed in this batch, or — for the first one — the most
+    // recent posted occurrence / the activation event (never a wall-clock
+    // stamp). "before"/"monthly" ignore the anchor.
+    const prevOccurrenceStartMs = newPendingEvents.length > 0
+      ? parseEventStartMs(newPendingEvents[newPendingEvents.length - 1].eventStartsAt)
+      : getHeadPreviousOccurrenceMs(groupId, profileKey, profileState);
+    const durationMs = (profile.duration || 120) * 60 * 1000;
 
-    // Calculate publish time based on timing mode
-    if (automation.timingMode === "before") {
-      // Publish X time before the event starts
-      const offsetMs = (
-        (automation.daysOffset || 0) * 24 * 60 * 60 * 1000 +
-        (automation.hoursOffset || 0) * 60 * 60 * 1000 +
-        (automation.minutesOffset || 0) * 60 * 1000
-      );
-      publishTime = new Date(eventStartTime.getTime() - offsetMs);
-    } else if (automation.timingMode === "after") {
-      // Publish X time after the previous event ends
-      // For simplicity, use current time + offset for first event
-      // or previous event end + offset for subsequent events
-      const offsetMs = (
-        (automation.daysOffset || 0) * 24 * 60 * 60 * 1000 +
-        (automation.hoursOffset || 0) * 60 * 60 * 1000 +
-        (automation.minutesOffset || 0) * 60 * 1000
-      );
-
-      if (newPendingEvents.length === 0) {
-        // First pending event - use profile's last event end time or now
-        const lastSuccess = profileState.lastSuccess ? new Date(profileState.lastSuccess) : now;
-        const duration = (profile.duration || 120) * 60 * 1000;
-        publishTime = new Date(lastSuccess.getTime() + duration + offsetMs);
-      } else {
-        // Subsequent events - use previous pending event's end time
-        const prevEvent = newPendingEvents[newPendingEvents.length - 1];
-        const prevEndTime = new Date(prevEvent.eventStartsAt);
-        const duration = (profile.duration || 120) * 60 * 1000;
-        publishTime = new Date(prevEndTime.getTime() + duration + offsetMs);
-      }
-
-      // Smart switching: if publish time is >50% toward next event, switch to "before" mode
-      const nextEventTime = eventStartTime.getTime();
-      const prevEventTime = newPendingEvents.length > 0
-        ? new Date(newPendingEvents[newPendingEvents.length - 1].eventStartsAt).getTime()
-        : now.getTime();
-      const midpoint = prevEventTime + (nextEventTime - prevEventTime) / 2;
-
-      if (publishTime.getTime() > midpoint) {
-        // Switch to "before" mode
-        const beforeOffset = (automation.daysOffset || 0) * 24 * 60 * 60 * 1000 +
-          (automation.hoursOffset || 0) * 60 * 60 * 1000 +
-          (automation.minutesOffset || 0) * 60 * 1000;
-        publishTime = new Date(eventStartTime.getTime() - beforeOffset);
-      }
-    } else if (automation.timingMode === "monthly") {
-      // Publish on specific day/time each month
-      const eventMonth = eventStartTime.getMonth();
-      const eventYear = eventStartTime.getFullYear();
-
-      // Handle month-end dates intelligently
-      // Days 29-31 should map to the last day of the month if that month doesn't have enough days
-      let targetDay = automation.monthlyDay || 1;
-
-      // Get the last day of the target month
-      const lastDayOfMonth = new Date(eventYear, eventMonth + 1, 0).getDate();
-      const publishDay = Math.min(targetDay, lastDayOfMonth);
-
-      publishTime = new Date(
-        eventYear,
-        eventMonth,
-        publishDay,
-        automation.monthlyHour || 12,
-        automation.monthlyMinute || 0,
-        0,
-        0
-      );
-
-      // If publish time is after event start, use previous month
-      if (publishTime >= eventStartTime) {
-        publishTime.setMonth(publishTime.getMonth() - 1);
-        // Recalculate last day for the previous month
-        const prevMonthLastDay = new Date(publishTime.getFullYear(), publishTime.getMonth() + 1, 0).getDate();
-        publishTime.setDate(Math.min(targetDay, prevMonthLastDay));
-      }
+    const publishMs = computePublishTimeMs(
+      eventStartTime.getTime(), automation, durationMs, prevOccurrenceStartMs, timezone
+    );
+    if (publishMs === null) {
+      // "after" mode with no previous occurrence to measure from — can't time
+      // this slot yet, so skip it rather than invent a time.
+      continue;
     }
+    let publishTime = new Date(publishMs);
 
     // If the computed publish time has already slipped into the past, the
     // announcement was missed. When the event itself is still comfortably in
@@ -958,9 +964,16 @@ function projectFutureEvents(groupId, fromMs, toMs) {
     ).length;
 
     let projectedSoFar = 0;
+    // Chain "after" mode across the occurrence sequence so preview matches the
+    // real generator: each occurrence's predecessor is the one before it, and
+    // the first anchors on the last posted occurrence / activation event.
+    let prevOccurrenceStartMs = getHeadPreviousOccurrenceMs(groupId, profileKey, profileState);
     for (const dateOption of dateOptions) {
       const eventStartTime = new Date(dateOption.iso);
       const eventStartMs = eventStartTime.getTime();
+      const thisPrevMs = prevOccurrenceStartMs;
+      // Every occurrence advances the chain, even ones outside the display range.
+      prevOccurrenceStartMs = eventStartMs;
 
       if (eventStartMs <= fromMs) continue;
       if (eventStartMs > toMs) continue;
@@ -974,7 +987,7 @@ function projectFutureEvents(groupId, fromMs, toMs) {
         if (totalAfter > automation.repeatCount) break;
       }
 
-      const publishTime = calculatePublishTime(eventStartTime.toISOString(), profile);
+      const publishTime = calculatePublishTime(eventStartTime.toISOString(), profile, groupId, profileKey, thisPrevMs);
       if (!publishTime) continue;
 
       projected.push({
@@ -1058,7 +1071,7 @@ function commitProjectedSlot(payload) {
     };
   }
 
-  const publishTime = calculatePublishTime(eventStartTime.toISOString(), profile);
+  const publishTime = calculatePublishTime(eventStartTime.toISOString(), profile, groupId, profileKey);
   if (!publishTime) {
     return { ok: false, error: { message: "Could not compute publish time." } };
   }
@@ -1638,7 +1651,8 @@ async function executeAutomatedPostInternal(pendingEvent) {
       if (getActivationStartMs(profileState) === null && pendingEvent.eventStartsAt) {
         profileState.activationStartsAt = pendingEvent.eventStartsAt;
       }
-      profileState.lastSuccess = new Date().toISOString();
+      // lastSuccess (a wall-clock post-receipt timestamp) is no longer used for
+      // timing — "after" mode now anchors on real occurrences, not this stamp.
       profileState.lastEventId = result.eventId;
 
       saveAutomationState();
@@ -1985,24 +1999,23 @@ function updatePendingEventOverrides(pendingEventId, overrides) {
 
     if (automation?.enabled) {
       const eventStartTime = new Date(overrides.eventStartsAt);
-      let newPublishTime;
 
-      if (automation.timingMode === "before") {
-        // Publish X time before the event starts
-        const offsetMs = (
-          (automation.daysOffset || 0) * 24 * 60 * 60 * 1000 +
-          (automation.hoursOffset || 0) * 60 * 60 * 1000 +
-          (automation.minutesOffset || 0) * 60 * 1000
-        );
-        newPublishTime = new Date(eventStartTime.getTime() - offsetMs);
-      } else {
-        // For "after" and "monthly" modes, keep relative timing
-        // Calculate the difference between old event start and publish time
-        const oldEventStart = new Date(previousEventStartsAt).getTime();
-        const oldPublishTime = new Date(event.scheduledPublishTime).getTime();
-        const timeDiff = oldPublishTime - oldEventStart;
-        newPublishTime = new Date(eventStartTime.getTime() + timeDiff);
+      // Recompute against the event's current context, not the old gap: its own
+      // new date for "before"/"monthly", and the previous occurrence for
+      // "after". So moving a monthly event to a new month re-lands it on that
+      // month's target day instead of dragging the old offset along.
+      const durationMs = (profile.duration || 120) * 60 * 1000;
+      let prevOccurrenceStartMs = null;
+      if (automation.timingMode === "after") {
+        const profileState = getOrCreateProfileState(getProfileStateKey(event.groupId, event.profileKey));
+        prevOccurrenceStartMs = getHeadPreviousOccurrenceMs(event.groupId, event.profileKey, profileState);
       }
+      const publishMs = computePublishTimeMs(
+        eventStartTime.getTime(), automation, durationMs, prevOccurrenceStartMs, profile.timezone || "UTC"
+      );
+      const newPublishTime = publishMs === null
+        ? new Date(eventStartTime.getTime() - offsetMsOf(automation))
+        : new Date(publishMs);
 
       event.scheduledPublishTime = newPublishTime.toISOString();
 
@@ -2164,61 +2177,31 @@ function resetAutomationState(groupId, profileKey) {
 }
 
 /**
- * @param {string} eventStartsAt - ISO string.
- * @param {object} profile - Includes automation settings.
+ * Publish time for a single event (used by restore, projection, and load-time
+ * backfill), routed through the same computation as the batch generator so all
+ * paths agree. For "after" mode, pass prevOccurrenceStartMs to chain from a
+ * known predecessor (projection); otherwise groupId/profileKey let it derive
+ * the head anchor (last posted occurrence / activation event).
  * @returns {Date|null}
  */
-function calculatePublishTime(eventStartsAt, profile) {
+function calculatePublishTime(eventStartsAt, profile, groupId, profileKey, prevOccurrenceStartMs) {
   const automation = profile?.automation;
   if (!automation?.enabled) {
     return null;
   }
 
-  const eventStartTime = new Date(eventStartsAt);
-  let publishTime;
+  const eventStartMs = new Date(eventStartsAt).getTime();
+  const durationMs = (profile.duration || 120) * 60 * 1000;
+  const timezone = profile.timezone || "UTC";
 
-  if (automation.timingMode === "before") {
-    const offsetMs = (
-      (automation.daysOffset || 0) * 24 * 60 * 60 * 1000 +
-      (automation.hoursOffset || 0) * 60 * 60 * 1000 +
-      (automation.minutesOffset || 0) * 60 * 1000
-    );
-    publishTime = new Date(eventStartTime.getTime() - offsetMs);
-  } else if (automation.timingMode === "monthly") {
-    const eventMonth = eventStartTime.getMonth();
-    const eventYear = eventStartTime.getFullYear();
-    let targetDay = automation.monthlyDay || 1;
-    const lastDayOfMonth = new Date(eventYear, eventMonth + 1, 0).getDate();
-    const publishDay = Math.min(targetDay, lastDayOfMonth);
-
-    publishTime = new Date(
-      eventYear,
-      eventMonth,
-      publishDay,
-      automation.monthlyHour || 12,
-      automation.monthlyMinute || 0,
-      0,
-      0
-    );
-
-    if (publishTime >= eventStartTime) {
-      publishTime.setMonth(publishTime.getMonth() - 1);
-      const prevMonthLastDay = new Date(publishTime.getFullYear(), publishTime.getMonth() + 1, 0).getDate();
-      publishTime.setDate(Math.min(targetDay, prevMonthLastDay));
-    }
-  } else {
-    // Default to "before" behavior for "after" mode during restore
-    const offsetMs = (
-      (automation.daysOffset || 0) * 24 * 60 * 60 * 1000 +
-      (automation.hoursOffset || 0) * 60 * 60 * 1000 +
-      (automation.minutesOffset || 0) * 60 * 1000
-    );
-    publishTime = new Date(eventStartTime.getTime() - offsetMs);
+  let prevMs = Number.isFinite(prevOccurrenceStartMs) ? prevOccurrenceStartMs : null;
+  if (automation.timingMode === "after" && prevMs === null && groupId && profileKey) {
+    const profileState = getOrCreateProfileState(getProfileStateKey(groupId, profileKey));
+    prevMs = getHeadPreviousOccurrenceMs(groupId, profileKey, profileState);
   }
 
-  // Silent 30-min clamp removed (see calculatePendingEvents above); trust
-  // the user's automation timing input.
-  return publishTime;
+  const publishMs = computePublishTimeMs(eventStartMs, automation, durationMs, prevMs, timezone);
+  return publishMs === null ? null : new Date(publishMs);
 }
 
 /** @param {string} groupId @param {string} profileKey @returns {{ ok: boolean, restoredCount?: number, error?: object }} */
@@ -2282,7 +2265,7 @@ function restoreDeletedEvents(groupId, profileKey) {
     // Only restore events whose event date hasn't passed yet
     // Recalculate publish time based on current profile settings
     const restoreStartsAt = new Date(restoreStartMs).toISOString();
-    const newPublishTime = calculatePublishTime(restoreStartsAt, profile);
+    const newPublishTime = calculatePublishTime(restoreStartsAt, profile, groupId, profileKey);
 
     // Only restore if publish time calculation succeeded and is in the future
       if (newPublishTime && newPublishTime.getTime() > nowMs) {

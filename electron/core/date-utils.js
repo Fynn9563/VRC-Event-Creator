@@ -217,6 +217,34 @@ function generateDateOptionsFromPatterns(patterns, monthsAhead = 6, timezone = "
 }
 
 /**
+ * The monthly-mode publish instant, in the template's timezone (not the OS
+ * clock). Returns the most recent "{monthlyDay} at {hour}:{minute}" that falls
+ * strictly before the event start, mapping day-of-month past the month's end to
+ * the last day. Returns epoch millis.
+ */
+function monthlyPublishMs(eventStartsAtIso, monthlyDay, monthlyHour, monthlyMinute, timezone) {
+  const zone = safeZone(timezone);
+  const eventStart = DateTime.fromISO(eventStartsAtIso, { zone });
+  if (!eventStart.isValid) return null;
+
+  const targetDay = monthlyDay || 1;
+  const build = (year, month) => {
+    let dt = DateTime.fromObject(
+      { year, month, day: 1, hour: monthlyHour || 12, minute: monthlyMinute || 0 },
+      { zone }
+    );
+    return dt.set({ day: Math.min(targetDay, dt.daysInMonth) });
+  };
+
+  let dt = build(eventStart.year, eventStart.month);
+  if (dt >= eventStart) {
+    const prev = dt.minus({ months: 1 });
+    dt = build(prev.year, prev.month);
+  }
+  return dt.toMillis();
+}
+
+/**
  * The lowercase weekday name of an ISO instant, as seen in the given timezone.
  * Used to match a manually-created kickoff event to an every-other pattern.
  * @returns {string|null}
@@ -231,5 +259,6 @@ function weekdayInZone(iso, timezone) {
 module.exports = {
   generateDateOptionsFromPatterns,
   safeZone,
-  weekdayInZone
+  weekdayInZone,
+  monthlyPublishMs
 };
