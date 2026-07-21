@@ -849,6 +849,7 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
   // nothing until anchored by a matching manual event.
   const dateOptions = generateDateOptionsFromPatterns(profile.patterns, 3, timezone, {
     enforceEveryOther: true,
+    excludeEveryOtherAnchor: true,
     everyOtherAnchors: resolveEveryOtherAnchors(groupId, profileKey, profile, profileState, timezone, true)
   });
 
@@ -1007,6 +1008,7 @@ function projectFutureEvents(groupId, fromMs, toMs) {
       timezone,
       {
         enforceEveryOther: true,
+        excludeEveryOtherAnchor: true,
         everyOtherAnchors: resolveEveryOtherAnchors(groupId, profileKey, profile, projProfileState, timezone, false)
       }
     );

@@ -121,13 +121,20 @@ function generateDateOptionsFromPatterns(patterns, monthsAhead = 6, timezone = "
         second: 0,
         millisecond: 0
       });
+      // The anchor date itself is the kickoff/last-posted event, which already
+      // exists — pending generation must not regenerate it (that would duplicate
+      // a multi-pattern kickoff). opts.excludeEveryOtherAnchor drops it for the
+      // generation paths; the backwards timing lookup leaves it in (the event
+      // right after the anchor needs it as its predecessor).
+      const anchorOccMs = occ.toMillis();
       // Jump close to "now" first so a far-past anchor doesn't iterate for years.
       if (occ < now.minus({ days: 14 })) {
         const periods = Math.floor(now.diff(occ, "days").days / 14);
         occ = occ.plus({ days: 14 * periods });
       }
       while (occ <= horizon) {
-        if (occ > now) {
+        const isAnchorItself = opts.excludeEveryOtherAnchor && occ.toMillis() === anchorOccMs;
+        if (occ > now && !isAnchorItself) {
           const dateKey = occ.toISO();
           if (!seenDates.has(dateKey)) {
             seenDates.add(dateKey);
