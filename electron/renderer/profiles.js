@@ -382,30 +382,14 @@ export function validateAndCorrectAutomationOffset() {
   const timing = parseAutomationTimingInput(dom.automationTimingInput?.value);
   const offsetDays = timing.days + (timing.hours / 24) + (timing.minutes / 1440);
 
-  // "after" mode: if offset > frequency/2, switch to "before" (risk of
-  // publishing too close to next event).
-  if (timingMode === "after" && offsetDays > minFrequency / 2) {
-    dom.automationTimingMode.value = "before";
-    // Convert "after" offset to equivalent "before" offset: X days after with
-    // frequency Y is (Y - X) days before the next event.
-    const beforeEquivalent = minFrequency - offsetDays;
-    const cappedDays = Math.max(1, Math.floor(beforeEquivalent));
-    dom.automationTimingInput.value = formatAutomationTimingValue(cappedDays, 0, 0);
-
-    if (warningEl) {
-      warningEl.textContent = t("profiles.automation.offsetCorrected", {
-        oldOffset: Math.round(offsetDays),
-        frequency: minFrequency,
-        newOffset: cappedDays
-      });
-      warningEl.classList.remove("is-hidden");
-    }
-
-    if (window.updateAutomationProse) {
-      window.updateAutomationProse();
-    }
-    return;
-  }
+  // "after" mode is left as the user typed it — the engine anchors each
+  // announcement on the previous occurrence and, if the offset would push it
+  // onto or past the next show, pulls it back to a safe lead per-event. We no
+  // longer silently rewrite the stored "after" offset into "before" (which
+  // mangled the value and broke edits that later widen a show's gap). An
+  // accurate "this offset is larger than your shows' spacing" warning needs the
+  // real occurrence gaps and is a separate, IPC-backed follow-up.
+  if (timingMode === "after") return;
 
   // "before" mode: if offset >= frequency, cap to frequency - 1 day.
   if (timingMode === "before" && offsetDays >= minFrequency) {
