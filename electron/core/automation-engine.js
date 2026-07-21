@@ -585,15 +585,22 @@ function initializeAutomation(config) {
   const now = Date.now();
   let missedCount = 0;
   for (const event of pendingEvents) {
-    if (event.status === "scheduled") {
+    // "queued" events were mid-flight through the rate limiter, which doesn't
+    // survive a restart — treat them like scheduled events here so they don't
+    // strand with no job attached.
+    if (event.status === "scheduled" || event.status === "queued") {
       const publishTime = new Date(event.scheduledPublishTime).getTime();
       if (publishTime <= now) {
-        // Mark as missed
+        // Its posting time passed while the app was closed — a missed card the
+        // user decides on, never a silent late post.
         event.status = "missed";
         event.missedAt = new Date().toISOString();
         missedCount++;
-        // Notify about missed event
         onMissedEvent(event);
+      } else if (event.status === "queued") {
+        // Still in the future — re-arm it (the fresh rate-limit window will
+        // gate it again if needed).
+        event.status = "scheduled";
       }
     }
   }
@@ -833,19 +840,16 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
       }
     }
 
-    // Threshold for the past-time recovery below. The silent 30-min clamp
-    // that used to live here was removed because it overrode user-specified
-    // automation timing without any UI signal (user enters 1 min, engine
-    // forced 30 min). Trust the user's input; form-side validation can warn
-    // for tight intervals, but the engine no longer rewrites them.
+    // If the computed publish time has already slipped into the past, the
+    // announcement was missed. When the event itself is still comfortably in
+    // the future, surface it as a missed card the user decides on (Post Now /
+    // edit / delete) — never a silent auto-post. When the event start is
+    // imminent or past, there's nothing useful left to announce, so skip it.
     const MIN_BUFFER_MS = 30 * 60 * 1000;
-
-    // If publish time is in the past but event start is still in the future,
-    // recover by scheduling soon instead of skipping. This prevents "after" mode
-    // from getting permanently stuck when lastSuccess is stale.
+    let bornMissed = false;
     if (publishTime <= now) {
       if (eventStartTime.getTime() > now.getTime() + MIN_BUFFER_MS) {
-        publishTime = new Date(now.getTime() + 5 * 60 * 1000);
+        bornMissed = true;
       } else {
         continue;
       }
@@ -863,8 +867,8 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
       scheduledPublishTime: publishTime.toISOString(),
       eventStartsAt: eventStartTime.toISOString(),
       manualOverrides: null,
-      status: "scheduled",
-      missedAt: null
+      status: bornMissed ? "missed" : "scheduled",
+      missedAt: bornMissed ? new Date().toISOString() : null
     };
 
     newPendingEvents.push(pendingEvent);
@@ -1692,7 +1696,7 @@ function scheduleRetry(pendingEvent) {
 
 /**
  * @param {string} pendingEventId
- * @param {"postNow"|"reschedule"|"cancel"} action
+ * @param {"postNow"|"cancel"} action
  */
 async function handleMissedEvent(pendingEventId, action) {
   const eventIndex = pendingEvents.findIndex(e => e.id === pendingEventId);
@@ -1719,45 +1723,7 @@ async function handleMissedEvent(pendingEventId, action) {
     pendingEvent.status = "scheduled"; // Reset status for execution
     await executeAutomatedPost(pendingEvent);
     return { ok: true };
-  } else if (action === "reschedule") {
-    // Recalculate publish time
-    const profile = profilesRef?.[pendingEvent.groupId]?.profiles?.[pendingEvent.profileKey];
-    if (!profile || !profile.automation?.enabled) {
-      return { ok: false, error: { message: "Profile not found or automation disabled" } };
-    }
-
-    // Calculate new publish time based on current time and automation settings
-    const automation = profile.automation;
-    const eventStartTime = new Date(pendingEvent.eventStartsAt);
-    const now = new Date();
-
-    let newPublishTime;
-    if (automation.timingMode === "before") {
-      const offsetMs = (
-        (automation.daysOffset || 0) * 24 * 60 * 60 * 1000 +
-        (automation.hoursOffset || 0) * 60 * 60 * 1000 +
-        (automation.minutesOffset || 0) * 60 * 1000
-      );
-      newPublishTime = new Date(eventStartTime.getTime() - offsetMs);
-
-      // If still in the past, set to now + 5 minutes
-      if (newPublishTime <= now) {
-        newPublishTime = new Date(now.getTime() + 5 * 60 * 1000);
-      }
-    } else {
-      // For other modes, just set to 5 minutes from now
-      newPublishTime = new Date(now.getTime() + 5 * 60 * 1000);
-    }
-
-    pendingEvent.scheduledPublishTime = newPublishTime.toISOString();
-    pendingEvent.status = "scheduled";
-    pendingEvent.missedAt = null;
-
-    savePendingEvents();
-    scheduleJob(pendingEvent);
-
-    return { ok: true };
-    } else if (action === "cancel") {
+  } else if (action === "cancel") {
       // Soft-delete: move to deletedEvents array instead of permanently removing
       const { groupId, profileKey } = pendingEvent;
       cancelJob(pendingEventId);
@@ -1853,6 +1819,16 @@ function updatePendingEventsForProfile(groupId, profileKey, profile) {
       getPendingSlotKeys(event).forEach(key => publishedEventSlots.add(key));
     });
 
+  // Get slot keys of missed/queued events. These are preserved so the user can
+  // still act on them (Post Now / edit / delete); the regenerator must not drop
+  // a fresh "scheduled" copy over the top of them.
+  const preservedStatusSlots = new Set();
+  existingEvents
+    .filter(e => e.status === "missed" || e.status === "queued")
+    .forEach(event => {
+      getPendingSlotKeys(event).forEach(key => preservedStatusSlots.add(key));
+    });
+
   // Get slot keys of deleted events (these should not be recreated)
   const deletedEventSlots = new Set();
   deletedEvents
@@ -1868,9 +1844,16 @@ function updatePendingEventsForProfile(groupId, profileKey, profile) {
     }
   }
 
-  // Remove only auto-generated events (keep manually modified ones)
+  // Remove only auto-generated, still-scheduled events. Manually-modified,
+  // published, missed, and queued events are all preserved — missed/queued so a
+  // template save or a later successful post can't silently wipe a card the user
+  // still needs to act on.
   pendingEvents = pendingEvents.filter(e =>
-    !(e.groupId === groupId && e.profileKey === profileKey && !e.manualOverrides && e.status !== "published")
+    !(e.groupId === groupId && e.profileKey === profileKey
+      && !e.manualOverrides
+      && e.status !== "published"
+      && e.status !== "missed"
+      && e.status !== "queued")
   );
 
   // If automation is disabled, just save and return
@@ -1904,10 +1887,12 @@ function updatePendingEventsForProfile(groupId, profileKey, profile) {
   // 1. A modified event (already exists, user customized it)
   // 2. A deleted event (user explicitly removed it)
   // 3. A published event (already posted)
+  // 4. A preserved missed/queued event (kept for the user to act on)
   const filteredNewEvents = newEvents.filter(e =>
     !modifiedEventSlots.has(getPendingSlotKey(e)) &&
     !deletedEventSlots.has(getPendingSlotKey(e)) &&
-    !publishedEventSlots.has(getPendingSlotKey(e))
+    !publishedEventSlots.has(getPendingSlotKey(e)) &&
+    !preservedStatusSlots.has(getPendingSlotKey(e))
   );
 
   // Add new events (modified events remain untouched in pendingEvents)

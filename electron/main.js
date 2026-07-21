@@ -3995,8 +3995,6 @@ ipcMain.handle("pending:action", async (_, payload) => {
     switch (action) {
       case "postNow":
         return await automationEngine.handleMissedEvent(pendingEventId, "postNow");
-      case "reschedule":
-        return await automationEngine.handleMissedEvent(pendingEventId, "reschedule");
         case "cancel": {
           const result = await automationEngine.handleMissedEvent(pendingEventId, "cancel");
             if (result?.ok && result.automationCleared && result.groupId && result.profileKey) {
