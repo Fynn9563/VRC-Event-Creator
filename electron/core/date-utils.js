@@ -38,7 +38,11 @@ function countWeekdayInMonth(baseDate, weekday) {
 
 function generateDateOptionsFromPatterns(patterns, monthsAhead = 6, timezone = "UTC", opts = {}) {
   const zone = safeZone(timezone);
-  const now = DateTime.now().setZone(zone);
+  // opts.nowMs overrides the "now" reference (used to look at a past window when
+  // finding the occurrence before a given date); defaults to the real now.
+  const now = Number.isFinite(opts.nowMs)
+    ? DateTime.fromMillis(opts.nowMs).setZone(zone)
+    : DateTime.now().setZone(zone);
   const options = [];
   const seenDates = new Set();
   const weekdays = [
@@ -277,10 +281,31 @@ function minPatternGapMs(patterns, monthsAhead = 13, timezone = "UTC", opts = {}
   return Number.isFinite(min) ? min : null;
 }
 
+/**
+ * The most recent occurrence the patterns produce strictly before `beforeMs` —
+ * i.e. an event's own previous occurrence in the series. Used to time a single
+ * "after"-mode event (edit / restore / commit) from its real predecessor rather
+ * than the series head. Returns epoch millis, or null if none is found.
+ */
+function getPreviousOccurrenceBeforeMs(patterns, beforeMs, timezone = "UTC", opts = {}) {
+  if (!Number.isFinite(beforeMs)) return null;
+  // Look at a window that starts well before the target so nth/annual patterns
+  // are covered, generated relative to a point ~100 days before beforeMs.
+  const times = generateDateOptionsFromPatterns(patterns, 5, timezone, {
+    ...opts,
+    nowMs: beforeMs - 100 * 24 * 60 * 60 * 1000
+  })
+    .map(d => new Date(d.iso).getTime())
+    .filter(t => Number.isFinite(t) && t < beforeMs)
+    .sort((a, b) => a - b);
+  return times.length ? times[times.length - 1] : null;
+}
+
 module.exports = {
   generateDateOptionsFromPatterns,
   safeZone,
   weekdayInZone,
   monthlyPublishMs,
-  minPatternGapMs
+  minPatternGapMs,
+  getPreviousOccurrenceBeforeMs
 };

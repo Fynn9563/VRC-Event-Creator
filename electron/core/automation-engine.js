@@ -1,5 +1,5 @@
 const fs = require("fs");
-const { generateDateOptionsFromPatterns, weekdayInZone, monthlyPublishMs, minPatternGapMs } = require("./date-utils");
+const { generateDateOptionsFromPatterns, weekdayInZone, monthlyPublishMs, minPatternGapMs, getPreviousOccurrenceBeforeMs } = require("./date-utils");
 const { writeJsonAtomic, readJsonSafe } = require("./atomic-store");
 
 // In-memory job storage
@@ -110,6 +110,28 @@ function getHeadPreviousOccurrenceMs(groupId, profileKey, profileState) {
   }
   if (bestMs !== null) return bestMs;
   return getActivationStartMs(profileState);
+}
+
+/**
+ * The previous occurrence to anchor a SINGLE "after"-mode event on (edit /
+ * restore / commit / backfill): the event's own predecessor in the series, not
+ * the series head. Falls back to the head anchor when the event has no earlier
+ * occurrence (it is the first).
+ */
+function previousOccurrenceForEvent(profile, groupId, profileKey, eventStartMs) {
+  const timezone = profile.timezone || "UTC";
+  let anchors = {};
+  let profileState = null;
+  if (groupId && profileKey) {
+    profileState = getOrCreateProfileState(getProfileStateKey(groupId, profileKey));
+    anchors = getEveryOtherAnchors(profileState);
+  }
+  const prev = getPreviousOccurrenceBeforeMs(profile.patterns || [], eventStartMs, timezone, {
+    enforceEveryOther: true,
+    everyOtherAnchors: anchors
+  });
+  if (prev !== null) return prev;
+  return profileState ? getHeadPreviousOccurrenceMs(groupId, profileKey, profileState) : null;
 }
 
 /** The regular spacing (ms) between a profile's occurrences, for the "after" mirror. */
@@ -2045,8 +2067,10 @@ function updatePendingEventOverrides(pendingEventId, overrides) {
       let prevOccurrenceStartMs = null;
       let nominalGapMs = null;
       if (automation.timingMode === "after") {
-        const profileState = getOrCreateProfileState(getProfileStateKey(event.groupId, event.profileKey));
-        prevOccurrenceStartMs = getHeadPreviousOccurrenceMs(event.groupId, event.profileKey, profileState);
+        // The edited event's OWN predecessor, not the series head — otherwise a
+        // mid-series event would be timed from a far-earlier occurrence and
+        // wrongly marked missed.
+        prevOccurrenceStartMs = previousOccurrenceForEvent(profile, event.groupId, event.profileKey, eventStartTime.getTime());
         nominalGapMs = nominalGapForProfile(profile, event.groupId, event.profileKey);
       }
       const publishMs = computePublishTimeMs(
@@ -2234,9 +2258,8 @@ function calculatePublishTime(eventStartsAt, profile, groupId, profileKey, prevO
   const timezone = profile.timezone || "UTC";
 
   let prevMs = Number.isFinite(prevOccurrenceStartMs) ? prevOccurrenceStartMs : null;
-  if (automation.timingMode === "after" && prevMs === null && groupId && profileKey) {
-    const profileState = getOrCreateProfileState(getProfileStateKey(groupId, profileKey));
-    prevMs = getHeadPreviousOccurrenceMs(groupId, profileKey, profileState);
+  if (automation.timingMode === "after" && prevMs === null) {
+    prevMs = previousOccurrenceForEvent(profile, groupId, profileKey, eventStartMs);
   }
 
   const nominalGapMs = automation.timingMode === "after"
