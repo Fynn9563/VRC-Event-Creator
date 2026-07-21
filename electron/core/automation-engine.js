@@ -990,6 +990,13 @@ function projectFutureEvents(groupId, fromMs, toMs) {
     if (!profile?.automation?.enabled) continue;
     if (!Array.isArray(profile.patterns) || profile.patterns.length === 0) continue;
 
+    // Preview only for activated templates — one that has never had its first
+    // manual event shows nothing, the same activation gate real generation uses.
+    const projProfileState = getOrCreateProfileState(getProfileStateKey(groupId, profileKey));
+    const projActivated = getActivationStartMs(projProfileState) !== null
+      || pendingEvents.some(e => e.groupId === groupId && e.profileKey === profileKey);
+    if (!projActivated) continue;
+
     const automation = profile.automation;
     const timezone = profile.timezone || "UTC";
 
@@ -1000,8 +1007,6 @@ function projectFutureEvents(groupId, fromMs, toMs) {
       1,
       Math.ceil((toMs - nowMs) / (30 * 24 * 60 * 60 * 1000)) + 1
     );
-
-    const projProfileState = getOrCreateProfileState(getProfileStateKey(groupId, profileKey));
     const dateOptions = generateDateOptionsFromPatterns(
       profile.patterns,
       monthsAhead,
