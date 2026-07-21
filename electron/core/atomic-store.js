@@ -60,16 +60,17 @@ function writeFileAtomic(filePath, contents) {
   } finally {
     fs.closeSync(fd);
   }
-  // Best-effort backup of the last known-good file (copy, not rename, so the
-  // live file is never absent even for an instant).
-  if (fs.existsSync(filePath)) {
-    try {
-      fs.copyFileSync(filePath, backupPath(filePath));
-    } catch (err) {
-      // A missing backup is not fatal; the atomic swap below still protects us.
-    }
-  }
+  // Swap the good new bytes into place first, THEN refresh the backup from that
+  // just-written primary. Refreshing after the swap (never copying the prior
+  // on-disk primary) means a recovery write — where the primary was corrupt and
+  // we're rewriting good data recovered from .bak — can't overwrite the good
+  // backup with the corrupt primary.
   renameWithRetry(tmp, filePath);
+  try {
+    fs.copyFileSync(filePath, backupPath(filePath));
+  } catch (err) {
+    // A missing/stale backup is not fatal; the primary now holds good data.
+  }
 }
 
 /** Atomically write `data` as pretty JSON. */
@@ -83,22 +84,43 @@ function writeJsonAtomic(filePath, data) {
  * @returns {{ data: any, source: "primary"|"backup"|"default", recovered: boolean }}
  */
 function readJsonSafe(filePath, fallback) {
+  // Read a file, distinguishing three outcomes: parsed data, "not there",
+  // "corrupt" (parse failed), or "locked" (a transient Windows lock from AV /
+  // indexer / backup — the same codes the write path retries). We retry a
+  // locked read rather than treating it as corruption, because falling to a
+  // stale .bak over a good-but-locked primary would silently lose data.
   const tryRead = (p) => {
-    if (!fs.existsSync(p)) return undefined;
-    return JSON.parse(fs.readFileSync(p, "utf8"));
+    if (!fs.existsSync(p)) return { status: "missing" };
+    for (let attempt = 0; attempt < MAX_RENAME_RETRIES; attempt += 1) {
+      try {
+        return { status: "ok", data: JSON.parse(fs.readFileSync(p, "utf8")) };
+      } catch (err) {
+        if (RETRYABLE.has(err.code)) {
+          sleepSync(RETRY_DELAY_MS);
+          continue;
+        }
+        return { status: "corrupt" }; // parse error or non-retryable read error
+      }
+    }
+    return { status: "locked" };
   };
-  try {
-    const data = tryRead(filePath);
-    if (data !== undefined) return { data, source: "primary", recovered: false };
-  } catch (err) {
-    // primary is corrupt — fall through to the backup
+
+  const primary = tryRead(filePath);
+  if (primary.status === "ok") {
+    return { data: primary.data, source: "primary", recovered: false };
   }
-  try {
-    const data = tryRead(backupPath(filePath));
-    if (data !== undefined) return { data, source: "backup", recovered: true };
-  } catch (err) {
-    // backup is corrupt too — fall through to the default
+  // Only recover from the backup when the primary is genuinely corrupt or
+  // missing — NOT when it's merely locked (recovering + re-saving would clobber
+  // a good primary we just couldn't read yet).
+  if (primary.status === "corrupt" || primary.status === "missing") {
+    const backup = tryRead(backupPath(filePath));
+    if (backup.status === "ok") {
+      return { data: backup.data, source: "backup", recovered: true };
+    }
   }
+  // Locked primary, or both files unusable: hand back the fallback but do NOT
+  // signal recovery, so the caller won't re-save over a primary that may still
+  // be good on the next launch.
   return { data: fallback, source: "default", recovered: false };
 }
 
