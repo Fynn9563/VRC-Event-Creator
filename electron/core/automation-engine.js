@@ -1970,6 +1970,27 @@ function updatePendingEventsForProfile(groupId, profileKey, profile) {
 
   // Add new events (modified events remain untouched in pendingEvents)
   pendingEvents.push(...filteredNewEvents);
+
+  // Recompute preserved missed/queued cards against the current rule, so a
+  // template-rule change updates their posting time too — and re-arms one whose
+  // new time is now in the future. Hand-edited cards keep their pinned content.
+  const nowMs = Date.now();
+  for (const ev of pendingEvents) {
+    if (ev.groupId !== groupId || ev.profileKey !== profileKey) continue;
+    if (ev.manualOverrides || (ev.status !== "missed" && ev.status !== "queued")) continue;
+    const newPub = calculatePublishTime(ev.eventStartsAt, profile, groupId, profileKey);
+    if (!newPub) continue;
+    ev.scheduledPublishTime = newPub.toISOString();
+    if (newPub.getTime() > nowMs) {
+      ev.status = "scheduled";
+      ev.missedAt = null;
+      scheduleJob(ev);
+    } else if (ev.status !== "missed") {
+      ev.status = "missed";
+      ev.missedAt = new Date().toISOString();
+    }
+  }
+
   savePendingEvents();
 
   // Schedule jobs for new events
