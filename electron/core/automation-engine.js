@@ -1,5 +1,5 @@
 const fs = require("fs");
-const { generateDateOptionsFromPatterns, weekdayInZone, monthlyPublishMs } = require("./date-utils");
+const { generateDateOptionsFromPatterns, weekdayInZone, monthlyPublishMs, minPatternGapMs } = require("./date-utils");
 const { writeJsonAtomic, readJsonSafe } = require("./atomic-store");
 
 // In-memory job storage
@@ -48,10 +48,12 @@ function offsetMsOf(automation) {
  * @param {number|null} prevOccurrenceStartMs - start of the previous occurrence
  *   in the series (for "after" mode); null if unknown/none.
  * @param {string} timezone
+ * @param {number|null} nominalGapMs - the regular spacing between occurrences,
+ *   used to mirror an "after" offset onto the "before" side when it overshoots.
  * @returns {number|null} publish instant (ms), or null when "after" mode has no
  *   previous occurrence to anchor to.
  */
-function computePublishTimeMs(eventStartMs, automation, durationMs, prevOccurrenceStartMs, timezone) {
+function computePublishTimeMs(eventStartMs, automation, durationMs, prevOccurrenceStartMs, timezone, nominalGapMs) {
   const offset = offsetMsOf(automation);
 
   if (automation.timingMode === "monthly") {
@@ -68,15 +70,29 @@ function computePublishTimeMs(eventStartMs, automation, durationMs, prevOccurren
     if (prevOccurrenceStartMs === null || prevOccurrenceStartMs === undefined) {
       return null;
     }
-    // "X after the previous show ends" = previous start + its length + offset.
+    // "X after the previous event ends" = previous start + its length + offset.
     const afterInstant = prevOccurrenceStartMs + durationMs + offset;
-    // Never later than a safe lead before this show — if the offset would push
-    // the announcement onto or past the show, pull it back to that lead. For a
-    // valid offset this clamp is a no-op; it only catches a too-large offset.
-    return Math.min(afterInstant, eventStartMs - MIN_LEAD_MS);
+    const latest = eventStartMs - MIN_LEAD_MS;
+    if (afterInstant <= latest) {
+      return afterInstant; // fits comfortably before the next event
+    }
+
+    // It overshoots this event's gap. Describe the same intent from the other
+    // side: "X after on the regular cadence" is "Y before the next event",
+    // where Y = regularGap - duration - X. Apply that mirror to this event's own
+    // start. (For daily events, "23h after" mirrors to "1h before".) If the
+    // mirror is unavailable or too tight, fall back to the safe minimum lead —
+    // never later than that.
+    if (Number.isFinite(nominalGapMs)) {
+      const mirrorBefore = nominalGapMs - durationMs - offset;
+      if (mirrorBefore > 0) {
+        return Math.min(eventStartMs - mirrorBefore, latest);
+      }
+    }
+    return latest;
   }
 
-  // "before" (and any unknown mode) — X before this show's own start.
+  // "before" (and any unknown mode) — X before this event's own start.
   return eventStartMs - offset;
 }
 
@@ -94,6 +110,18 @@ function getHeadPreviousOccurrenceMs(groupId, profileKey, profileState) {
   }
   if (bestMs !== null) return bestMs;
   return getActivationStartMs(profileState);
+}
+
+/** The regular spacing (ms) between a profile's occurrences, for the "after" mirror. */
+function nominalGapForProfile(profile, groupId, profileKey) {
+  let anchors = {};
+  if (groupId && profileKey) {
+    anchors = getEveryOtherAnchors(getOrCreateProfileState(getProfileStateKey(groupId, profileKey)));
+  }
+  return minPatternGapMs(profile.patterns || [], 13, profile.timezone || "UTC", {
+    enforceEveryOther: true,
+    everyOtherAnchors: anchors
+  });
 }
 
 // Rate limit tracking per group
@@ -802,6 +830,15 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
     everyOtherAnchors: resolveEveryOtherAnchors(groupId, profileKey, profile, profileState, timezone, true)
   });
 
+  // Regular spacing between occurrences — used to mirror an overshooting "after"
+  // offset onto the "before" side. dateOptions is sorted, so consecutive
+  // differences are the gaps; the smallest is the tightest regular spacing.
+  let nominalGapMs = null;
+  for (let i = 1; i < dateOptions.length; i += 1) {
+    const g = new Date(dateOptions[i].iso).getTime() - new Date(dateOptions[i - 1].iso).getTime();
+    if (g > 0 && (nominalGapMs === null || g < nominalGapMs)) nominalGapMs = g;
+  }
+
   if (!dateOptions.length) {
     return [];
   }
@@ -837,7 +874,7 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
     const durationMs = (profile.duration || 120) * 60 * 1000;
 
     const publishMs = computePublishTimeMs(
-      eventStartTime.getTime(), automation, durationMs, prevOccurrenceStartMs, timezone
+      eventStartTime.getTime(), automation, durationMs, prevOccurrenceStartMs, timezone, nominalGapMs
     );
     if (publishMs === null) {
       // "after" mode with no previous occurrence to measure from — can't time
@@ -2006,12 +2043,14 @@ function updatePendingEventOverrides(pendingEventId, overrides) {
       // month's target day instead of dragging the old offset along.
       const durationMs = (profile.duration || 120) * 60 * 1000;
       let prevOccurrenceStartMs = null;
+      let nominalGapMs = null;
       if (automation.timingMode === "after") {
         const profileState = getOrCreateProfileState(getProfileStateKey(event.groupId, event.profileKey));
         prevOccurrenceStartMs = getHeadPreviousOccurrenceMs(event.groupId, event.profileKey, profileState);
+        nominalGapMs = nominalGapForProfile(profile, event.groupId, event.profileKey);
       }
       const publishMs = computePublishTimeMs(
-        eventStartTime.getTime(), automation, durationMs, prevOccurrenceStartMs, profile.timezone || "UTC"
+        eventStartTime.getTime(), automation, durationMs, prevOccurrenceStartMs, profile.timezone || "UTC", nominalGapMs
       );
       const newPublishTime = publishMs === null
         ? new Date(eventStartTime.getTime() - offsetMsOf(automation))
@@ -2200,7 +2239,10 @@ function calculatePublishTime(eventStartsAt, profile, groupId, profileKey, prevO
     prevMs = getHeadPreviousOccurrenceMs(groupId, profileKey, profileState);
   }
 
-  const publishMs = computePublishTimeMs(eventStartMs, automation, durationMs, prevMs, timezone);
+  const nominalGapMs = automation.timingMode === "after"
+    ? nominalGapForProfile(profile, groupId, profileKey)
+    : null;
+  const publishMs = computePublishTimeMs(eventStartMs, automation, durationMs, prevMs, timezone, nominalGapMs);
   return publishMs === null ? null : new Date(publishMs);
 }
 
@@ -2374,6 +2416,7 @@ module.exports = {
   loadAutomationState,
   saveAutomationState,
   calculatePendingEvents,
+  computePublishTimeMs,
   projectFutureEvents,
   commitProjectedSlot,
   tombstoneProjectedSlot,

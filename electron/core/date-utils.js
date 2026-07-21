@@ -256,9 +256,31 @@ function weekdayInZone(iso, timezone) {
   return names[dt.weekday - 1] || null;
 }
 
+/**
+ * The smallest real gap (ms) between consecutive occurrences the patterns
+ * produce over the given window — the actual tightest spacing, not a per-type
+ * guess. Used both to mirror an "after" offset ("X after = Y before" on the
+ * regular cadence) and to warn when an offset is larger than that spacing.
+ * @returns {number|null} min gap in ms, or null if fewer than two occurrences.
+ */
+function minPatternGapMs(patterns, monthsAhead = 13, timezone = "UTC", opts = {}) {
+  const times = generateDateOptionsFromPatterns(patterns, monthsAhead, timezone, opts)
+    .map(d => new Date(d.iso).getTime())
+    .filter(t => Number.isFinite(t))
+    .sort((a, b) => a - b);
+
+  let min = Infinity;
+  for (let i = 1; i < times.length; i += 1) {
+    const gap = times[i] - times[i - 1];
+    if (gap > 0 && gap < min) min = gap;
+  }
+  return Number.isFinite(min) ? min : null;
+}
+
 module.exports = {
   generateDateOptionsFromPatterns,
   safeZone,
   weekdayInZone,
-  monthlyPublishMs
+  monthlyPublishMs,
+  minPatternGapMs
 };
