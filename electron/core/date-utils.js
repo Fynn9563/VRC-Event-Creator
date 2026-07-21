@@ -241,7 +241,9 @@ function monthlyPublishMs(eventStartsAtIso, monthlyDay, monthlyHour, monthlyMinu
   const targetDay = monthlyDay || 1;
   const build = (year, month) => {
     let dt = DateTime.fromObject(
-      { year, month, day: 1, hour: monthlyHour || 12, minute: monthlyMinute || 0 },
+      // Use `??`-style guards so a legitimate 0 (midnight) isn't coerced to the
+      // noon/zero defaults reserved for an unset value.
+      { year, month, day: 1, hour: Number.isFinite(monthlyHour) ? monthlyHour : 12, minute: Number.isFinite(monthlyMinute) ? monthlyMinute : 0 },
       { zone }
     );
     return dt.set({ day: Math.min(targetDay, dt.daysInMonth) });

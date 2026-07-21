@@ -2166,6 +2166,31 @@ function updatePendingEventOverrides(pendingEventId, overrides) {
   return { ok: true };
 }
 
+// Normalize a title for the "same event" match: trim, collapse inner
+// whitespace, Unicode-normalize, then lowercase. Harmless on non-Latin scripts
+// and emoji, so a trailing space or case difference can't sneak a duplicate in.
+function normalizeTitleForMatch(title) {
+  return (title || "")
+    .normalize("NFC")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+// Whether a real VRChat event is "the same event" as one of our pending events.
+// The caller has already matched group + start time; this checks the content:
+// title (normalized), description (exact), and image (exact). Category and
+// access type are deliberately ignored — a real duplicate is a copy-paste, so
+// its title/description/image match exactly, while those two can legitimately
+// differ without meaning a different event.
+function isSameEventContent(candidate, resolved) {
+  return (
+    normalizeTitleForMatch(candidate?.title) === normalizeTitleForMatch(resolved?.title) &&
+    (candidate?.description || "") === (resolved?.description || "") &&
+    (candidate?.imageId || null) === (resolved?.imageId || null)
+  );
+}
+
 function reconcilePublishedEvents(groupId, upcomingEvents = []) {
   if (!groupId) {
     return { ok: false, error: { message: "Missing groupId" } };
@@ -2235,8 +2260,8 @@ function reconcilePublishedEvents(groupId, upcomingEvents = []) {
   });
 
   // Second pass: check scheduled pending events against existing VRChat events.
-  // If an event with the same start time AND title already exists, mark the pending
-  // event as published to prevent duplicate posting.
+  // If the same event (start + title + description + image) already exists, mark
+  // the pending event as published to prevent duplicate posting.
   let reconciled = 0;
   for (const event of pendingEvents) {
     if (event.groupId !== groupId || event.status !== "scheduled") {
@@ -2254,12 +2279,7 @@ function reconcilePublishedEvents(groupId, upcomingEvents = []) {
     if (!resolved?.title) {
       continue;
     }
-    const matching = candidates.filter(candidate =>
-      candidate?.title === resolved.title &&
-      candidate?.description === resolved.description &&
-      candidate?.category === resolved.category &&
-      candidate?.accessType === resolved.accessType
-    );
+    const matching = candidates.filter(candidate => isSameEventContent(candidate, resolved));
     if (matching.length > 0) {
       cancelJob(event.id);
       event.status = "published";

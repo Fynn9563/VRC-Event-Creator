@@ -333,38 +333,6 @@ function getAutomationFromForm() {
   };
 }
 
-/**
- * @param {Array} patterns
- * @returns {number} Minimum days between events, or Infinity if no patterns.
- */
-function getMinPatternFrequencyDays(patterns) {
-  if (!patterns?.length) return Infinity;
-
-  let minDays = Infinity;
-  let nthCount = 0;
-
-  for (const p of patterns) {
-    if (p.type === "every") {
-      minDays = Math.min(minDays, 7);
-    } else if (p.type === "every-other") {
-      minDays = Math.min(minDays, 14);
-    } else if (p.type === "nth" || p.type === "last") {
-      nthCount++;
-      // Multiple nth/last patterns (e.g. 1st Monday + 3rd Monday) can land
-      // 7-14 days apart within a month. Use 14 as a reasonable estimate.
-      // Single nth/last is monthly (~28 days).
-      if (nthCount > 1) {
-        minDays = Math.min(minDays, 14);
-      } else {
-        minDays = Math.min(minDays, 28);
-      }
-    } else if (p.type === "annual") {
-      minDays = Math.min(minDays, 365);
-    }
-  }
-  return minDays;
-}
-
 /** Format a millisecond offset as human text ("1 day and 3 hours"), reusing the prose keys. */
 function offsetTextFromMs(ms) {
   const totalMin = Math.max(0, Math.round(ms / 60000));
@@ -441,23 +409,9 @@ export async function validateAndCorrectAutomationOffset() {
     return;
   }
 
-  // "before" mode: announcements can stack, so a large offset is legal; keep a
-  // soft cap against the rough per-type estimate as a guard.
-  const minFrequency = getMinPatternFrequencyDays(state.profile.patterns);
-  if (minFrequency === Infinity) return;
-  const offsetDays = timing.days + (timing.hours / 24) + (timing.minutes / 1440);
-  if (offsetDays >= minFrequency) {
-    const cappedDays = Math.max(1, minFrequency - 1);
-    dom.automationTimingInput.value = formatAutomationTimingValue(cappedDays, 0, 0);
-    if (warningEl) {
-      warningEl.textContent = t("profiles.automation.offsetCapped", {
-        oldOffset: Math.round(offsetDays),
-        newOffset: cappedDays
-      });
-      warningEl.classList.remove("is-hidden");
-    }
-    if (window.updateAutomationProse) window.updateAutomationProse();
-  }
+  // "before" mode: announcements can stack freely (they don't wait for the
+  // previous event to happen), so any offset is legal — nothing to adjust or
+  // warn about. The warning was already hidden on entry.
 }
 
 export function resetProfileForm() {

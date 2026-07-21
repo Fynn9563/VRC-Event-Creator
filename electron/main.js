@@ -1056,17 +1056,15 @@ function normalizeRasterizeQueue(raw) {
 }
 
 function loadRasterizeQueue() {
-  try {
-    const raw = JSON.parse(fs.readFileSync(RASTERIZE_PATH, "utf8"));
-    return normalizeRasterizeQueue(raw);
-  } catch (err) {
-    return [];
-  }
+  // Crash-safe read with the same backup fallback the other state files use.
+  const { data } = readJsonSafe(RASTERIZE_PATH, []);
+  return normalizeRasterizeQueue(data);
 }
 
 function saveRasterizeQueue() {
   try {
-    fs.writeFileSync(RASTERIZE_PATH, JSON.stringify(rasterizeQueue, null, 2));
+    // Atomic write + backup, so a crash mid-save can't truncate the queue.
+    writeJsonAtomic(RASTERIZE_PATH, rasterizeQueue);
   } catch (err) {
     debugLog("rasterize", "Failed to save queue:", err.message);
   }
