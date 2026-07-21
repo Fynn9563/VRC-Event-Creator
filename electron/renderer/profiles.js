@@ -415,7 +415,8 @@ export async function validateAndCorrectAutomationOffset() {
     }
     if (!minGapMs || minGapMs <= 0) return;
 
-    const durationMs = (Number(state.profile?.duration) || 120) * 60000;
+    const durationMin = parseDurationInput(dom.profileDuration?.value)?.minutes ?? 120;
+    const durationMs = durationMin * 60000;
     const MIN_LEAD_MS = 15 * 60000;
     const usable = minGapMs - durationMs; // room an "after" offset has to fit
     if (usable <= 0) return;

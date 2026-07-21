@@ -3348,7 +3348,22 @@ ipcMain.handle("dates:options", async (_, payload) => {
 // than the events' actual spacing (instead of guessing by pattern type).
 ipcMain.handle("dates:minGap", async (_, payload) => {
   const { patterns, timezone } = payload || {};
-  return minPatternGapMs(patterns || [], 13, timezone || "UTC");
+  const tz = timezone || "UTC";
+  const pats = patterns || [];
+  // Every-other patterns only stride fortnightly when anchored, and the form
+  // doesn't carry the stored anchors. The anchor sets phase, not spacing, so
+  // synthesize one from each pattern's next occurrence — otherwise every-other
+  // would be measured as weekly (a halved gap) and the warning would misfire.
+  const everyOtherAnchors = {};
+  for (const p of pats) {
+    if (p?.type === "every-other" && p.weekday) {
+      const wd = String(p.weekday).toLowerCase();
+      if (everyOtherAnchors[wd]) continue;
+      const next = generateDateOptionsFromPatterns([{ ...p, type: "every" }], 2, tz)[0];
+      if (next) everyOtherAnchors[wd] = next.iso;
+    }
+  }
+  return minPatternGapMs(pats, 13, tz, { enforceEveryOther: true, everyOtherAnchors });
 });
 
 ipcMain.handle("events:prepare", async (_, payload) => {
