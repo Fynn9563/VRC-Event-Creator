@@ -711,13 +711,33 @@ function renderModifyEventGrid() {
   const templatesFilter = filters.templates || {};
   // Time range cutoff: only events starting within timeRangeDays from now.
   const rangeDays = Number.isFinite(state.modify.timeRangeDays) ? state.modify.timeRangeDays : 30;
-  const cutoffMs = Date.now() + rangeDays * 24 * 60 * 60 * 1000;
+  const nowMs = Date.now();
+  const cutoffMs = nowMs + rangeDays * 24 * 60 * 60 * 1000;
+
+  // An event's end instant, for the lower bound. Prefer its stored end; fall
+  // back to start + duration (default 120 min) when only a start is known.
+  const endMsOf = (event) => {
+    if (event.endsAtUtc) {
+      const e = Date.parse(event.endsAtUtc);
+      if (Number.isFinite(e)) return e;
+    }
+    const startMs = event.sortTime || (event.startsAtUtc ? Date.parse(event.startsAtUtc) : null);
+    if (!Number.isFinite(startMs)) return null;
+    const durMin = Number(event.durationMinutes ?? event.duration ?? 120);
+    return startMs + (Number.isFinite(durMin) ? durMin : 120) * 60 * 1000;
+  };
 
   let hiddenByRange = 0;
   const mergedEvents = allMergedEvents.filter(event => {
     const startMs = event.sortTime || (event.startsAtUtc ? Date.parse(event.startsAtUtc) : null);
     if (startMs && startMs > cutoffMs) {
       hiddenByRange++;
+      return false;
+    }
+    // Drop an event the moment it ends — no card for what's already over. An
+    // in-progress event (started, not yet ended) still shows.
+    const endMs = endMsOf(event);
+    if (Number.isFinite(endMs) && endMs < nowMs) {
       return false;
     }
     // Pending toggle (also captured by getMergedEvents; kept here for clarity).
