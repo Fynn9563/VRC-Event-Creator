@@ -5,6 +5,7 @@ All notable changes to VRChat Event Creator will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- **Arizona timezone option** — added `America/Phoenix` ("MST (Arizona — no DST)") to the timezone picker, and relabeled the Denver row to "MT (Mountain Time — Denver, with DST)" to disambiguate. Arizona doesn't observe daylight saving, so an Arizona group that previously picked the Denver-backed "MST" row was an hour off for roughly eight months a year. Existing Denver selections are unchanged (label only).
 - **Crash-proof state saving** — settings, profiles, series, pending events, and automation state now write to a temp file, flush to disk, and atomically swap into place, keeping a `.bak` of the last good copy. A hard power-off mid-save can no longer leave a truncated or empty file (which previously could silently wipe templates or the restore list). Loads fall back to the backup if the primary file is unreadable. The swap is atomic on Windows and Linux; on Windows it retries briefly when antivirus or the search indexer momentarily holds the file open.
 
 ## [1.2.1] - 2026-05-08

@@ -132,7 +132,8 @@ export function buildTimezones() {
   const list = [
     { label: `System Default (${systemAbbr})`, value: systemTz },
     { label: "PST (Pacific Standard Time)", value: "America/Los_Angeles" },
-    { label: "MST (Mountain Standard Time)", value: "America/Denver" },
+    { label: "MT (Mountain Time — Denver, with DST)", value: "America/Denver" },
+    { label: "MST (Arizona — no DST)", value: "America/Phoenix" },
     { label: "CST (Central Standard Time)", value: "America/Chicago" },
     { label: "EST (Eastern Standard Time)", value: "America/New_York" },
     { label: "AKST (Alaska Standard Time)", value: "America/Anchorage" },
