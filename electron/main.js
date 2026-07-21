@@ -3454,9 +3454,11 @@ ipcMain.handle("events:create", async (_, payload) => {
     trackCreatedEvent(groupId, startsAtUtc, eventData.title);
     if (automationEngine.isInitialized() && profileKey) {
       const profile = profiles?.[groupId]?.profiles?.[profileKey];
-      if (profile?.automation?.enabled) {
-        automationEngine.recordManualEvent(groupId, profileKey, startsAtUtc);
-        automationEngine.updatePendingEventsForProfile(groupId, profileKey, profile);
+      if (profile) {
+        // Seed the activation anchor even when automation is currently off, so
+        // a template kicked off before it's enabled arms correctly. Generation
+        // still only happens when automation is enabled.
+        automationEngine.onManualEventCreated(groupId, profileKey, startsAtUtc, profile);
       }
     }
     // Post-creation actions: Discord event, webhook, and ICS are independent.

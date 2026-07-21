@@ -2009,7 +2009,7 @@ function updatePendingEventsForProfile(groupId, profileKey, profile) {
   debugLogFn("Automation", `Updated pending events for ${groupId}::${profileKey}, ${filteredNewEvents.length} new + ${modifiedCount} modified preserved`);
 }
 
-function recordManualEvent(groupId, profileKey, eventStartsAt) {
+function recordManualEvent(groupId, profileKey, eventStartsAt, profile = null) {
   if (!isKnownGroupId(groupId)) {
     debugLogFn("Automation", `Skipping manual event seed for unknown group ${groupId}::${profileKey}`);
     return false;
@@ -2026,11 +2026,13 @@ function recordManualEvent(groupId, profileKey, eventStartsAt) {
   // Anchor any every-other pattern whose weekday matches this event. The anchor
   // is a stored date, so it survives the event being edited or deleted, and the
   // first matching event wins (a later event on the same weekday won't move it).
+  // Prefer the caller's profile (always current) over profilesRef, which can be
+  // stale if the caller replaced its profiles object after init.
   let anchorChanged = false;
-  const profile = profilesRef?.[groupId]?.profiles?.[profileKey];
-  if (profile && Array.isArray(profile.patterns)) {
-    const eventWeekday = weekdayInZone(eventStartsAt, profile.timezone || "UTC");
-    const hasEveryOther = eventWeekday && profile.patterns.some(
+  const resolvedProfile = profile || profilesRef?.[groupId]?.profiles?.[profileKey];
+  if (resolvedProfile && Array.isArray(resolvedProfile.patterns)) {
+    const eventWeekday = weekdayInZone(eventStartsAt, resolvedProfile.timezone || "UTC");
+    const hasEveryOther = eventWeekday && resolvedProfile.patterns.some(
       p => p?.type === "every-other" && p.weekday?.toLowerCase() === eventWeekday
     );
     if (hasEveryOther) {
@@ -2056,6 +2058,36 @@ function recordManualEvent(groupId, profileKey, eventStartsAt) {
     saveAutomationState();
   }
   return activationChanged || anchorChanged;
+}
+
+/**
+ * Called when a manual event is created from a template. Always records the
+ * activation anchor (and any every-other anchor) so a template kicked off
+ * before automation is switched on still arms correctly when it's enabled;
+ * pending events are only generated when automation is currently enabled.
+ *
+ * Seeding regardless of the enabled state is the fix for "create the kickoff
+ * event, then turn automation on" — previously the seed was skipped while
+ * automation was off, so the template stayed dead until a second event.
+ *
+ * @param {string} groupId
+ * @param {string} profileKey
+ * @param {string} eventStartsAt
+ * @param {object} profile - the current profile (passed by the caller, which
+ *   holds the live copy). It's threaded into every step — the activation/anchor
+ *   seed, the enabled check, and generation — so none of them depend on
+ *   profilesRef, which can be stale if the caller replaced its profiles object.
+ * @returns {boolean} whether activation/anchor state changed
+ */
+function onManualEventCreated(groupId, profileKey, eventStartsAt, profile) {
+  if (!profile) {
+    return false;
+  }
+  const changed = recordManualEvent(groupId, profileKey, eventStartsAt, profile);
+  if (profile.automation?.enabled) {
+    updatePendingEventsForProfile(groupId, profileKey, profile);
+  }
+  return changed;
 }
 
 /** @param {string} pendingEventId @param {object} overrides */
@@ -2485,6 +2517,7 @@ module.exports = {
   updatePendingSettings,
   updatePendingEventsForProfile,
   recordManualEvent,
+  onManualEventCreated,
   updatePendingEventOverrides,
   reconcilePublishedEvents,
   getAutomationStatus,
