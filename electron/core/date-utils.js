@@ -36,7 +36,7 @@ function countWeekdayInMonth(baseDate, weekday) {
   return count;
 }
 
-function generateDateOptionsFromPatterns(patterns, monthsAhead = 6, timezone = "UTC") {
+function generateDateOptionsFromPatterns(patterns, monthsAhead = 6, timezone = "UTC", opts = {}) {
   const zone = safeZone(timezone);
   const now = DateTime.now().setZone(zone);
   const options = [];
@@ -92,6 +92,55 @@ function generateDateOptionsFromPatterns(patterns, monthsAhead = 6, timezone = "
     }
   }
 
+  // Every-other (fortnightly) patterns in automation mode: stride 14 days from
+  // the stored anchor date, at the pattern's time-of-day. An un-anchored
+  // every-other pattern produces nothing — the app can't know which alternating
+  // weeks were intended until the user picks a starting date. In picker mode
+  // (opts.enforceEveryOther is falsy) every-other instead falls through to the
+  // month loop below and shows every occurrence, so the user can choose one as
+  // the anchor.
+  if (opts.enforceEveryOther) {
+    const horizon = now.plus({ months: monthsAhead });
+    for (const pattern of patterns) {
+      if (pattern.type !== "every-other") continue;
+      const weekday = pattern.weekday?.toLowerCase();
+      const weekdayNum = weekdays.indexOf(weekday) + 1;
+      if (weekdayNum <= 0) continue;
+      const anchorIso = opts.everyOtherAnchors?.[weekday];
+      if (!anchorIso) continue; // un-anchored → generate nothing
+
+      let occ = DateTime.fromISO(anchorIso, { zone });
+      if (!occ.isValid) continue;
+      occ = occ.set({
+        hour: pattern.hour,
+        minute: pattern.minute,
+        second: 0,
+        millisecond: 0
+      });
+      // Jump close to "now" first so a far-past anchor doesn't iterate for years.
+      if (occ < now.minus({ days: 14 })) {
+        const periods = Math.floor(now.diff(occ, "days").days / 14);
+        occ = occ.plus({ days: 14 * periods });
+      }
+      while (occ <= horizon) {
+        if (occ > now) {
+          const dateKey = occ.toISO();
+          if (!seenDates.has(dateKey)) {
+            seenDates.add(dateKey);
+            options.push({
+              iso: occ.toISO(),
+              weekday,
+              occurrence: null,
+              isLast: false,
+              sortKey: occ.toMillis()
+            });
+          }
+        }
+        occ = occ.plus({ days: 14 });
+      }
+    }
+  }
+
   // Handle weekday-based patterns
   for (let m = 0; m <= monthsAhead; m += 1) {
     const targetMonth = now.plus({ months: m });
@@ -106,7 +155,7 @@ function generateDateOptionsFromPatterns(patterns, monthsAhead = 6, timezone = "
       }
 
       let dates = [];
-      if (pattern.type === "every" || pattern.type === "every-other") {
+      if (pattern.type === "every" || (pattern.type === "every-other" && !opts.enforceEveryOther)) {
         for (let i = 1; i <= 5; i += 1) {
           const date = getNthWeekdayOfMonth(targetMonth, weekdayNum, i);
           if (date.month === targetMonth.month) {
@@ -167,7 +216,20 @@ function generateDateOptionsFromPatterns(patterns, monthsAhead = 6, timezone = "
     }));
 }
 
+/**
+ * The lowercase weekday name of an ISO instant, as seen in the given timezone.
+ * Used to match a manually-created kickoff event to an every-other pattern.
+ * @returns {string|null}
+ */
+function weekdayInZone(iso, timezone) {
+  const dt = DateTime.fromISO(iso, { zone: safeZone(timezone) });
+  if (!dt.isValid) return null;
+  const names = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  return names[dt.weekday - 1] || null;
+}
+
 module.exports = {
   generateDateOptionsFromPatterns,
-  safeZone
+  safeZone,
+  weekdayInZone
 };

@@ -1,5 +1,5 @@
 const fs = require("fs");
-const { generateDateOptionsFromPatterns } = require("./date-utils");
+const { generateDateOptionsFromPatterns, weekdayInZone } = require("./date-utils");
 const { writeJsonAtomic, readJsonSafe } = require("./atomic-store");
 
 // In-memory job storage
@@ -66,6 +66,65 @@ function getOrCreateProfileState(profileStateKey) {
   const next = { eventsCreated: 0 };
   automationState.profiles[profileStateKey] = next;
   return next;
+}
+
+/**
+ * The stored every-other anchors for a profile, keyed by lowercase weekday.
+ * Each value is the ISO instant of the manual event that anchored that
+ * pattern's fortnightly cadence.
+ * @returns {Record<string,string>}
+ */
+function getEveryOtherAnchors(profileState) {
+  const anchors = profileState?.everyOtherAnchors;
+  return anchors && typeof anchors === "object" ? anchors : {};
+}
+
+/**
+ * Resolve the every-other anchors for a profile, backfilling any that are
+ * missing. Backfill order (rollout continuity, so an existing series doesn't
+ * silently stop when this fix lands): the most recent event actually posted on
+ * that weekday, then the activation event if it falls on that weekday. A
+ * pattern with no derivable anchor stays unanchored and generates nothing.
+ * @param {boolean} persist - Write derived anchors back to state (real
+ *   generation) vs compute in-memory only (preview/projection).
+ * @returns {Record<string,string>}
+ */
+function resolveEveryOtherAnchors(groupId, profileKey, profile, profileState, timezone, persist) {
+  const anchors = { ...getEveryOtherAnchors(profileState) };
+  let changed = false;
+
+  for (const pattern of profile.patterns || []) {
+    if (pattern?.type !== "every-other") continue;
+    const weekday = pattern.weekday?.toLowerCase();
+    if (!weekday || anchors[weekday]) continue;
+
+    // Most recent event this profile actually posted on this weekday.
+    let bestMs = null;
+    for (const e of pendingEvents) {
+      if (e.groupId !== groupId || e.profileKey !== profileKey || e.status !== "published") continue;
+      if (weekdayInZone(e.eventStartsAt, timezone) !== weekday) continue;
+      const ms = parseEventStartMs(e.eventStartsAt);
+      if (ms !== null && (bestMs === null || ms > bestMs)) bestMs = ms;
+    }
+    // Fall back to the activation event if it's on this weekday.
+    if (bestMs === null) {
+      const actMs = getActivationStartMs(profileState);
+      if (actMs !== null && weekdayInZone(new Date(actMs).toISOString(), timezone) === weekday) {
+        bestMs = actMs;
+      }
+    }
+
+    if (bestMs !== null) {
+      anchors[weekday] = new Date(bestMs).toISOString();
+      changed = true;
+    }
+  }
+
+  if (changed && persist) {
+    profileState.everyOtherAnchors = anchors;
+    saveAutomationState();
+  }
+  return anchors;
 }
 
 // Update the active-group filter without destroying pending data. When a
@@ -657,8 +716,17 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
     ? options.minEventStartMs
     : null;
 
-  // Generate date options from patterns (3 months ahead max)
-  const dateOptions = generateDateOptionsFromPatterns(profile.patterns, 3, timezone);
+  // Get existing pending events for this profile to check counts / anchors
+  const profileStateKey = getProfileStateKey(groupId, profileKey);
+  const profileState = getOrCreateProfileState(profileStateKey);
+
+  // Generate date options from patterns (3 months ahead max). In automation mode
+  // every-other patterns stride 14 days from their stored anchor and produce
+  // nothing until anchored by a matching manual event.
+  const dateOptions = generateDateOptionsFromPatterns(profile.patterns, 3, timezone, {
+    enforceEveryOther: true,
+    everyOtherAnchors: resolveEveryOtherAnchors(groupId, profileKey, profile, profileState, timezone, true)
+  });
 
   if (!dateOptions.length) {
     return [];
@@ -666,10 +734,6 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
 
   const newPendingEvents = [];
   const now = new Date();
-
-  // Get existing pending events for this profile to check counts
-  const profileStateKey = getProfileStateKey(groupId, profileKey);
-  const profileState = getOrCreateProfileState(profileStateKey);
 
   // Check repeat limit
   if (automation.repeatMode === "count" && profileState.eventsCreated >= automation.repeatCount) {
@@ -867,10 +931,15 @@ function projectFutureEvents(groupId, fromMs, toMs) {
       Math.ceil((toMs - nowMs) / (30 * 24 * 60 * 60 * 1000)) + 1
     );
 
+    const projProfileState = getOrCreateProfileState(getProfileStateKey(groupId, profileKey));
     const dateOptions = generateDateOptionsFromPatterns(
       profile.patterns,
       monthsAhead,
-      timezone
+      timezone,
+      {
+        enforceEveryOther: true,
+        everyOtherAnchors: resolveEveryOtherAnchors(groupId, profileKey, profile, projProfileState, timezone, false)
+      }
     );
     if (!dateOptions.length) continue;
 
@@ -1867,15 +1936,40 @@ function recordManualEvent(groupId, profileKey, eventStartsAt) {
 
   const profileStateKey = getProfileStateKey(groupId, profileKey);
   const profileState = getOrCreateProfileState(profileStateKey);
-  const existingStartMs = getActivationStartMs(profileState);
-  if (existingStartMs !== null && existingStartMs <= eventStartMs) {
-    return false;
+
+  // Anchor any every-other pattern whose weekday matches this event. The anchor
+  // is a stored date, so it survives the event being edited or deleted, and the
+  // first matching event wins (a later event on the same weekday won't move it).
+  let anchorChanged = false;
+  const profile = profilesRef?.[groupId]?.profiles?.[profileKey];
+  if (profile && Array.isArray(profile.patterns)) {
+    const eventWeekday = weekdayInZone(eventStartsAt, profile.timezone || "UTC");
+    const hasEveryOther = eventWeekday && profile.patterns.some(
+      p => p?.type === "every-other" && p.weekday?.toLowerCase() === eventWeekday
+    );
+    if (hasEveryOther) {
+      if (!profileState.everyOtherAnchors || typeof profileState.everyOtherAnchors !== "object") {
+        profileState.everyOtherAnchors = {};
+      }
+      if (!profileState.everyOtherAnchors[eventWeekday]) {
+        profileState.everyOtherAnchors[eventWeekday] = new Date(eventStartMs).toISOString();
+        anchorChanged = true;
+        debugLogFn("Automation", `Anchored every-other ${eventWeekday} for ${groupId}::${profileKey} at ${profileState.everyOtherAnchors[eventWeekday]}`);
+      }
+    }
   }
 
-  profileState.activationStartsAt = new Date(eventStartMs).toISOString();
-  saveAutomationState();
-  debugLogFn("Automation", `Seeded automation for ${groupId}::${profileKey} at ${profileState.activationStartsAt}`);
-  return true;
+  const existingStartMs = getActivationStartMs(profileState);
+  const activationChanged = existingStartMs === null || existingStartMs > eventStartMs;
+  if (activationChanged) {
+    profileState.activationStartsAt = new Date(eventStartMs).toISOString();
+    debugLogFn("Automation", `Seeded automation for ${groupId}::${profileKey} at ${profileState.activationStartsAt}`);
+  }
+
+  if (activationChanged || anchorChanged) {
+    saveAutomationState();
+  }
+  return activationChanged || anchorChanged;
 }
 
 /** @param {string} pendingEventId @param {object} overrides */
