@@ -4106,6 +4106,20 @@ ipcMain.handle("automation:getStatus", async (_, payload) => {
   return { initialized: true, profileStatus: status };
 });
 
+// The unified per-account hourly count (manual + automated) for the Create
+// screen's display, so it reflects automation's posts too. Null before the
+// engine is ready, so the renderer keeps its local count until then.
+ipcMain.handle("automation:getRateLimitCount", async (_, payload) => {
+  if (!automationEngine.isInitialized()) {
+    return null;
+  }
+  const { groupId } = payload || {};
+  if (!groupId) {
+    return null;
+  }
+  return automationEngine.getRateLimitCount(groupId);
+});
+
 ipcMain.handle("automation:commitProjected", async (_, payload) => {
   if (!automationEngine.isInitialized()) {
     return { ok: false, error: { message: "Automation not initialized" } };

@@ -52,6 +52,10 @@ let createBlockTimer = null;
 let hourlyHistoryLoaded = false;
 let createdEventIdsLoaded = false;
 let conflictResolve = null;
+// Per-group cache of the engine's unified hourly count (manual + automated),
+// fetched over IPC in refreshUpcomingEventCount. The displayed count reads this
+// so it reflects automation's posts too, not just this screen's manual creates.
+let engineHourlyCount = {};
 
 /**
  * Resolves with { continue: true } to proceed, or { continue: false, changeTime: true/false }.
@@ -289,7 +293,13 @@ function getHourlyCount(groupId) {
   if (!groupId) {
     return 0;
   }
-  return pruneHourlyHistory(groupId).length;
+  const local = pruneHourlyHistory(groupId).length;
+  const engine = engineHourlyCount[groupId];
+  // The engine tally already includes this app's manual AND automated posts, so
+  // it's the unified truth; use it once fetched, falling back to the local
+  // (manual-only) count until then. max() guards a just-made create that's in
+  // the local history but not yet re-fetched from the engine.
+  return typeof engine === "number" ? Math.max(engine, local) : local;
 }
 
 function recordHourlyEvent(groupId, timestamp = Date.now(), eventId = null) {
@@ -610,6 +620,18 @@ export async function refreshUpcomingEventCount(api, options = {}) {
       updateServerHourlyCount(events);
     } catch (err) {
       // List failure: keep local history.
+    }
+  }
+  // Pull the engine's unified count (manual + automated) so the display reflects
+  // automation's posts too. Best-effort: keep the last known count on failure.
+  if (api?.getRateLimitCount) {
+    try {
+      const engineCount = await api.getRateLimitCount({ groupId });
+      if (typeof engineCount === "number") {
+        engineHourlyCount[groupId] = engineCount;
+      }
+    } catch (err) {
+      // Keep the last known engine count.
     }
   }
   const count = getHourlyCount(groupId);

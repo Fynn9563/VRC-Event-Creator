@@ -66,6 +66,7 @@ contextBridge.exposeInMainWorld("vrcEvent", {
   getPendingSettings: () => ipcRenderer.invoke("pending:getSettings"),
   updatePendingSettings: payload => ipcRenderer.invoke("pending:updateSettings", payload),
   getAutomationStatus: payload => ipcRenderer.invoke("automation:getStatus", payload),
+  getRateLimitCount: payload => ipcRenderer.invoke("automation:getRateLimitCount", payload),
   resolveAutomationEvent: payload => ipcRenderer.invoke("automation:resolveEvent", payload),
   projectFutureEvents: payload => ipcRenderer.invoke("automation:projectFutureEvents", payload),
   commitProjected: payload => ipcRenderer.invoke("automation:commitProjected", payload),
