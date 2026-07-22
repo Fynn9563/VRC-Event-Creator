@@ -1,6 +1,7 @@
 const fs = require("fs");
 const { generateDateOptionsFromPatterns, weekdayInZone, monthlyPublishMs, minPatternGapMs, getPreviousOccurrenceBeforeMs } = require("./date-utils");
 const { writeJsonAtomic, readJsonSafe } = require("./atomic-store");
+const rateLimitStore = require("./rate-limit-store");
 
 // In-memory job storage
 const scheduledJobs = new Map(); // pendingEventId -> timeoutId
@@ -13,6 +14,7 @@ let initialized = false;
 // File paths (set by init)
 let PENDING_EVENTS_PATH = null;
 let AUTOMATION_STATE_PATH = null;
+let RATE_LIMIT_PATH = null;
 
 // Callbacks (set by init)
 let createEventFn = null;
@@ -21,10 +23,13 @@ let onEventCreated = null;
 let debugLogFn = () => {};
 let profilesRef = null;
 let knownGroupIds = null;
+// The currently signed-in VRChat account id, for keying the per-account hourly
+// tally. Injected by the host so both manual and automated posts count against
+// the same account's budget. Returns null when not signed in.
+let getCurrentUserId = () => null;
 
 // Rate limiting constants
 const EVENT_HOURLY_LIMIT = 10;
-const EVENT_HOURLY_WINDOW_MS = 60 * 60 * 1000;
 const BACKOFF_SEQUENCE = [2, 4, 8, 16, 32, 60]; // minutes, caps at 60
 const VALID_PENDING_STATUSES = new Set(["scheduled", "missed", "queued", "published", "cancelled", "deleted"]);
 const ACTIVE_PENDING_STATUSES = new Set(["scheduled", "missed", "queued"]);
@@ -679,24 +684,32 @@ function initializeAutomation(config) {
   const {
     pendingEventsPath,
     automationStatePath,
+    rateLimitStatePath,
     profiles,
     createEventFn: createFn,
     onMissedEvent: onMissed,
     onEventCreated: onCreate,
+    getCurrentUserId: getUserId,
     debugLog
   } = config;
 
   PENDING_EVENTS_PATH = pendingEventsPath;
   AUTOMATION_STATE_PATH = automationStatePath;
+  RATE_LIMIT_PATH = rateLimitStatePath || null;
   createEventFn = createFn;
   onMissedEvent = onMissed || (() => {});
   onEventCreated = onCreate || (() => {});
+  getCurrentUserId = typeof getUserId === "function" ? getUserId : (() => null);
   debugLogFn = debugLog || (() => {});
   profilesRef = profiles;
 
   // Load existing state
   loadPendingEvents();
   loadAutomationState();
+  // Persisted per-account hourly tally (own file, pruned on load).
+  if (RATE_LIMIT_PATH) {
+    rateLimitStore.load(RATE_LIMIT_PATH);
+  }
 
   // Check for missed events
   const now = Date.now();
@@ -1463,20 +1476,14 @@ function resolveEventDetails(pendingEventOrId, profiles = null) {
 /** @param {string} groupId @returns {object} */
 function getRateLimitState(groupId) {
   if (!rateLimitState.groups[groupId]) {
+    // The hourly count now lives in the persisted per-account store; only the
+    // temporary lock/backoff (which clears on relaunch) stays in memory here.
     rateLimitState.groups[groupId] = {
-      history: [],
       backoffIndex: 0,
       lockUntil: null
     };
   }
   return rateLimitState.groups[groupId];
-}
-
-/** @param {string} groupId */
-function pruneRateLimitHistory(groupId) {
-  const state = getRateLimitState(groupId);
-  const cutoff = Date.now() - EVENT_HOURLY_WINDOW_MS;
-  state.history = state.history.filter(ts => ts >= cutoff);
 }
 
 /** @param {string} groupId @returns {boolean} */
@@ -1494,9 +1501,8 @@ function isGroupRateLimited(groupId) {
     state.backoffIndex = 0; // Reset backoff on lock expiry
   }
 
-  // Check hourly limit
-  pruneRateLimitHistory(groupId);
-  return state.history.length >= EVENT_HOURLY_LIMIT;
+  // Hourly limit — the unified per-account tally (manual + automated posts).
+  return rateLimitStore.count(getCurrentUserId(), groupId) >= EVENT_HOURLY_LIMIT;
 }
 
 /** @param {string} groupId @returns {number} Milliseconds until expiry, or 0. */
@@ -1509,29 +1515,29 @@ function getRateLimitWaitMs(groupId) {
     return Math.max(0, waitMs);
   }
 
-  // Check hourly limit
-  pruneRateLimitHistory(groupId);
-  if (state.history.length >= EVENT_HOURLY_LIMIT) {
-    // Wait until oldest entry expires
-    const oldest = Math.min(...state.history);
-    const expiresAt = oldest + EVENT_HOURLY_WINDOW_MS;
-    const waitMs = expiresAt - Date.now();
-    return Math.max(0, waitMs);
-  }
-
-  return 0;
+  // Hourly limit — time until the account's oldest post in this group ages out.
+  return rateLimitStore.waitMs(getCurrentUserId(), groupId);
 }
 
 /** @param {string} groupId */
 function recordEventCreation(groupId) {
   const state = getRateLimitState(groupId);
-  state.history.push(Date.now());
-  pruneRateLimitHistory(groupId);
+  const total = rateLimitStore.record(getCurrentUserId(), groupId);
 
   // Reset backoff on success
   state.backoffIndex = 0;
 
-  debugLogFn("Automation", `Recorded event for ${groupId}, count: ${state.history.length}/${EVENT_HOURLY_LIMIT}`);
+  debugLogFn("Automation", `Recorded event for ${groupId}, count: ${total}/${EVENT_HOURLY_LIMIT}`);
+}
+
+/**
+ * How many events the signed-in account has created for this group in the last
+ * hour, per the unified tally (manual + automated). Exposed for the renderer's
+ * Create-screen count/gate so both sides read one number.
+ * @param {string} groupId @returns {number}
+ */
+function getRateLimitCount(groupId) {
+  return rateLimitStore.count(getCurrentUserId(), groupId);
 }
 
 /** Handle a 429 from the API. @param {string} groupId */
@@ -1539,11 +1545,9 @@ function handleRateLimitError(groupId) {
   const state = getRateLimitState(groupId);
 
   // Check whether the known 10/hour limit has been hit.
-  pruneRateLimitHistory(groupId);
-  if (state.history.length >= EVENT_HOURLY_LIMIT) {
-    // Lock until oldest entry expires.
-    const oldest = Math.min(...state.history);
-    state.lockUntil = oldest + EVENT_HOURLY_WINDOW_MS;
+  if (rateLimitStore.count(getCurrentUserId(), groupId) >= EVENT_HOURLY_LIMIT) {
+    // Lock until the account's oldest post in this group ages out.
+    state.lockUntil = Date.now() + rateLimitStore.waitMs(getCurrentUserId(), groupId);
     debugLogFn("Automation", `Hit 10/hour limit for ${groupId}, locked until ${new Date(state.lockUntil).toISOString()}`);
   } else {
     // Cross-platform or unknown limit; use exponential backoff.
@@ -2546,6 +2550,8 @@ module.exports = {
   updatePendingEventsForProfile,
   recordManualEvent,
   onManualEventCreated,
+  recordEventCreation,
+  getRateLimitCount,
   updatePendingEventOverrides,
   reconcilePublishedEvents,
   getAutomationStatus,

@@ -127,6 +127,7 @@ let CACHE_PATH;
 let SETTINGS_PATH;
 let PENDING_EVENTS_PATH;
 let AUTOMATION_STATE_PATH;
+let RATE_LIMIT_PATH;
 let GALLERY_CACHE_DIR;
 let GALLERY_MANIFEST_PATH;
 let KITS_DIR;
@@ -159,6 +160,7 @@ function initializePaths() {
   SETTINGS_PATH = path.join(DATA_DIR, "settings.json");
   PENDING_EVENTS_PATH = path.join(DATA_DIR, "pending-events.json");
   AUTOMATION_STATE_PATH = path.join(DATA_DIR, "automation-state.json");
+  RATE_LIMIT_PATH = path.join(DATA_DIR, "hourly-rate-limit.json");
   GALLERY_CACHE_DIR = path.join(DATA_DIR, "gallery-cache");
   GALLERY_MANIFEST_PATH = path.join(GALLERY_CACHE_DIR, "manifest.json");
   galleryCacheModule.init({
@@ -3454,6 +3456,11 @@ ipcMain.handle("events:create", async (_, payload) => {
     const eventId = getEventId(response.data);
     // Track locally for conflict detection (VRChat API has delay).
     trackCreatedEvent(groupId, startsAtUtc, eventData.title);
+    // Count this manual create toward the unified per-account hourly tally, so
+    // automation sees it too and won't fire straight into VRChat's 10/hour limit.
+    if (automationEngine.isInitialized()) {
+      automationEngine.recordEventCreation(groupId);
+    }
     if (automationEngine.isInitialized() && profileKey) {
       const profile = profiles?.[groupId]?.profiles?.[profileKey];
       if (profile) {
@@ -4420,7 +4427,9 @@ app.whenReady().then(() => {
     automationEngine.initializeAutomation({
       pendingEventsPath: PENDING_EVENTS_PATH,
       automationStatePath: AUTOMATION_STATE_PATH,
+      rateLimitStatePath: RATE_LIMIT_PATH,
       profiles,
+      getCurrentUserId: () => currentUser?.id || null,
       createEventFn: async (groupId, eventData, startsAtUtc, endsAtUtc) => {
         try {
           await ensureCalendarPermission(groupId);
