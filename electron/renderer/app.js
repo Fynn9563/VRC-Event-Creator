@@ -1826,7 +1826,20 @@ import {
       beforeStepChange: handleEventWizardStepChange
     }));
     setProfileWizard(setupWizard({ wizardId: "profile-wizard", stepsId: "profile-steps", backButton: dom.profileBack, nextButton: dom.profileNext, saveButton: dom.profileSave, beforeStepChange: handleProfileWizardStepChange }));
-    api.onTwoFactorRequired(() => { dom.twoFactorOverlay.classList.remove("is-hidden"); dom.twoFactorCode.focus(); });
+    api.onTwoFactorRequired(() => {
+      dom.twoFactorOverlay.classList.remove("is-hidden");
+      dom.twoFactorCode.focus();
+      // This can fire during a background auto-relogin (the 2FA-trust cookie
+      // expired), so raise a system notification too — the window may have been
+      // sitting in the tray and the user needs to know a code is required.
+      try {
+        if (typeof Notification === "function" && Notification.permission !== "denied") {
+          new Notification(t("auth.reauthNotifyTitle"), { body: t("auth.reauthNotifyBody") });
+        }
+      } catch (err) {
+        // Notifications are best-effort; the overlay is the primary prompt.
+      }
+    });
     const info = await api.getAppInfo();
     if (info) {
       dom.aboutVersion.textContent = info.version || "-";

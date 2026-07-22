@@ -125,6 +125,7 @@ let PROFILES_PATH;
 let SERIES_PATH;
 let RASTERIZE_PATH;
 let CACHE_PATH;
+let AUTH_PATH;
 let SETTINGS_PATH;
 let PENDING_EVENTS_PATH;
 let AUTOMATION_STATE_PATH;
@@ -168,6 +169,7 @@ function initializePaths() {
   SERIES_PATH = path.join(DATA_DIR, "series.json");
   RASTERIZE_PATH = path.join(DATA_DIR, "pending-rasterize.json");
   CACHE_PATH = path.join(DATA_DIR, "cache.json");
+  AUTH_PATH = path.join(DATA_DIR, "auth.json");
   SETTINGS_PATH = path.join(DATA_DIR, "settings.json");
   PENDING_EVENTS_PATH = path.join(DATA_DIR, "pending-events.json");
   AUTOMATION_STATE_PATH = path.join(DATA_DIR, "automation-state.json");
@@ -1154,6 +1156,53 @@ function removeRasterizeEntry(id) {
   }
 }
 
+// Saved-login credentials for "stay signed in" auto-relogin. Stored encrypted
+// via the same secret store as the Discord token and session cookie, in a
+// dedicated auth.json — never the plaintext password, and only when the user
+// opts in. The SDK's 401 interceptor uses these to re-authenticate silently
+// (reusing the persisted twoFactorAuth cookie) and retry the failed request.
+function saveLoginCredentials(username, password) {
+  writeJsonAtomic(AUTH_PATH, {
+    username: secretStore.encryptSecret(username),
+    password: secretStore.encryptSecret(password)
+  });
+}
+
+function loadLoginCredentials() {
+  const { data, blocked } = readJsonSafe(AUTH_PATH, null);
+  if (blocked || !data || typeof data !== "object") return null;
+  const username = secretStore.decryptSecret(data.username);
+  const password = secretStore.decryptSecret(data.password);
+  // An undecryptable saved login (e.g. a keyring change) reads empty — treat as
+  // "no saved login" and fall back to a normal sign-in rather than a broken loop.
+  if (!username || !password) return null;
+  return { username, password };
+}
+
+function clearLoginCredentials() {
+  try {
+    fs.unlinkSync(AUTH_PATH);
+  } catch (err) {
+    // Nothing saved to clear.
+  }
+}
+
+// Prompt the renderer for a 2FA code and wait. Shared by interactive login and
+// the SDK's auto-relogin path — when the SDK invokes this during a background
+// re-auth, the ~30-day twoFactorAuth trust cookie has also expired and a fresh
+// code is genuinely needed.
+async function twoFactorCodeProvider() {
+  debugLog("login", "Two-factor authentication requested");
+  const code = await requestTwoFactorCode();
+  twoFactorRequest = null;
+  return code;
+}
+
+// The credentials thunk the VRChat SDK calls when it needs to (re)authenticate.
+function buildCredentialsThunk(username, password) {
+  return async () => ({ username, password, twoFactorCode: twoFactorCodeProvider });
+}
+
 function createClient() {
   // E2E test mode: swap in the stub VRChat client. The stub lives under
   // .dev/tests/stubs/ (gitignored test infrastructure, not shipped). It reads
@@ -1166,14 +1215,30 @@ function createClient() {
     const { VRChat: Stub } = require(stubPath);
     return new Stub({}, { userDataDir: app.getPath("userData") });
   }
-  return new VRChat({
+  const clientOptions = {
     application: {
       name: "VRCEventHelper",
       version: "0.2.0",
       contact: UPDATE_REPO_URL
     },
     keyv: new EncryptedKeyvFile({ filename: CACHE_PATH })
-  });
+  };
+
+  // "Stay signed in": hand the SDK the saved credentials so its built-in 401
+  // interceptor re-authenticates on its own and retries the failed request. With
+  // the persisted twoFactorAuth cookie still valid, that re-auth skips 2FA, so a
+  // session that lapses in the background comes back without anyone noticing. We
+  // don't optimistically pre-authenticate — the normal getCurrentUser on startup
+  // drives it, so behavior stays predictable.
+  const savedLogin = settings.keepSignedIn ? loadLoginCredentials() : null;
+  if (savedLogin) {
+    clientOptions.authentication = {
+      optimistic: false,
+      credentials: buildCredentialsThunk(savedLogin.username, savedLogin.password)
+    };
+  }
+
+  return new VRChat(clientOptions);
 }
 
 function resetClient() {
@@ -1188,6 +1253,11 @@ function resetClient() {
 }
 
 async function clearSession() {
+  // Explicit sign-out: drop the saved login so we don't auto-relogin, then the
+  // cached session, then rebuild the client (which now has no credentials). The
+  // "stay signed in" preference itself is left as-is, so the box stays ticked for
+  // next time; only the stored secret is removed.
+  clearLoginCredentials();
   try {
     fs.unlinkSync(CACHE_PATH);
   } catch (err) {
@@ -1234,6 +1304,13 @@ function requestTwoFactorCode() {
       twoFactorRequest.reject = reject;
     });
     if (mainWindow) {
+      // This can fire during a background auto-relogin (the ~30-day 2FA-trust
+      // cookie expired), when the window may be hidden in the tray — surface it
+      // so the 2FA prompt is actually reachable, then let the renderer show the
+      // overlay and its notification.
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
       mainWindow.webContents.send("auth:twofactor");
     }
   }
@@ -1241,7 +1318,7 @@ function requestTwoFactorCode() {
 }
 
 async function login(credentials) {
-  const { username, password } = credentials || {};
+  const { username, password, keepSignedIn } = credentials || {};
   if (!username || !password) {
     throw new Error("Missing username or password.");
   }
@@ -1250,20 +1327,34 @@ async function login(credentials) {
     const loginRes = await vrchat.login({
       username,
       password,
-      twoFactorCode: async () => {
-        debugLog("login", "Two-factor authentication requested");
-        const code = await requestTwoFactorCode();
-        twoFactorRequest = null;
-        return code;
-      },
+      twoFactorCode: twoFactorCodeProvider,
       throwOnError: true
     });
     debugApiResponse("login", loginRes);
     currentUser = loginRes.data;
+    applyKeepSignedIn(Boolean(keepSignedIn), username, password);
     return currentUser;
   } catch (err) {
     debugApiResponse("login", null, err);
     throw err;
+  }
+}
+
+// Persist (or clear) the saved login per the "stay signed in" choice, and update
+// the running client so auto-relogin is live this session too, not just next launch.
+function applyKeepSignedIn(keepSignedIn, username, password) {
+  if (keepSignedIn) {
+    saveLoginCredentials(username, password);
+    if (!settings.keepSignedIn) saveSettings({ ...settings, keepSignedIn: true });
+    if (typeof vrchat.setCredentials === "function") {
+      vrchat.setCredentials(buildCredentialsThunk(username, password));
+    }
+  } else {
+    clearLoginCredentials();
+    if (settings.keepSignedIn) saveSettings({ ...settings, keepSignedIn: false });
+    if (typeof vrchat.setCredentials === "function") {
+      vrchat.setCredentials(undefined);
+    }
   }
 }
 
@@ -1869,11 +1960,17 @@ async function ensureCalendarPermission(groupId) {
       );
       debugApiResponse("getGroup (ensureCalendarPermission)", res);
       permissions = res.data?.myMember?.permissions || [];
+      // Cache ONLY a successful lookup. Caching a failed one would stick — [] is
+      // truthy, so the guard above never refetches — and would keep failing even
+      // after the SDK re-authenticates. (A genuine no-permission result is a
+      // successful lookup with empty permissions, so it still caches and is denied.)
+      groupPermissionCache.set(groupId, permissions);
     } catch (err) {
+      // A failed lookup (network error, or a 401 the auto-relogin couldn't yet
+      // resolve) is surfaced, not cached, so the next attempt retries cleanly.
       debugApiResponse("getGroup (ensureCalendarPermission)", null, err);
-      permissions = [];
+      throw err;
     }
-    groupPermissionCache.set(groupId, permissions);
   }
   const allowed =
     permissions.includes("*") || permissions.includes("group-calendar-manage");

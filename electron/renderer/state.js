@@ -22,6 +22,7 @@ export const dom = {
   loginForm: document.getElementById("login-form"),
   loginUsername: document.getElementById("login-username"),
   loginPassword: document.getElementById("login-password"),
+  loginKeepSignedIn: document.getElementById("login-keep-signed-in"),
   twoFactorOverlay: document.getElementById("twofactor-overlay"),
   twoFactorForm: document.getElementById("twofactor-form"),
   twoFactorCode: document.getElementById("twofactor-code"),

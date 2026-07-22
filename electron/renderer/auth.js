@@ -18,6 +18,15 @@ export async function checkSession(api, refreshDataFn) {
   }
   setAuthState(false);
   setStatus(t("auth.loginRequired"));
+  // Reflect the saved "stay signed in" preference on the login form.
+  try {
+    const settings = await api.getSettings();
+    if (dom.loginKeepSignedIn) {
+      dom.loginKeepSignedIn.checked = Boolean(settings.keepSignedIn);
+    }
+  } catch (err) {
+    // Leave it unchecked if settings can't be read.
+  }
 }
 
 async function onLoginSuccess(api, user, refreshDataFn) {
@@ -88,9 +97,10 @@ export async function handleLogin(event, api, refreshDataFn) {
     showToast(t("auth.enterCredentials"), true);
     return;
   }
+  const keepSignedIn = Boolean(dom.loginKeepSignedIn?.checked);
   setStatus(t("auth.loggingIn"));
   try {
-    const result = await api.login({ username, password });
+    const result = await api.login({ username, password, keepSignedIn });
     if (result && result.user) {
       dom.loginPassword.value = "";
       await onLoginSuccess(api, result.user, refreshDataFn);
