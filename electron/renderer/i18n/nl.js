@@ -18,6 +18,8 @@ export const nl = {
     reauthNotifyTitle: "VRChat-aanmelding vereist",
     reauthNotifyBody: "Je sessie is verlopen en heeft een tweefactorcode nodig om automatisering te hervatten. Open de app om deze in te voeren.",
     keepSignedInSettingsHint: "Zet dit uit om je opgeslagen login nu te verwijderen, zonder uit te loggen. Aanzetten wordt van kracht bij je volgende aanmelding.",
+    reloginFailedTitle: "Automatisch aanmelden werkt niet meer",
+    reloginFailedBody: "De app kon niet opnieuw inloggen met je opgeslagen login (je VRChat-wachtwoord is mogelijk gewijzigd). Log opnieuw in om automatisering te hervatten.",
     logout: "Uitloggen",
     sessionHint: "Sessie wordt lokaal gecachet. Houd je cachebestand privé.",
     loggingIn: "Bezig met inloggen...",

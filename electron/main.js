@@ -253,7 +253,9 @@ class EncryptedKeyvFile extends KeyvFile {
   getSync(key) {
     const raw = super.getSync(key);
     if (raw == null) return raw;
-    const plain = secretStore.decryptSecret(raw);
+    // Decrypt "silently": a cookie that won't decrypt just re-auths (below), so it
+    // must not count toward the "unreadable credential" notice meant for profile secrets.
+    const plain = secretStore.decryptSecret(raw, { silent: true });
     // A stored cache value is never legitimately empty, so "" only ever means the
     // decrypt failed (keyring flip, tampered file, regenerated key). Return
     // undefined — a genuine cache miss at every layer — rather than handing keyv
@@ -1166,6 +1168,14 @@ function saveLoginCredentials(username, password) {
     username: secretStore.encryptSecret(username),
     password: secretStore.encryptSecret(password)
   });
+  // Owner-only, matching the app-managed key file. Matters most in the plaintext
+  // fallback (no keyring, key file unwritable), where auth.json would otherwise be
+  // world-readable on a multi-user box. Windows ignores the mode and uses DPAPI.
+  try {
+    fs.chmodSync(AUTH_PATH, 0o600);
+  } catch (err) {
+    // Best-effort.
+  }
 }
 
 function loadLoginCredentials() {
@@ -1190,17 +1200,51 @@ function clearLoginCredentials() {
 // Prompt the renderer for a 2FA code and wait. Shared by interactive login and
 // the SDK's auto-relogin path — when the SDK invokes this during a background
 // re-auth, the ~30-day twoFactorAuth trust cookie has also expired and a fresh
-// code is genuinely needed.
+// code is genuinely needed. requestTwoFactorCode times out (see below) so an
+// unanswered background prompt can't freeze the SDK's auth — and thus every API
+// call awaiting it — forever.
 async function twoFactorCodeProvider() {
   debugLog("login", "Two-factor authentication requested");
-  const code = await requestTwoFactorCode();
-  twoFactorRequest = null;
-  return code;
+  return requestTwoFactorCode();
 }
 
-// The credentials thunk the VRChat SDK calls when it needs to (re)authenticate.
+// Re-auth throttle. Each failed auto-relogin is a brand-new VRChat session against
+// an undisclosed session cap, so a wrong/stale saved password (changed elsewhere)
+// would otherwise re-login on every 401 and get the account temporarily blocked.
+// The thunk being called repeatedly in a short window is the signature of a
+// failing loop (a successful re-auth stops the 401s), so after a few we drop the
+// saved login and ask for a manual sign-in instead of hammering the endpoint.
+let reauthAttempts = [];
+const REAUTH_WINDOW_MS = 10 * 60 * 1000;
+const REAUTH_MAX_IN_WINDOW = 3;
+
 function buildCredentialsThunk(username, password) {
-  return async () => ({ username, password, twoFactorCode: twoFactorCodeProvider });
+  return async () => {
+    const now = Date.now();
+    reauthAttempts = reauthAttempts.filter(t => now - t < REAUTH_WINDOW_MS);
+    reauthAttempts.push(now);
+    if (reauthAttempts.length > REAUTH_MAX_IN_WINDOW) {
+      debugLog("login", "Auto-relogin keeps failing; dropping the saved login and asking for a manual sign-in.");
+      disableSavedLoginAndPrompt();
+      return null; // no credentials → the SDK's authenticate fails cleanly, stops re-trying
+    }
+    return { username, password, twoFactorCode: twoFactorCodeProvider };
+  };
+}
+
+// Auto-relogin has clearly stopped working (usually a password changed elsewhere):
+// forget the saved login, turn the preference off, stop the client re-trying, and
+// surface the app so the user can re-sign-in rather than silently losing automation.
+function disableSavedLoginAndPrompt() {
+  reauthAttempts = [];
+  clearLoginCredentials();
+  if (settings.keepSignedIn) saveSettings({ ...settings, keepSignedIn: false });
+  if (typeof vrchat?.setCredentials === "function") vrchat.setCredentials(undefined);
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.webContents.send("auth:relogin-failed");
+  }
 }
 
 function createClient() {
@@ -1296,13 +1340,26 @@ async function ensureUser() {
   return user;
 }
 
+const TWO_FACTOR_TIMEOUT_MS = 5 * 60 * 1000;
+
 function requestTwoFactorCode() {
   if (!twoFactorRequest) {
-    twoFactorRequest = {};
-    twoFactorRequest.promise = new Promise((resolve, reject) => {
-      twoFactorRequest.resolve = resolve;
-      twoFactorRequest.reject = reject;
+    const req = {};
+    req.promise = new Promise((resolve, reject) => {
+      req.resolve = resolve;
+      req.reject = reject;
     });
+    // Fail the wait if it goes unanswered, so a background re-auth prompt can't
+    // leave the SDK's auth promise pending forever — which would freeze every API
+    // call awaiting it. On timeout the request fails and the normal retry /
+    // missed-event path takes over instead of the pipeline silently wedging.
+    req.timeout = setTimeout(() => {
+      if (twoFactorRequest === req) {
+        twoFactorRequest = null;
+        req.reject(new Error("Two-factor code entry timed out."));
+      }
+    }, TWO_FACTOR_TIMEOUT_MS);
+    twoFactorRequest = req;
     if (mainWindow) {
       // This can fire during a background auto-relogin (the ~30-day 2FA-trust
       // cookie expired), when the window may be hidden in the tray — surface it
@@ -1332,7 +1389,14 @@ async function login(credentials) {
     });
     debugApiResponse("login", loginRes);
     currentUser = loginRes.data;
-    applyKeepSignedIn(Boolean(keepSignedIn), username, password);
+    // Persisting the "stay signed in" choice must not fail the login itself: the
+    // session is already established, so a disk/encrypt hiccup here shouldn't
+    // surface "login failed" to an actually-signed-in user.
+    try {
+      applyKeepSignedIn(Boolean(keepSignedIn), username, password);
+    } catch (persistErr) {
+      debugLog("login", "Could not persist the stay-signed-in choice:", persistErr.message);
+    }
     return currentUser;
   } catch (err) {
     debugApiResponse("login", null, err);
@@ -1343,6 +1407,7 @@ async function login(credentials) {
 // Persist (or clear) the saved login per the "stay signed in" choice, and update
 // the running client so auto-relogin is live this session too, not just next launch.
 function applyKeepSignedIn(keepSignedIn, username, password) {
+  reauthAttempts = []; // a successful manual sign-in clears any failing-loop state
   if (keepSignedIn) {
     saveLoginCredentials(username, password);
     if (!settings.keepSignedIn) saveSettings({ ...settings, keepSignedIn: true });
@@ -2442,7 +2507,10 @@ ipcMain.handle("auth:logout", async () => {
 
 ipcMain.handle("auth:twofactor:submit", async (_, code) => {
   if (twoFactorRequest?.resolve) {
-    twoFactorRequest.resolve(code);
+    if (twoFactorRequest.timeout) clearTimeout(twoFactorRequest.timeout);
+    const req = twoFactorRequest;
+    twoFactorRequest = null;
+    req.resolve(code);
     return true;
   }
   return false;

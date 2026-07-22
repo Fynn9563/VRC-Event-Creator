@@ -18,6 +18,8 @@ export const fr = {
     reauthNotifyTitle: "Connexion VRChat requise",
     reauthNotifyBody: "Votre session a expiré et nécessite un code à deux facteurs pour reprendre l'automatisation. Ouvrez l'application pour le saisir.",
     keepSignedInSettingsHint: "Désactivez cette option pour supprimer vos identifiants enregistrés maintenant, sans vous déconnecter. L'activer prend effet lors de votre prochaine connexion.",
+    reloginFailedTitle: "La connexion automatique ne fonctionne plus",
+    reloginFailedBody: "L'application n'a pas pu se reconnecter avec vos identifiants enregistrés (votre mot de passe VRChat a peut-être changé). Veuillez vous reconnecter pour reprendre l'automatisation.",
     logout: "Se déconnecter",
     sessionHint: "La session est mise en cache localement. Gardez votre fichier de cache privé.",
     loggingIn: "Connexion...",

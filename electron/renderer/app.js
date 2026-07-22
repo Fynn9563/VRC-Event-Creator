@@ -1851,6 +1851,22 @@ import {
         // Notifications are best-effort; the overlay is the primary prompt.
       }
     });
+    if (api.onReloginFailed) {
+      api.onReloginFailed(() => {
+        // Auto sign-in stopped working (usually a stale saved password); the saved
+        // login was already dropped in main. Reveal the login and tell the user so
+        // automation doesn't just go quiet.
+        setAuthState(false);
+        showToast(t("auth.reloginFailedBody"), true);
+        try {
+          if (typeof Notification === "function" && Notification.permission !== "denied") {
+            new Notification(t("auth.reloginFailedTitle"), { body: t("auth.reloginFailedBody") });
+          }
+        } catch (err) {
+          // Best-effort.
+        }
+      });
+    }
     const info = await api.getAppInfo();
     if (info) {
       dom.aboutVersion.textContent = info.version || "-";

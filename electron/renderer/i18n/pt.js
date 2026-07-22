@@ -18,6 +18,8 @@ export const pt = {
     reauthNotifyTitle: "É necessário entrar no VRChat",
     reauthNotifyBody: "Sua sessão expirou e precisa de um código de dois fatores para retomar a automação. Abra o aplicativo para inseri-lo.",
     keepSignedInSettingsHint: "Desative para excluir seu login salvo agora, sem sair da conta. Ativar tem efeito no seu próximo login.",
+    reloginFailedTitle: "O login automático parou de funcionar",
+    reloginFailedBody: "O aplicativo não conseguiu entrar novamente com seu login salvo (sua senha do VRChat pode ter mudado). Entre novamente para retomar a automação.",
     logout: "Sair",
     sessionHint: "A sessão é armazenada em cache localmente. Mantenha seu arquivo de cache privado.",
     loggingIn: "Entrando...",

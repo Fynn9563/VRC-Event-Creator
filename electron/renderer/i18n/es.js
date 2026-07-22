@@ -18,6 +18,8 @@ export const es = {
     reauthNotifyTitle: "Se requiere iniciar sesión en VRChat",
     reauthNotifyBody: "Tu sesión caducó y necesita un código de dos factores para reanudar la automatización. Abre la aplicación para introducirlo.",
     keepSignedInSettingsHint: "Desactívalo para eliminar tu inicio de sesión guardado ahora, sin cerrar sesión. Activarlo tiene efecto en tu próximo inicio de sesión.",
+    reloginFailedTitle: "El inicio de sesión automático dejó de funcionar",
+    reloginFailedBody: "La aplicación no pudo volver a iniciar sesión con tu login guardado (puede que tu contraseña de VRChat haya cambiado). Inicia sesión de nuevo para reanudar la automatización.",
     logout: "Cerrar sesión",
     sessionHint: "La sesión se guarda en caché localmente. Mantén tu archivo de caché privado.",
     loggingIn: "Iniciando sesión...",

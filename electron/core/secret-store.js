@@ -85,8 +85,12 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
   // A stored secret that should have decrypted but didn't (keyring gone, tampered
   // file, regenerated key). Counted so the UI can tell the user a saved credential
   // has become unreadable, instead of it only failing silently at use time.
-  function noteDecryptFailure(reason, err) {
-    decryptFailures += 1;
+  function noteDecryptFailure(reason, err, silent) {
+    // `silent` failures (the VRChat cookie cache) aren't counted toward the
+    // "a saved credential can no longer be read" notice: a cookie that won't
+    // decrypt just triggers a clean re-login, so it shouldn't cry wolf about a
+    // lost credential. The notice is for profile secrets (Discord token / login).
+    if (!silent) decryptFailures += 1;
     log("secret", reason, err ? err.message : "");
     return "";
   }
@@ -253,7 +257,8 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
    * cookie). Unreadable ciphertext returns "" — for the cookie that means a
    * silent re-login, never a crash.
    */
-  function decryptSecret(stored) {
+  function decryptSecret(stored, opts = {}) {
+    const silent = opts.silent === true;
     if (stored == null || stored === "") return "";
     const s = String(stored);
 
@@ -261,14 +266,14 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
       try {
         return safeStorage.decryptString(Buffer.from(s.slice(SK_PREFIX.length), "base64"));
       } catch (err) {
-        return noteDecryptFailure("keyring decrypt failed:", err);
+        return noteDecryptFailure("keyring decrypt failed:", err, silent);
       }
     }
     if (s.startsWith(AK_PREFIX)) {
       try {
         return appKeyDecrypt(s);
       } catch (err) {
-        return noteDecryptFailure("app-key decrypt failed:", err);
+        return noteDecryptFailure("app-key decrypt failed:", err, silent);
       }
     }
     if (s.startsWith(PT_PREFIX)) {
@@ -277,11 +282,11 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
     if (s.startsWith(LEGACY_ENC_PREFIX)) {
       try {
         if (!safeStorage.isEncryptionAvailable()) {
-          return noteDecryptFailure("legacy decrypt unavailable (no keyring)", null);
+          return noteDecryptFailure("legacy decrypt unavailable (no keyring)", null, silent);
         }
         return safeStorage.decryptString(Buffer.from(s.slice(LEGACY_ENC_PREFIX.length), "base64"));
       } catch (err) {
-        return noteDecryptFailure("legacy decrypt failed:", err);
+        return noteDecryptFailure("legacy decrypt failed:", err, silent);
       }
     }
     // Legacy un-prefixed plaintext (pre-encryption Discord token, or a cookie

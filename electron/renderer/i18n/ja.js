@@ -18,6 +18,8 @@ export const ja = {
     reauthNotifyTitle: "VRChat のログインが必要です",
     reauthNotifyBody: "セッションが期限切れになり、自動化を再開するには二段階認証コードが必要です。アプリを開いて入力してください。",
     keepSignedInSettingsHint: "これをオフにすると、ログアウトせずに保存されたログイン情報を今すぐ削除します。オンにすると次回のログイン時に有効になります。",
+    reloginFailedTitle: "自動サインインが機能しなくなりました",
+    reloginFailedBody: "保存されたログイン情報で再サインインできませんでした（VRChat のパスワードが変更された可能性があります）。自動化を再開するには、もう一度サインインしてください。",
     logout: "ログアウト",
     sessionHint: "セッション情報はローカル端末にて保存されております。キャッシュファイルを第三者に渡さないように！",
     loggingIn: "ログイン中…",

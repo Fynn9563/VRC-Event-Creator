@@ -18,6 +18,8 @@ export const ko = {
     reauthNotifyTitle: "VRChat 로그인이 필요합니다",
     reauthNotifyBody: "세션이 만료되어 자동화를 재개하려면 2단계 인증 코드가 필요합니다. 앱을 열어 입력하세요.",
     keepSignedInSettingsHint: "이 옵션을 끄면 로그아웃하지 않고도 저장된 로그인 정보를 지금 삭제합니다. 켜면 다음 로그인 시 적용됩니다.",
+    reloginFailedTitle: "자동 로그인이 작동하지 않습니다",
+    reloginFailedBody: "저장된 로그인 정보로 다시 로그인할 수 없습니다(VRChat 비밀번호가 변경되었을 수 있습니다). 자동화를 재개하려면 다시 로그인하세요.",
     logout: "로그아웃",
     sessionHint: "세션은 로컬에 캐시됩니다. 캐시 파일을 안전하게 보관하세요.",
     loggingIn: "로그인 중...",

@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld("vrcEvent", {
   onTwoFactorRequired: callback => {
     ipcRenderer.on("auth:twofactor", () => callback());
   },
+  onReloginFailed: callback => {
+    ipcRenderer.on("auth:relogin-failed", () => callback());
+  },
   submitTwoFactor: code => ipcRenderer.invoke("auth:twofactor:submit", code),
   getGroups: (options) => ipcRenderer.invoke("groups:list", options),
   getGroupRoles: payload => ipcRenderer.invoke("groups:roles", payload),

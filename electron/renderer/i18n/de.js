@@ -18,6 +18,8 @@ export const de = {
     reauthNotifyTitle: "VRChat-Anmeldung erforderlich",
     reauthNotifyBody: "Ihre Sitzung ist abgelaufen und benötigt einen Zwei-Faktor-Code, um die Automatisierung fortzusetzen. Öffnen Sie die App, um ihn einzugeben.",
     keepSignedInSettingsHint: "Schalten Sie dies aus, um Ihre gespeicherten Anmeldedaten jetzt zu löschen, ohne sich abzumelden. Das Einschalten wird bei Ihrer nächsten Anmeldung wirksam.",
+    reloginFailedTitle: "Automatische Anmeldung funktioniert nicht mehr",
+    reloginFailedBody: "Die App konnte sich nicht mit Ihren gespeicherten Anmeldedaten neu anmelden (Ihr VRChat-Passwort wurde möglicherweise geändert). Bitte melden Sie sich erneut an, um die Automatisierung fortzusetzen.",
     logout: "Abmelden",
     sessionHint: "Die Sitzung wird lokal zwischengespeichert. Halten Sie Ihre Cache-Datei privat.",
     loggingIn: "Anmeldung...",
