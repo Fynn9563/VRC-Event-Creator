@@ -17,6 +17,7 @@ export const pt = {
     keepSignedInHint: "Armazena seu login (criptografado) para que a automação em segundo plano possa entrar novamente por conta própria se sua sessão expirar.",
     reauthNotifyTitle: "É necessário entrar no VRChat",
     reauthNotifyBody: "Sua sessão expirou e precisa de um código de dois fatores para retomar a automação. Abra o aplicativo para inseri-lo.",
+    keepSignedInSettingsHint: "Desative para excluir seu login salvo agora, sem sair da conta. Ativar tem efeito no seu próximo login.",
     logout: "Sair",
     sessionHint: "A sessão é armazenada em cache localmente. Mantenha seu arquivo de cache privado.",
     loggingIn: "Entrando...",

@@ -17,6 +17,7 @@ export const de = {
     keepSignedInHint: "Speichert Ihre Anmeldedaten (verschlüsselt), damit die Automatisierung im Hintergrund sich selbst wieder anmelden kann, wenn Ihre Sitzung abläuft.",
     reauthNotifyTitle: "VRChat-Anmeldung erforderlich",
     reauthNotifyBody: "Ihre Sitzung ist abgelaufen und benötigt einen Zwei-Faktor-Code, um die Automatisierung fortzusetzen. Öffnen Sie die App, um ihn einzugeben.",
+    keepSignedInSettingsHint: "Schalten Sie dies aus, um Ihre gespeicherten Anmeldedaten jetzt zu löschen, ohne sich abzumelden. Das Einschalten wird bei Ihrer nächsten Anmeldung wirksam.",
     logout: "Abmelden",
     sessionHint: "Die Sitzung wird lokal zwischengespeichert. Halten Sie Ihre Cache-Datei privat.",
     loggingIn: "Anmeldung...",

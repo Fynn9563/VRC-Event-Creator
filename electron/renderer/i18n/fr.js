@@ -17,6 +17,7 @@ export const fr = {
     keepSignedInHint: "Enregistre vos identifiants (chiffrés) pour que l'automatisation en arrière-plan puisse se reconnecter d'elle-même si votre session expire.",
     reauthNotifyTitle: "Connexion VRChat requise",
     reauthNotifyBody: "Votre session a expiré et nécessite un code à deux facteurs pour reprendre l'automatisation. Ouvrez l'application pour le saisir.",
+    keepSignedInSettingsHint: "Désactivez cette option pour supprimer vos identifiants enregistrés maintenant, sans vous déconnecter. L'activer prend effet lors de votre prochaine connexion.",
     logout: "Se déconnecter",
     sessionHint: "La session est mise en cache localement. Gardez votre fichier de cache privé.",
     loggingIn: "Connexion...",

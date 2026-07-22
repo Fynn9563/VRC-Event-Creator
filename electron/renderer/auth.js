@@ -46,6 +46,9 @@ async function onLoginSuccess(api, user, refreshDataFn) {
     if (dom.settingsStartOnStartup) {
       dom.settingsStartOnStartup.checked = Boolean(settings.startOnStartup);
     }
+    if (dom.settingsKeepSignedIn) {
+      dom.settingsKeepSignedIn.checked = Boolean(settings.keepSignedIn);
+    }
     if (dom.settingsShowFeaturedVerification) {
       dom.settingsShowFeaturedVerification.checked = Boolean(settings.showFeaturedVerification);
     }

@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld("vrcEvent", {
   },
   getSettings: () => ipcRenderer.invoke("settings:get"),
   getEncryptionStatus: () => ipcRenderer.invoke("security:getEncryptionStatus"),
+  setKeepSignedIn: enabled => ipcRenderer.invoke("auth:setKeepSignedIn", enabled),
   updateSettings: payload => ipcRenderer.invoke("settings:set", payload),
   getThemeStore: () => ipcRenderer.invoke("theme:get"),
   saveThemeStore: payload => ipcRenderer.invoke("theme:set", payload),

@@ -174,6 +174,7 @@ export const dom = {
   profileExportJson: document.getElementById("profile-export-json"),
   settingsMinimizeTray: document.getElementById("settings-minimize-tray"),
   settingsStartOnStartup: document.getElementById("settings-start-on-startup"),
+  settingsKeepSignedIn: document.getElementById("settings-keep-signed-in"),
   settingsShowFeaturedVerification: document.getElementById("settings-show-featured-verification"),
   featuredVerificationCard: document.getElementById("featured-verification-card"),
   settingsEnableAdvanced: document.getElementById("settings-enable-advanced"),

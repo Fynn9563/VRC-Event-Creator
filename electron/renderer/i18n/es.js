@@ -17,6 +17,7 @@ export const es = {
     keepSignedInHint: "Guarda tu inicio de sesión (cifrado) para que la automatización en segundo plano pueda volver a iniciar sesión por sí sola si tu sesión caduca.",
     reauthNotifyTitle: "Se requiere iniciar sesión en VRChat",
     reauthNotifyBody: "Tu sesión caducó y necesita un código de dos factores para reanudar la automatización. Abre la aplicación para introducirlo.",
+    keepSignedInSettingsHint: "Desactívalo para eliminar tu inicio de sesión guardado ahora, sin cerrar sesión. Activarlo tiene efecto en tu próximo inicio de sesión.",
     logout: "Cerrar sesión",
     sessionHint: "La sesión se guarda en caché localmente. Mantén tu archivo de caché privado.",
     loggingIn: "Iniciando sesión...",

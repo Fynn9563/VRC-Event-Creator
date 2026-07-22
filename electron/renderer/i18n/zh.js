@@ -17,6 +17,7 @@ export const zh = {
     keepSignedInHint: "以加密方式保存您的登录信息，这样在会话过期时后台自动化可以自行重新登录。",
     reauthNotifyTitle: "需要重新登录 VRChat",
     reauthNotifyBody: "您的会话已过期，需要输入两步验证码才能恢复自动化。请打开应用以输入。",
+    keepSignedInSettingsHint: "关闭此项可立即删除已保存的登录信息，且无需退出登录。开启则在您下次登录时生效。",
     logout: "退出登录",
     sessionHint: "会话已缓存到本地。请妥善保管缓存文件。",
     loggingIn: "正在登录...",

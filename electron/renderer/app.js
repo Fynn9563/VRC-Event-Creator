@@ -1085,6 +1085,17 @@ import {
         }
       });
     }
+    if (dom.settingsKeepSignedIn && api.setKeepSignedIn) {
+      // Dedicated handler (not updateSettings): turning this off must also delete
+      // the saved login and stop the client auto-relogging-in, right away.
+      dom.settingsKeepSignedIn.addEventListener("change", async () => {
+        try {
+          await api.setKeepSignedIn(dom.settingsKeepSignedIn.checked);
+        } catch (err) {
+          console.error("Failed to update keep-signed-in setting:", err);
+        }
+      });
+    }
     if (dom.settingsEnableAdvanced) {
       dom.settingsEnableAdvanced.addEventListener("change", async () => {
         try {

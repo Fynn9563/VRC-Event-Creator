@@ -2448,6 +2448,24 @@ ipcMain.handle("auth:twofactor:submit", async (_, code) => {
   return false;
 });
 
+// Toggle "stay signed in" from Settings. Turning it OFF forgets the saved login
+// and stops the client auto-relogging-in, right now, without signing out (the
+// current session cookie is left alone). Turning it ON only sets the preference —
+// the actual credentials are stored at the next sign-in, where we have the password.
+ipcMain.handle("auth:setKeepSignedIn", (_, enabled) => {
+  const on = Boolean(enabled);
+  if (settings.keepSignedIn !== on) {
+    saveSettings({ ...settings, keepSignedIn: on });
+  }
+  if (!on) {
+    clearLoginCredentials();
+    if (typeof vrchat.setCredentials === "function") {
+      vrchat.setCredentials(undefined);
+    }
+  }
+  return settings.keepSignedIn;
+});
+
 ipcMain.handle("groups:list", async (_, options) => {
   // `force: true` (Resync) drops the per-group caches so VRChat is re-queried
   // for current permissions / privacy / tags. Without this, server-side role

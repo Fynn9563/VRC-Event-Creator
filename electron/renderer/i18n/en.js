@@ -151,6 +151,7 @@ export const en = {
     keepSignedInHint: "Stores your login (encrypted) so background automation can sign back in on its own if your session expires.",
     reauthNotifyTitle: "VRChat sign-in needed",
     reauthNotifyBody: "Your session expired and needs a two-factor code to resume automation. Open the app to enter it.",
+    keepSignedInSettingsHint: "Turn this off to delete your saved login now, without signing out. Turning it on takes effect at your next sign-in.",
     logout: "Logout",
     sessionHint: "Session is cached locally. Keep your cache file private.",
     loggingIn: "Logging in...",

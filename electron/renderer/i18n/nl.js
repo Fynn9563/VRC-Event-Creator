@@ -17,6 +17,7 @@ export const nl = {
     keepSignedInHint: "Slaat je login (versleuteld) op zodat achtergrondautomatisering zichzelf opnieuw kan aanmelden als je sessie verloopt.",
     reauthNotifyTitle: "VRChat-aanmelding vereist",
     reauthNotifyBody: "Je sessie is verlopen en heeft een tweefactorcode nodig om automatisering te hervatten. Open de app om deze in te voeren.",
+    keepSignedInSettingsHint: "Zet dit uit om je opgeslagen login nu te verwijderen, zonder uit te loggen. Aanzetten wordt van kracht bij je volgende aanmelding.",
     logout: "Uitloggen",
     sessionHint: "Sessie wordt lokaal gecachet. Houd je cachebestand privé.",
     loggingIn: "Bezig met inloggen...",
