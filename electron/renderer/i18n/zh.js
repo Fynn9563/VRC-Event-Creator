@@ -386,6 +386,7 @@ export const zh = {
       queuedHint: "Queued by rate limits. Waiting to publish.",
       posted: "活动发布成功。",
       postFailed: "无法发布活动。",
+      postPastStart: "此活动已经开始，无法发布。",
       cancelled: "待发布活动已取消。",
       cancelFailed: "无法取消待发布活动。",
       editSaved: "待发布活动已更新。",

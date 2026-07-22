@@ -359,7 +359,12 @@ function offsetTextFromMs(ms) {
  * the main process) instead of guessing by pattern type. Async — callers fire
  * it without awaiting; the warning updates when the measurement returns.
  */
+// Bumped on every call so a slower, superseded run (its async gap lookup still
+// in flight) knows not to paint a warning after the form has moved on.
+let offsetValidationSeq = 0;
+
 export async function validateAndCorrectAutomationOffset() {
+  const seq = ++offsetValidationSeq;
   const warningEl = document.getElementById("automation-offset-warning");
   const enabled = dom.automationEnabled?.checked;
   const timingMode = dom.automationTimingMode?.value;
@@ -381,6 +386,9 @@ export async function validateAndCorrectAutomationOffset() {
     } catch (err) {
       return; // couldn't measure — leave the offset as typed, engine still handles it
     }
+    // A newer validation started while we awaited (mode switched, more typing) —
+    // it has already reset the warning, so don't paint a now-stale one over it.
+    if (seq !== offsetValidationSeq) return;
     if (!minGapMs || minGapMs <= 0) return;
 
     const durationMin = parseDurationInput(dom.profileDuration?.value)?.minutes ?? 120;

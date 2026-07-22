@@ -386,6 +386,7 @@ export const es = {
       queuedHint: "Queued by rate limits. Waiting to publish.",
       posted: "Evento publicado exitosamente.",
       postFailed: "No se pudo publicar el evento.",
+      postPastStart: "Este evento ya ha comenzado, por lo que no se puede publicar.",
       cancelled: "Evento pendiente cancelado.",
       cancelFailed: "No se pudo cancelar el evento pendiente.",
       editSaved: "Evento pendiente actualizado.",

@@ -386,6 +386,7 @@ export const fr = {
       queuedHint: "Queued by rate limits. Waiting to publish.",
       posted: "Événement publié avec succès.",
       postFailed: "Impossible de publier l'événement.",
+      postPastStart: "Cet événement a déjà commencé, il ne peut donc pas être publié.",
       cancelled: "Événement en attente annulé.",
       cancelFailed: "Impossible d'annuler l'événement en attente.",
       editSaved: "Événement en attente mis à jour.",

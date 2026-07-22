@@ -250,7 +250,13 @@ function decryptToken(stored) {
 class EncryptedKeyvFile extends KeyvFile {
   getSync(key) {
     const raw = super.getSync(key);
-    return raw == null ? raw : secretStore.decryptSecret(raw);
+    if (raw == null) return raw;
+    const plain = secretStore.decryptSecret(raw);
+    // A stored cache value is never legitimately empty, so "" only ever means the
+    // decrypt failed (keyring flip, tampered file, regenerated key). Return
+    // undefined — a genuine cache miss at every layer — rather than handing keyv
+    // an unparseable "" that JSON.parse would throw on. The SDK then re-auths.
+    return plain === "" ? undefined : plain;
   }
 
   async set(key, value, ttl) {
@@ -922,9 +928,42 @@ function normalizeProfiles(raw) {
   return output;
 }
 
+// Rewrite any legacy plaintext / old-format secrets to the current encryption
+// scheme so existing installs don't sit on plaintext credentials until the user
+// happens to re-save. One-time in practice: once every value is v1-marked,
+// nothing needs upgrading. The write no-ops if profiles.json is quarantined.
+function reEncryptProfileSecrets(profilesObj) {
+  let changed = false;
+  for (const groupId of Object.keys(profilesObj)) {
+    const p = profilesObj[groupId];
+    if (!p || typeof p !== "object") continue;
+    for (const field of ["discordBotToken", "webhookUrl"]) {
+      if (!secretStore.needsUpgrade(p[field])) continue;
+      const plain = secretStore.decryptSecret(p[field]);
+      if (!plain) continue; // undecryptable legacy value — leave it, don't lose it
+      p[field] = secretStore.encryptSecret(plain);
+      changed = true;
+    }
+  }
+  if (changed) {
+    debugLog("secret", "Upgraded stored credential(s) to the current encryption scheme.");
+    writeJsonAtomic(PROFILES_PATH, profilesObj);
+  }
+}
+
 function loadProfiles() {
-  const { data } = readJsonSafe(PROFILES_PATH, {});
-  return normalizeProfiles(data && typeof data === "object" ? data : {});
+  const { data, blocked } = readJsonSafe(PROFILES_PATH, {});
+  if (blocked) {
+    debugLog("startup", "profiles.json was locked at load — holding off on writes so a stale empty state can't overwrite it.");
+  }
+  const normalized = normalizeProfiles(data && typeof data === "object" ? data : {});
+  // Don't touch secrets when the load was blocked: `normalized` is fallback data,
+  // not the real file, so re-encrypting + saving it would be exactly the clobber
+  // the quarantine exists to prevent (and the write would no-op anyway).
+  if (!blocked) {
+    reEncryptProfileSecrets(normalized);
+  }
+  return normalized;
 }
 
 function saveProfiles(nextProfiles) {
@@ -2647,6 +2686,9 @@ ipcMain.handle("series:create", async (_, payload) => {
       })
     );
     debugApiResponse("createGroupCalendarEvent (series)", response);
+    // Count this against the signed-in account's hourly budget like any other
+    // post, so automation doesn't fire straight into a 429 after a manual series.
+    automationEngine.recordEventCreation(groupId);
 
     const seriesId = getEventId(response.data);
     if (!seriesId) {
@@ -3074,6 +3116,7 @@ async function drainRasterizeQueue() {
             body: entry.payload
           });
           debugApiResponse("createGroupCalendarEvent (rasterize)", { ok: true });
+          automationEngine.recordEventCreation(entry.groupId);
         } else if (entry.type === "occurrenceUpdate") {
           const { occurrenceId, body } = entry.payload || {};
           if (!occurrenceId) {
@@ -3174,6 +3217,7 @@ ipcMain.handle("series:regenerate", async (_, payload) => {
       })
     );
     debugApiResponse("createGroupCalendarEvent (regenerate)", response);
+    automationEngine.recordEventCreation(groupId);
 
     const newSeriesId = getEventId(response.data);
     if (!newSeriesId) {

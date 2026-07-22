@@ -135,8 +135,19 @@ function previousOccurrenceForEvent(profile, groupId, profileKey, eventStartMs) 
     enforceEveryOther: true,
     everyOtherAnchors: anchors
   });
-  if (prev !== null) return prev;
-  return profileState ? getHeadPreviousOccurrenceMs(groupId, profileKey, profileState) : null;
+  // No computable predecessor (e.g. an annual pattern whose prior occurrence is
+  // outside the look-back window) — fall back to the series head.
+  if (prev === null) {
+    return profileState ? getHeadPreviousOccurrenceMs(groupId, profileKey, profileState) : null;
+  }
+  // Clamp to where the series actually begins: never measure from a pattern
+  // occurrence that predates the template's activation — a phantom that never
+  // happened because the template didn't exist yet. This keeps a brand-new
+  // template's first event anchored on its kickoff, while a mid-stream or
+  // after-a-break event still measures from its true recent predecessor rather
+  // than a weeks-old last post.
+  const activationMs = profileState ? getActivationStartMs(profileState) : null;
+  return Number.isFinite(activationMs) && activationMs > prev ? activationMs : prev;
 }
 
 /** The regular spacing (ms) between a profile's occurrences, for the "after" mirror. */
@@ -901,12 +912,14 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
       continue;
     }
     // "after" mode anchors on the previous occurrence in the series: the last
-    // event already placed in this batch, or — for the first one — the most
-    // recent posted occurrence / the activation event (never a wall-clock
-    // stamp). "before"/"monthly" ignore the anchor.
+    // event already placed in this batch, or — for the first one — the pattern
+    // occurrence right before it, clamped to the template's start (see
+    // previousOccurrenceForEvent). Using that shared resolver keeps generate,
+    // preview, commit, edit and restore on one answer. "before"/"monthly" ignore
+    // the anchor.
     const prevOccurrenceStartMs = newPendingEvents.length > 0
       ? parseEventStartMs(newPendingEvents[newPendingEvents.length - 1].eventStartsAt)
-      : getHeadPreviousOccurrenceMs(groupId, profileKey, profileState);
+      : previousOccurrenceForEvent(profile, groupId, profileKey, eventStartTime.getTime());
     const durationMs = (profile.duration || 120) * 60 * 1000;
 
     const publishMs = computePublishTimeMs(
@@ -1045,8 +1058,11 @@ function projectFutureEvents(groupId, fromMs, toMs) {
     let projectedSoFar = 0;
     // Chain "after" mode across the occurrence sequence so preview matches the
     // real generator: each occurrence's predecessor is the one before it, and
-    // the first anchors on the last posted occurrence / activation event.
-    let prevOccurrenceStartMs = getHeadPreviousOccurrenceMs(groupId, profileKey, profileState);
+    // the first anchors on its pattern predecessor clamped to the template start
+    // — the same resolver the generator and commit paths use.
+    let prevOccurrenceStartMs = previousOccurrenceForEvent(
+      profile, groupId, profileKey, new Date(dateOptions[0].iso).getTime()
+    );
     for (const dateOption of dateOptions) {
       const eventStartTime = new Date(dateOption.iso);
       const eventStartMs = eventStartTime.getTime();
@@ -2271,12 +2287,16 @@ function reconcilePublishedEvents(groupId, upcomingEvents = [], options = {}) {
     return false;
   });
 
-  // Second pass: check scheduled pending events against existing VRChat events.
-  // If the same event (start + title + description + image) already exists, mark
-  // the pending event as published to prevent duplicate posting.
+  // Second pass: check pending events against existing VRChat events. If the
+  // same event (start + title + description + image) already exists, mark the
+  // pending event as published to prevent a duplicate post. Covers scheduled,
+  // queued, and missed cards: a card re-armed as queued (rate-limited) or missed
+  // after a crash still needs to recognise its own already-posted event, or it
+  // would retry into a duplicate.
   let reconciled = 0;
+  const reconcilableStatuses = new Set(["scheduled", "queued", "missed"]);
   for (const event of pendingEvents) {
-    if (event.groupId !== groupId || event.status !== "scheduled") {
+    if (event.groupId !== groupId || !reconcilableStatuses.has(event.status)) {
       continue;
     }
     const startKey = event.eventStartsAt;

@@ -541,6 +541,7 @@ export const en = {
       queuedHint: "Queued by rate limits. Waiting to publish.",
       posted: "Event posted successfully.",
       postFailed: "Could not post event.",
+      postPastStart: "This event has already started, so it can't be posted.",
       cancelled: "Pending event cancelled.",
       cancelFailed: "Could not cancel pending event.",
       editSaved: "Pending event updated.",

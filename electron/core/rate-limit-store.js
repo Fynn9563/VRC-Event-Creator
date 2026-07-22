@@ -81,7 +81,11 @@ function count(userId, groupId, now = Date.now()) {
 function waitMs(userId, groupId, now = Date.now()) {
   const entries = pruneEntries(store[keyFor(userId, groupId)], now);
   if (entries.length < HOURLY_LIMIT) return 0;
-  return Math.max(0, entries[0] + WINDOW_MS - now);
+  // Enough entries must age out to leave HOURLY_LIMIT-1 in the window. Entries are
+  // oldest-first, so that's the (length - HOURLY_LIMIT)th one ageing out — not
+  // just the oldest, which would still leave the count at the limit if the bucket
+  // somehow holds more than HOURLY_LIMIT timestamps.
+  return Math.max(0, entries[entries.length - HOURLY_LIMIT] + WINDOW_MS - now);
 }
 
 /** Test hook — drop all in-memory state and detach the file. */

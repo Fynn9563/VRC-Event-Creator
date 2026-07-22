@@ -21,6 +21,15 @@ const RETRYABLE = new Set(["EPERM", "EBUSY", "EACCES"]);
 const MAX_RENAME_RETRIES = 5;
 const RETRY_DELAY_MS = 40;
 
+// Paths whose primary was present-but-unreadable (a transient AV / indexer /
+// backup lock) at load time. We handed the caller fallback data it didn't ask
+// for, so its in-memory state doesn't reflect what's really on disk — writing it
+// back would clobber the real file. Quarantined paths refuse writes until a
+// successful read proves the real data is readable again and clears them. A
+// genuinely missing or corrupt primary is NOT quarantined: there's nothing intact
+// to protect, and the app should be free to write good data over it.
+const quarantined = new Set();
+
 // Synchronous sleep without blocking on a busy loop — used only on the rare
 // Windows retry path. Atomics.wait parks the thread for the given ms.
 function sleepSync(ms) {
@@ -52,6 +61,12 @@ function renameWithRetry(from, to) {
  * @param {string} contents
  */
 function writeFileAtomic(filePath, contents) {
+  if (quarantined.has(filePath)) {
+    // The primary was locked at load; the caller is holding fallback data, so
+    // persisting it would overwrite the real (present-but-unread) file. Skip the
+    // write and report it, rather than destroy data we simply couldn't read yet.
+    return false;
+  }
   const tmp = `${filePath}.tmp`;
   const fd = fs.openSync(tmp, "w");
   try {
@@ -71,11 +86,13 @@ function writeFileAtomic(filePath, contents) {
   } catch (err) {
     // A missing/stale backup is not fatal; the primary now holds good data.
   }
+  return true;
 }
 
-/** Atomically write `data` as pretty JSON. */
+/** Atomically write `data` as pretty JSON. Returns false if the path is
+ * quarantined from a locked read and the write was skipped. */
 function writeJsonAtomic(filePath, data) {
-  writeFileAtomic(filePath, JSON.stringify(data, null, 2));
+  return writeFileAtomic(filePath, JSON.stringify(data, null, 2));
 }
 
 /**
@@ -107,7 +124,8 @@ function readJsonSafe(filePath, fallback) {
 
   const primary = tryRead(filePath);
   if (primary.status === "ok") {
-    return { data: primary.data, source: "primary", recovered: false };
+    quarantined.delete(filePath); // the real data is readable again
+    return { data: primary.data, source: "primary", recovered: false, blocked: false };
   }
   // Only recover from the backup when the primary is genuinely corrupt or
   // missing — NOT when it's merely locked (recovering + re-saving would clobber
@@ -115,13 +133,18 @@ function readJsonSafe(filePath, fallback) {
   if (primary.status === "corrupt" || primary.status === "missing") {
     const backup = tryRead(backupPath(filePath));
     if (backup.status === "ok") {
-      return { data: backup.data, source: "backup", recovered: true };
+      quarantined.delete(filePath);
+      return { data: backup.data, source: "backup", recovered: true, blocked: false };
     }
   }
-  // Locked primary, or both files unusable: hand back the fallback but do NOT
-  // signal recovery, so the caller won't re-save over a primary that may still
-  // be good on the next launch.
-  return { data: fallback, source: "default", recovered: false };
+  // A locked primary means the real data is present but temporarily unreadable —
+  // quarantine the path so the fallback we hand back can't be saved over it. Both
+  // files genuinely unusable (missing/corrupt) is left un-quarantined so the app
+  // can write good data over it. `blocked` tells the caller its state is untrusted.
+  if (primary.status === "locked") {
+    quarantined.add(filePath);
+  }
+  return { data: fallback, source: "default", recovered: false, blocked: quarantined.has(filePath) };
 }
 
 module.exports = { writeFileAtomic, writeJsonAtomic, readJsonSafe, backupPath };

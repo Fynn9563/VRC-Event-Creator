@@ -298,11 +298,14 @@ function minPatternGapMs(patterns, monthsAhead = 13, timezone = "UTC", opts = {}
  */
 function getPreviousOccurrenceBeforeMs(patterns, beforeMs, timezone = "UTC", opts = {}) {
   if (!Number.isFinite(beforeMs)) return null;
-  // Look at a window that starts well before the target so nth/annual patterns
-  // are covered, generated relative to a point ~100 days before beforeMs.
-  const times = generateDateOptionsFromPatterns(patterns, 5, timezone, {
+  // Look back far enough to catch the previous occurrence of the longest-period
+  // pattern we support — an annual one is ~365 days back — generated from a point
+  // ~400 days before the target and running 14 months forward to reach it. A
+  // weekly/nth/monthly predecessor still resolves to the same most-recent
+  // occurrence; only annual gains its (previously unreachable) predecessor.
+  const times = generateDateOptionsFromPatterns(patterns, 14, timezone, {
     ...opts,
-    nowMs: beforeMs - 100 * 24 * 60 * 60 * 1000
+    nowMs: beforeMs - 400 * 24 * 60 * 60 * 1000
   })
     .map(d => new Date(d.iso).getTime())
     .filter(t => Number.isFinite(t) && t < beforeMs)

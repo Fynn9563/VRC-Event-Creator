@@ -386,6 +386,7 @@ export const ja = {
       queuedHint: "レート制限により待機中。投稿待ちです",
       posted: "イベントが正常に投稿されました。",
       postFailed: "イベントを投稿できませんでした。",
+      postPastStart: "このイベントはすでに開始しているため、投稿できません。",
       cancelled: "予定イベントがキャンセルされました。",
       cancelFailed: "予定イベントをキャンセルできませんでした。",
       editSaved: "予定イベントが更新されました。",

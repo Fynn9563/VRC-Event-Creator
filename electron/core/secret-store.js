@@ -142,7 +142,15 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
         log("secret", "chmod app key failed (non-fatal):", err.message);
       }
       fs.renameSync(tmp, keyPath);
-      appKey = key;
+      // A second instance racing first-run may have won the rename; adopt whatever
+      // key actually landed on disk so both converge on one key. The app's
+      // single-instance lock normally prevents this race — this is belt and braces.
+      try {
+        const onDisk = Buffer.from(fs.readFileSync(keyPath, "utf8").trim(), "base64");
+        appKey = onDisk.length === KEY_BYTES ? onDisk : key;
+      } catch {
+        appKey = key;
+      }
       return appKey;
     } catch (err) {
       log("secret", "persisting app key failed; using plaintext:", err.message);
@@ -265,9 +273,17 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
     return s;
   }
 
+  // True when a stored value is a legacy format (bare plaintext, or the old
+  // `enc:` safeStorage form) that should be rewritten to the current v1 scheme.
+  // Empty values and already-v1 values don't need upgrading.
+  function needsUpgrade(stored) {
+    return typeof stored === "string" && stored !== "" && !stored.startsWith("v1:");
+  }
+
   return {
     encryptSecret,
     decryptSecret,
+    needsUpgrade,
     getMode,
     getStatus,
     // exposed for the store wrapper / diagnostics

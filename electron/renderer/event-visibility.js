@@ -30,5 +30,7 @@ export function eventEndMs(event) {
 export function isHiddenByEndCutoff(event, nowMs) {
   if (event.status === "missed" || event.status === "queued") return false;
   const endMs = eventEndMs(event);
-  return Number.isFinite(endMs) && endMs < nowMs;
+  // Drop the moment it ends (inclusive), matching "a finished event drops from
+  // the grid the moment it ends."
+  return Number.isFinite(endMs) && endMs <= nowMs;
 }

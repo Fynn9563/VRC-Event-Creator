@@ -386,6 +386,7 @@ export const de = {
       queuedHint: "Queued by rate limits. Waiting to publish.",
       posted: "Event erfolgreich gepostet.",
       postFailed: "Event konnte nicht gepostet werden.",
+      postPastStart: "Dieses Event hat bereits begonnen und kann daher nicht gepostet werden.",
       cancelled: "Geplantes Event abgebrochen.",
       cancelFailed: "Geplantes Event konnte nicht abgebrochen werden.",
       editSaved: "Geplantes Event aktualisiert.",

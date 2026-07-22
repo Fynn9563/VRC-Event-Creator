@@ -97,16 +97,21 @@ function upsertOptimisticEvent(pendingEvent, details, eventId) {
   }
   const existing = state.modify.optimisticEvents.get(pendingEvent.id);
   const nextEvent = buildOptimisticEvent(pendingEvent, details, eventId || existing?.event?.eventId);
-  const createdAt = existing?.createdAt || Date.now();
+  // A bare call (no details/eventId) is a fresh Post Now — including re-posting a
+  // card still on screen — so it restarts the expiry clock. A call carrying
+  // details/eventId is a reconcile enrichment of the same post and keeps its
+  // original timestamp.
+  const isPostAttempt = !details && !eventId;
+  const createdAt = existing && !isPostAttempt ? existing.createdAt : Date.now();
   state.modify.optimisticEvents.set(pendingEvent.id, {
     event: { ...nextEvent, optimisticCreatedAt: createdAt },
     createdAt
   });
-  // For a genuinely new card, arm a one-shot expiry so a silently-failed post
+  // For a new card OR a re-post, arm a one-shot expiry so a silently-failed post
   // can't leave a phantom on an idle screen — reconcile otherwise only runs on a
   // refresh. Guarded by createdAt so a stray timer can never remove a later card
-  // re-posted under the same pending id.
-  if (!existing) {
+  // re-posted under the same pending id (its createdAt won't match).
+  if (!existing || isPostAttempt) {
     const pendingId = pendingEvent.id;
     const armedAt = createdAt;
     setTimeout(() => {
@@ -1023,6 +1028,14 @@ async function handlePendingPostNow(pendingEvent, button) {
   }
   if (!pendingEvent?.id) {
     showToast(t("modify.pending.postFailed"), true);
+    return;
+  }
+  // The engine refuses to post an event whose start has already passed; catch it
+  // here so a missed/queued card that's now in the past gives a clear reason
+  // instead of a generic failure after a doomed round-trip.
+  const startMs = Date.parse(pendingEvent.eventStartsAt);
+  if (Number.isFinite(startMs) && startMs <= Date.now()) {
+    showToast(t("modify.pending.postPastStart"), true);
     return;
   }
   if (state.modify.pendingPostNow.has(pendingEvent.id)) {

@@ -386,6 +386,7 @@ export const nl = {
       queuedHint: "Queued by rate limits. Waiting to publish.",
       posted: "Evenement succesvol geplaatst.",
       postFailed: "Kon evenement niet plaatsen.",
+      postPastStart: "Dit evenement is al begonnen en kan daarom niet worden geplaatst.",
       cancelled: "Evenement in afwachting geannuleerd.",
       cancelFailed: "Kon evenement in afwachting niet annuleren.",
       editSaved: "Evenement in afwachting bijgewerkt.",

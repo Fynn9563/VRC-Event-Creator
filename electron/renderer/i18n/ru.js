@@ -386,6 +386,7 @@ export const ru = {
       queuedHint: "Queued by rate limits. Waiting to publish.",
       posted: "Событие успешно опубликовано.",
       postFailed: "Не удалось опубликовать событие.",
+      postPastStart: "Это событие уже началось, поэтому его нельзя опубликовать.",
       cancelled: "Ожидающее событие отменено.",
       cancelFailed: "Не удалось отменить ожидающее событие.",
       editSaved: "Ожидающее событие обновлено.",

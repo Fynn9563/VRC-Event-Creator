@@ -386,6 +386,7 @@ export const ko = {
       queuedHint: "Queued by rate limits. Waiting to publish.",
       posted: "이벤트가 성공적으로 게시되었습니다.",
       postFailed: "이벤트를 게시할 수 없습니다.",
+      postPastStart: "이 이벤트는 이미 시작되어 게시할 수 없습니다.",
       cancelled: "예정된 이벤트가 취소되었습니다.",
       cancelFailed: "예정된 이벤트를 취소할 수 없습니다.",
       editSaved: "예정된 이벤트가 업데이트되었습니다.",
