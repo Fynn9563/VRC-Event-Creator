@@ -150,6 +150,12 @@ export const de = {
       disclaimerLabel: "Haftungsausschluss:",
       disclaimerText: "Diese Anwendung ist inoffiziell und nicht mit VRChat verbunden. Nutzung auf eigene Gefahr. Die Entwickler übernehmen keine Verantwortung für Probleme, die aus der Nutzung dieses Tools entstehen."
     },
+    security: {
+      appKeyTitle: "Ihre gespeicherten Anmeldedaten sind auf diesem Computer nicht vollständig verschlüsselt",
+      appKeyDetail: "Dieses System hat keinen Schlüsselbund, in dem Apps Geheimnisse speichern können. Ihre VRChat-Sitzung und ein etwaiges Discord-Token werden daher mit einer Schlüsseldatei geschützt, die im Datenordner liegt. Das schützt sie, falls Sie Ihre Einstellungen oder eine Sicherung weitergeben, aber jede Person, die die Dateien auf diesem Computer öffnen kann, könnte sie trotzdem lesen. Installieren Sie einen Schlüsselbund (GNOME Keyring oder KWallet) und starten Sie neu, um die vollständige Verschlüsselung zu aktivieren.",
+      plaintextTitle: "Ihre gespeicherten Anmeldedaten werden auf diesem Computer unverschlüsselt gespeichert",
+      plaintextDetail: "Dieses System hat keinen Schlüsselbund, und die App konnte keine eigene Schlüsseldatei erstellen. Ihre VRChat-Sitzung und ein etwaiges Discord-Token werden daher im Klartext gespeichert – jede Person, die die Dateien auf diesem Computer öffnen kann, kann sie lesen. Installieren Sie einen Schlüsselbund (GNOME Keyring oder KWallet) oder machen Sie den Datenordner beschreibbar und starten Sie dann neu."
+    },
     general: {
       title: "Allgemein",
       minimizeToTray: "In Systemleiste minimieren",

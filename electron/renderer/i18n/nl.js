@@ -150,6 +150,12 @@ export const nl = {
       disclaimerLabel: "Disclaimer:",
       disclaimerText: "De ontwikkelaars zijn niet verantwoordelijk voor problemen die worden veroorzaakt door het gebruik van deze tool."
     },
+    security: {
+      appKeyTitle: "Je opgeslagen inloggegevens zijn op deze computer niet volledig versleuteld",
+      appKeyDetail: "Dit systeem heeft geen sleutelbos waarin apps geheimen kunnen bewaren, dus je VRChat-sessie en een eventueel Discord-token worden beschermd met een sleutelbestand in de gegevensmap. Dat houdt ze veilig als je je instellingen of een back-up deelt, maar iedereen die de bestanden op deze computer kan openen, zou ze nog steeds kunnen lezen. Installeer een sleutelbos (GNOME Keyring of KWallet) en start opnieuw op om volledige versleuteling in te schakelen.",
+      plaintextTitle: "Je opgeslagen inloggegevens worden op deze computer onversleuteld opgeslagen",
+      plaintextDetail: "Dit systeem heeft geen sleutelbos en de app kon geen eigen sleutelbestand aanmaken, dus je VRChat-sessie en een eventueel Discord-token worden als platte tekst opgeslagen — iedereen die de bestanden op deze computer kan openen, kan ze lezen. Installeer een sleutelbos (GNOME Keyring of KWallet) of maak de gegevensmap beschrijfbaar en start daarna opnieuw op."
+    },
     general: {
       title: "Algemeen",
       minimizeToTray: "Minimaliseren naar systeemvak",

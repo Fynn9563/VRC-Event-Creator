@@ -150,6 +150,12 @@ export const ko = {
       disclaimerLabel: "면책 조항:",
       disclaimerText: "이 애플리케이션은 비공식이며 VRChat과 관련이 없습니다. 사용에 따른 책임은 사용자에게 있습니다. 이 도구 사용으로 발생하는 문제에 대해 개발자는 책임지지 않습니다."
     },
+    security: {
+      appKeyTitle: "저장된 자격 증명이 이 컴퓨터에서 완전히 암호화되지 않았습니다",
+      appKeyDetail: "이 시스템에는 앱이 비밀 정보를 저장할 수 있는 키링이 없어, VRChat 세션과 Discord 토큰은 데이터 폴더에 보관되는 키 파일로 보호됩니다. 설정이나 백업을 공유하는 경우에는 안전하지만, 이 컴퓨터의 파일을 열 수 있는 사람은 여전히 읽을 수 있습니다. 완전한 암호화를 사용하려면 키링(GNOME Keyring 또는 KWallet)을 설치하고 재시작하세요.",
+      plaintextTitle: "저장된 자격 증명이 이 컴퓨터에 암호화되지 않은 상태로 저장됩니다",
+      plaintextDetail: "이 시스템에는 키링이 없고 앱이 자체 키 파일을 만들지 못해, VRChat 세션과 Discord 토큰이 평문으로 저장됩니다. 이 컴퓨터의 파일을 열 수 있는 사람은 누구나 읽을 수 있습니다. 키링(GNOME Keyring 또는 KWallet)을 설치하거나 데이터 폴더를 쓰기 가능하게 만든 다음 재시작하세요."
+    },
     general: {
       title: "일반",
       minimizeToTray: "시스템 트레이로 최소화",

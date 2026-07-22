@@ -150,6 +150,12 @@ export const zh = {
       disclaimerLabel: "免责声明：",
       disclaimerText: "本应用为非官方工具，与 VRChat 无关。使用风险自负。开发者不对使用本工具引发的问题负责。"
     },
+    security: {
+      appKeyTitle: "已保存的凭据在此计算机上未完全加密",
+      appKeyDetail: "此系统没有可供应用存储密钥的密钥环，因此您的 VRChat 会话和任何 Discord 令牌均由保存在数据文件夹中的密钥文件来保护。若您分享了设置或备份，它们是安全的；但任何能打开此计算机上文件的人仍可能读取它们。请安装密钥环（GNOME Keyring 或 KWallet）并重启以启用完全加密。",
+      plaintextTitle: "已保存的凭据在此计算机上以未加密方式存储",
+      plaintextDetail: "此系统没有密钥环，且应用无法创建自己的密钥文件，因此您的 VRChat 会话和任何 Discord 令牌均以明文保存——任何能打开此计算机上文件的人都可以读取。请安装密钥环（GNOME Keyring 或 KWallet），或将数据文件夹设为可写，然后重启。"
+    },
     general: {
       title: "常规",
       minimizeToTray: "最小化到系统托盘",

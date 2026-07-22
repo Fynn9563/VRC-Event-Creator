@@ -1832,6 +1832,28 @@ import {
       dom.aboutVersion.textContent = info.version || "-";
       dom.aboutDataDir.textContent = info.dataDir || "-";
     }
+    // Credential-protection disclosure. Only surfaces when real OS encryption
+    // isn't in effect (keyring-less Linux) — on Windows/macOS `secure` is always
+    // true, so the notice stays hidden and nothing here runs visibly. Setting
+    // data-i18n keeps the copy correct across a language switch.
+    if (api.getEncryptionStatus) {
+      try {
+        const enc = await api.getEncryptionStatus();
+        const notice = document.getElementById("credential-protection-notice");
+        if (notice && enc && !enc.secure) {
+          const variant = enc.mode === "plaintext" ? "plaintext" : "appKey";
+          const titleEl = document.getElementById("credential-protection-title");
+          const detailEl = document.getElementById("credential-protection-detail");
+          titleEl.setAttribute("data-i18n", `settings.security.${variant}Title`);
+          detailEl.setAttribute("data-i18n", `settings.security.${variant}Detail`);
+          titleEl.textContent = t(`settings.security.${variant}Title`);
+          detailEl.textContent = t(`settings.security.${variant}Detail`);
+          notice.classList.remove("is-hidden");
+        }
+      } catch (err) {
+        // Advisory only; leave the notice hidden if status can't be read.
+      }
+    }
     void checkForUpdates();
     window.setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL);
     if (api.onUpdateProgress) {

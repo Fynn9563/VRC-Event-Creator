@@ -150,6 +150,12 @@ export const pt = {
       disclaimerLabel: "Aviso:",
       disclaimerText: "Este aplicativo é não oficial e não é afiliado à VRChat. Use por sua conta e risco. Os desenvolvedores não são responsáveis por problemas decorrentes do uso desta ferramenta."
     },
+    security: {
+      appKeyTitle: "Suas credenciais salvas não estão totalmente criptografadas neste computador",
+      appKeyDetail: "Este sistema não possui um chaveiro onde os aplicativos possam armazenar segredos, então sua sessão do VRChat e qualquer token do Discord são protegidos por um arquivo de chave mantido na pasta de dados. Isso os mantém seguros se você compartilhar suas configurações ou um backup, mas qualquer pessoa que consiga abrir os arquivos neste computador ainda poderia lê-los. Instale um chaveiro (GNOME Keyring ou KWallet) e reinicie para ativar a criptografia completa.",
+      plaintextTitle: "Suas credenciais salvas são armazenadas sem criptografia neste computador",
+      plaintextDetail: "Este sistema não possui um chaveiro, e o aplicativo não conseguiu criar seu próprio arquivo de chave, então sua sessão do VRChat e qualquer token do Discord são salvos em texto simples — qualquer pessoa que consiga abrir os arquivos neste computador pode lê-los. Instale um chaveiro (GNOME Keyring ou KWallet), ou torne a pasta de dados gravável, e então reinicie."
+    },
     general: {
       title: "Geral",
       minimizeToTray: "Minimizar para a bandeja do sistema",

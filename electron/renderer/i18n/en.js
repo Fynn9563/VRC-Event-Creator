@@ -287,6 +287,12 @@ export const en = {
       disclaimerLabel: "Disclaimer:",
       disclaimerText: "This application is unofficial and not affiliated with VRChat. Use at your own risk. The developers are not responsible for any issues arising from use of this tool."
     },
+    security: {
+      appKeyTitle: "Your saved credentials aren't fully encrypted on this computer",
+      appKeyDetail: "This system has no keyring for apps to store secrets in, so your VRChat session and any Discord token are protected with a key file kept in the data folder. That keeps them safe if you share your settings or a backup, but anyone who can open the files on this computer could still read them. Install a keyring (GNOME Keyring or KWallet) and restart to turn on full encryption.",
+      plaintextTitle: "Your saved credentials are stored unencrypted on this computer",
+      plaintextDetail: "This system has no keyring, and the app couldn't create its own key file, so your VRChat session and any Discord token are saved as plain text — anyone who can open the files on this computer can read them. Install a keyring (GNOME Keyring or KWallet), or make the data folder writable, then restart."
+    },
     general: {
       title: "General",
       minimizeToTray: "Minimize to system tray",

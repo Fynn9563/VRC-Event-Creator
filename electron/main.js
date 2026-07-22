@@ -21,6 +21,7 @@ const { normalizeSettings } = require("./core/normalize-settings");
 const { sanitizeFilename, pathIsWithin } = require("./core/filename-sanitizer");
 const { validateEventImport, validateProfileImport } = require("./core/import-validator");
 const { writeJsonAtomic, readJsonSafe } = require("./core/atomic-store");
+const { createSecretStore } = require("./core/secret-store");
 
 const STABLE_USERDATA_NAME = "VRCEventCreator";
 const STABLE_USERDATA_PATH = path.join(app.getPath("appData"), STABLE_USERDATA_NAME);
@@ -134,6 +135,7 @@ let KITS_DIR;
 let WEBHOOK_IMAGES_DIR;
 let settings;
 let vrchat;
+let secretStore;
 const groupPermissionCache = new Map();
 const groupPrivacyCache = new Map();
 const groupRolesCache = new Map();
@@ -153,6 +155,15 @@ function resolveDataDir() {
 
 function initializePaths() {
   DATA_DIR = resolveDataDir();
+  secretStore = createSecretStore({
+    safeStorage,
+    platform: process.platform,
+    dataDir: DATA_DIR,
+    fs,
+    path,
+    crypto,
+    logger: debugLog
+  });
   PROFILES_PATH = path.join(DATA_DIR, "profiles.json");
   SERIES_PATH = path.join(DATA_DIR, "series.json");
   RASTERIZE_PATH = path.join(DATA_DIR, "pending-rasterize.json");
@@ -217,30 +228,40 @@ function saveSettings(nextSettings) {
   return settings;
 }
 
-// Discord token encryption helpers.
+// Credential encryption. Both the Discord/webhook secrets (here) and the VRChat
+// session cookie (via EncryptedKeyvFile below) route through the same secretStore,
+// instantiated in initializePaths once DATA_DIR is known. See core/secret-store.js
+// for the keyring / app-key / plaintext modes and the Linux basic_text guard.
 
 function encryptToken(plainText) {
-  if (!plainText) return "";
-  if (safeStorage.isEncryptionAvailable()) {
-    const encrypted = safeStorage.encryptString(plainText);
-    return "enc:" + encrypted.toString("base64");
-  }
-  return plainText;
+  return secretStore.encryptSecret(plainText);
 }
 
 function decryptToken(stored) {
-  if (!stored) return "";
-  if (stored.startsWith("enc:") && safeStorage.isEncryptionAvailable()) {
-    try {
-      const buffer = Buffer.from(stored.slice(4), "base64");
-      return safeStorage.decryptString(buffer);
-    } catch (err) {
-      debugLog("discord", "Failed to decrypt token:", err.message);
-      return "";
+  return secretStore.decryptSecret(stored);
+}
+
+// Transparently encrypts the VRChat SDK's persisted cache (cache.json) — which
+// holds the auth session cookie — at the store boundary. KeyvFile hands set() the
+// outer Keyv's already-serialized string and returns it verbatim from getSync(),
+// so encrypting on write and decrypting on read keeps the cookie ciphertext on
+// disk without the SDK ever knowing. Un-prefixed legacy values decrypt as
+// plaintext and re-encrypt on the next write, so no one is logged out on upgrade.
+class EncryptedKeyvFile extends KeyvFile {
+  getSync(key) {
+    const raw = super.getSync(key);
+    return raw == null ? raw : secretStore.decryptSecret(raw);
+  }
+
+  async set(key, value, ttl) {
+    return super.set(key, secretStore.encryptSecret(value), ttl);
+  }
+
+  async *iterator(namespace) {
+    for await (const [k, v] of super.iterator(namespace)) {
+      yield [k, v == null ? v : secretStore.decryptSecret(v)];
     }
   }
-  // Plain text fallback (not yet encrypted, or encryption unavailable).
-  return stored;
 }
 
 /**
@@ -1106,7 +1127,7 @@ function createClient() {
       version: "0.2.0",
       contact: UPDATE_REPO_URL
     },
-    keyv: new KeyvFile({ filename: CACHE_PATH })
+    keyv: new EncryptedKeyvFile({ filename: CACHE_PATH })
   });
 }
 
@@ -1955,6 +1976,11 @@ ipcMain.handle("debug:log", (_, payload) => {
 });
 
 ipcMain.handle("settings:get", () => settings);
+
+// How the app's stored credentials are protected on this machine. Drives the
+// Settings disclosure, which only renders when `secure` is false — i.e. never on
+// Windows/macOS, where safeStorage is always real OS encryption.
+ipcMain.handle("security:getEncryptionStatus", () => secretStore.getStatus());
 
 ipcMain.handle("settings:set", (_, payload) => {
   const next = payload && typeof payload === "object" ? payload : {};

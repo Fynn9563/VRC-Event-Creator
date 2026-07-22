@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld("vrcEvent", {
     ipcRenderer.on("update-progress", (_, data) => callback(data));
   },
   getSettings: () => ipcRenderer.invoke("settings:get"),
+  getEncryptionStatus: () => ipcRenderer.invoke("security:getEncryptionStatus"),
   updateSettings: payload => ipcRenderer.invoke("settings:set", payload),
   getThemeStore: () => ipcRenderer.invoke("theme:get"),
   saveThemeStore: payload => ipcRenderer.invoke("theme:set", payload),

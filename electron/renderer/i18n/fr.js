@@ -147,6 +147,12 @@ export const fr = {
       disclaimerLabel: "Avertissement :",
       disclaimerText: "Cette application est non officielle et n'est pas affiliée à VRChat. Utilisez-la à vos risques et périls. Les développeurs ne sont pas responsables des problèmes découlant de l'utilisation de cet outil."
     },
+    security: {
+      appKeyTitle: "Vos identifiants enregistrés ne sont pas entièrement chiffrés sur cet ordinateur",
+      appKeyDetail: "Ce système ne dispose d'aucun trousseau de clés où les applications peuvent stocker des secrets ; votre session VRChat et tout jeton Discord sont donc protégés par un fichier de clé conservé dans le dossier de données. Cela les protège si vous partagez vos paramètres ou une sauvegarde, mais toute personne pouvant ouvrir les fichiers sur cet ordinateur pourrait tout de même les lire. Installez un trousseau de clés (GNOME Keyring ou KWallet) et redémarrez pour activer le chiffrement complet.",
+      plaintextTitle: "Vos identifiants enregistrés sont stockés sans chiffrement sur cet ordinateur",
+      plaintextDetail: "Ce système ne dispose d'aucun trousseau de clés et l'application n'a pas pu créer son propre fichier de clé ; votre session VRChat et tout jeton Discord sont donc enregistrés en clair — toute personne pouvant ouvrir les fichiers sur cet ordinateur peut les lire. Installez un trousseau de clés (GNOME Keyring ou KWallet), ou rendez le dossier de données accessible en écriture, puis redémarrez."
+    },
     general: {
       title: "Général",
       minimizeToTray: "Réduire dans la barre d'état système",
