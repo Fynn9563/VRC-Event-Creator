@@ -2191,13 +2191,18 @@ function isSameEventContent(candidate, resolved) {
   );
 }
 
-function reconcilePublishedEvents(groupId, upcomingEvents = []) {
+function reconcilePublishedEvents(groupId, upcomingEvents = [], options = {}) {
   if (!groupId) {
     return { ok: false, error: { message: "Missing groupId" } };
   }
   if (!Array.isArray(upcomingEvents)) {
     return { ok: false, error: { message: "Missing upcoming events" } };
   }
+  // When true, keep the second (idempotency) pass but never remove a local
+  // published record. Used at startup, where a just-posted event may not have
+  // propagated to the fetched list yet — removing on a stale/partial list would
+  // drop a card for an event that really exists.
+  const skipRemovals = options.skipRemovals === true;
 
   const eventIds = new Set(upcomingEvents.map(event => event?.id).filter(Boolean));
   const eventsByStart = new Map();
@@ -2222,6 +2227,7 @@ function reconcilePublishedEvents(groupId, upcomingEvents = []) {
       if (eventIds.has(event.eventId)) {
         return true;
       }
+      if (skipRemovals) return true;
       removed += 1;
       return false;
     }
@@ -2232,6 +2238,7 @@ function reconcilePublishedEvents(groupId, upcomingEvents = []) {
     }
     const candidates = eventsByStart.get(startKey) || [];
     if (!candidates.length) {
+      if (skipRemovals) return true;
       removed += 1;
       return false;
     }
@@ -2255,6 +2262,7 @@ function reconcilePublishedEvents(groupId, upcomingEvents = []) {
       }
     }
 
+    if (skipRemovals) return true;
     removed += 1;
     return false;
   });

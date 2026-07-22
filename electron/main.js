@@ -4347,6 +4347,38 @@ ipcMain.handle("test:createWithParentId", async (_, payload) => {
 
 // END TEMPORARY.
 
+// Best-effort startup pass so a background / start-hidden run recognizes its own
+// already-posted events and won't re-post them — reconcile otherwise only runs
+// when you open the events list or save a template, which an unattended run
+// never does. Idempotency only: passes skipRemovals so it never deletes a card,
+// never blocks startup, and skips silently if auth or a fetch isn't ready.
+async function runStartupReconcile() {
+  if (!automationEngine.isInitialized()) return;
+  const pending = automationEngine.getPendingEvents() || [];
+  const groupIds = [...new Set(pending.map(e => e.groupId).filter(Boolean))];
+  if (!groupIds.length) return;
+  try {
+    await ensureUser();
+  } catch {
+    return; // Not signed in yet — the view/save triggers will reconcile later.
+  }
+  for (const groupId of groupIds) {
+    try {
+      await ensureCalendarPermission(groupId);
+      const response = await requestGet(
+        "getGroupCalendarEvents",
+        { path: { groupId }, query: { n: 100 } },
+        () => vrchat.getGroupCalendarEvents({ path: { groupId }, query: { n: 100 } })
+      );
+      const results = getCalendarEventList(response.data);
+      const mapped = mapGroupCalendarEvents(results, groupId, { upcomingOnly: true, includeNonEditable: false });
+      automationEngine.reconcilePublishedEvents(groupId, mapped, { skipRemovals: true });
+    } catch (err) {
+      debugLog("startup-reconcile", `Skipped ${groupId}:`, err?.message);
+    }
+  }
+}
+
 app.whenReady().then(() => {
   initDebugLog();
   initializePaths();
@@ -4371,6 +4403,13 @@ app.whenReady().then(() => {
   setInterval(() => {
     drainRasterizeQueue().catch(err => debugLog("rasterize", "Hourly drain error:", err.message));
   }, 60 * 60 * 1000);
+
+  // Reconcile the app's own already-posted events ~35s after launch (after auth
+  // settles and the engine has initialized at 2s). Best-effort and idempotency
+  // only — never removes a card, never blocks startup.
+  setTimeout(() => {
+    runStartupReconcile().catch(err => debugLog("startup-reconcile", "Error:", err?.message));
+  }, 35 * 1000);
 
   // Initialize automation engine 2s after launch (lets the UI finish loading).
   setTimeout(() => {
