@@ -6,6 +6,7 @@ import { t, getLanguageDisplayName } from "./i18n/index.js";
 import { fetchGroupRoles, renderRoleList } from "./roles.js";
 import { isGroupDiscordConfigured, isGroupWebhookConfigured, isGroupKitActive, renderCalendarReminders, readCalendarRemindersFromDom } from "./profiles.js";
 import { isHiddenByEndCutoff } from "./event-visibility.js";
+import { shouldDropOptimistic, OPTIMISTIC_TTL_MS } from "./optimistic-lifecycle.js";
 
 const HOLD_DURATION_MS = 2000;
 const MODIFY_RATE_LIMIT_KEYS = {
@@ -101,6 +102,21 @@ function upsertOptimisticEvent(pendingEvent, details, eventId) {
     event: { ...nextEvent, optimisticCreatedAt: createdAt },
     createdAt
   });
+  // For a genuinely new card, arm a one-shot expiry so a silently-failed post
+  // can't leave a phantom on an idle screen — reconcile otherwise only runs on a
+  // refresh. Guarded by createdAt so a stray timer can never remove a later card
+  // re-posted under the same pending id.
+  if (!existing) {
+    const pendingId = pendingEvent.id;
+    const armedAt = createdAt;
+    setTimeout(() => {
+      const current = state.modify.optimisticEvents.get(pendingId);
+      if (current && current.createdAt === armedAt) {
+        state.modify.optimisticEvents.delete(pendingId);
+        renderModifyEventGrid();
+      }
+    }, OPTIMISTIC_TTL_MS);
+  }
 }
 
 function collectOptimisticEntriesForEvent(event) {
@@ -162,29 +178,18 @@ function reconcileOptimisticEvents(realEvents, pendingEvents, groupId) {
   const realIds = new Set(realEvents.map(event => event.id).filter(Boolean));
   const realSlots = new Set(realEvents.map(getEventSlotKey).filter(Boolean));
   const pendingById = new Map((pendingEvents || []).map(event => [event.id, event]));
+  const now = Date.now();
   for (const [pendingId, entry] of state.modify.optimisticEvents.entries()) {
-    const event = entry.event;
-    if (event.groupId && event.groupId !== groupId) {
+    const drop = shouldDropOptimistic(entry, {
+      realIds,
+      realSlots,
+      entrySlotKey: getEventSlotKey(entry.event),
+      pending: pendingById.get(pendingId),
+      groupId,
+      now,
+    });
+    if (drop) {
       state.modify.optimisticEvents.delete(pendingId);
-      continue;
-    }
-    if (event.eventId && realIds.has(event.eventId)) {
-      state.modify.optimisticEvents.delete(pendingId);
-      continue;
-    }
-    if (event.id && realIds.has(event.id)) {
-      state.modify.optimisticEvents.delete(pendingId);
-      continue;
-    }
-    const slotKey = getEventSlotKey(event);
-    if (slotKey && realSlots.has(slotKey)) {
-      state.modify.optimisticEvents.delete(pendingId);
-      continue;
-    }
-    const pending = pendingById.get(pendingId);
-    if (pending && (pending.status === "queued" || pending.status === "missed")) {
-      state.modify.optimisticEvents.delete(pendingId);
-      continue;
     }
   }
 }
