@@ -154,7 +154,9 @@ export const es = {
       appKeyTitle: "Tus credenciales guardadas no están completamente cifradas en este equipo",
       appKeyDetail: "Este sistema no tiene un llavero donde las aplicaciones puedan guardar secretos, así que tu sesión de VRChat y cualquier token de Discord se protegen con un archivo de clave que se guarda en la carpeta de datos. Eso los mantiene a salvo si compartes tu configuración o una copia de seguridad, pero cualquiera que pueda abrir los archivos en este equipo aún podría leerlos. Instala un llavero (GNOME Keyring o KWallet) y reinicia para activar el cifrado completo.",
       plaintextTitle: "Tus credenciales guardadas se almacenan sin cifrar en este equipo",
-      plaintextDetail: "Este sistema no tiene un llavero y la aplicación no pudo crear su propio archivo de clave, así que tu sesión de VRChat y cualquier token de Discord se guardan en texto plano: cualquiera que pueda abrir los archivos en este equipo puede leerlos. Instala un llavero (GNOME Keyring o KWallet), o haz que la carpeta de datos permita escritura, y luego reinicia."
+      plaintextDetail: "Este sistema no tiene un llavero y la aplicación no pudo crear su propio archivo de clave, así que tu sesión de VRChat y cualquier token de Discord se guardan en texto plano: cualquiera que pueda abrir los archivos en este equipo puede leerlos. Instala un llavero (GNOME Keyring o KWallet), o haz que la carpeta de datos permita escritura, y luego reinicia.",
+      unreadableTitle: "Una credencial guardada ya no se puede leer en este equipo",
+      unreadableDetail: "Tu inicio de sesión de VRChat o un token de Discord se cifró con el almacenamiento seguro de este equipo, y la aplicación ya no puede descifrarlo, normalmente porque ese almacenamiento cambió, se restableció o está bloqueado. Todo lo que depende de ello (publicación automática, Discord) queda en pausa hasta que inicies sesión de nuevo o vuelvas a introducir la credencial en Ajustes."
     },
     general: {
       title: "General",

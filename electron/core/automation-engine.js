@@ -878,13 +878,12 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
   });
 
   // Regular spacing between occurrences — used to mirror an overshooting "after"
-  // offset onto the "before" side. dateOptions is sorted, so consecutive
-  // differences are the gaps; the smallest is the tightest regular spacing.
-  let nominalGapMs = null;
-  for (let i = 1; i < dateOptions.length; i += 1) {
-    const g = new Date(dateOptions[i].iso).getTime() - new Date(dateOptions[i - 1].iso).getTime();
-    if (g > 0 && (nominalGapMs === null || g < nominalGapMs)) nominalGapMs = g;
-  }
+  // offset onto the "before" side. Shared with the single-event path
+  // (calculatePublishTime → nominalGapForProfile) so generate and commit/edit/
+  // restore agree on the gap. It measures over a full year (not just the 3-month
+  // generation window), which finds the true minimum gap for patterns whose
+  // tightest spacing falls further out (e.g. annual pairs).
+  const nominalGapMs = nominalGapForProfile(profile, groupId, profileKey);
 
   if (!dateOptions.length) {
     return [];

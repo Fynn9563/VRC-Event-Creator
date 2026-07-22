@@ -154,7 +154,9 @@ export const pt = {
       appKeyTitle: "Suas credenciais salvas não estão totalmente criptografadas neste computador",
       appKeyDetail: "Este sistema não possui um chaveiro onde os aplicativos possam armazenar segredos, então sua sessão do VRChat e qualquer token do Discord são protegidos por um arquivo de chave mantido na pasta de dados. Isso os mantém seguros se você compartilhar suas configurações ou um backup, mas qualquer pessoa que consiga abrir os arquivos neste computador ainda poderia lê-los. Instale um chaveiro (GNOME Keyring ou KWallet) e reinicie para ativar a criptografia completa.",
       plaintextTitle: "Suas credenciais salvas são armazenadas sem criptografia neste computador",
-      plaintextDetail: "Este sistema não possui um chaveiro, e o aplicativo não conseguiu criar seu próprio arquivo de chave, então sua sessão do VRChat e qualquer token do Discord são salvos em texto simples — qualquer pessoa que consiga abrir os arquivos neste computador pode lê-los. Instale um chaveiro (GNOME Keyring ou KWallet), ou torne a pasta de dados gravável, e então reinicie."
+      plaintextDetail: "Este sistema não possui um chaveiro, e o aplicativo não conseguiu criar seu próprio arquivo de chave, então sua sessão do VRChat e qualquer token do Discord são salvos em texto simples — qualquer pessoa que consiga abrir os arquivos neste computador pode lê-los. Instale um chaveiro (GNOME Keyring ou KWallet), ou torne a pasta de dados gravável, e então reinicie.",
+      unreadableTitle: "Uma credencial salva não pode mais ser lida neste computador",
+      unreadableDetail: "Seu login do VRChat ou um token do Discord foi criptografado com o armazenamento seguro deste computador, e o aplicativo não consegue mais descriptografá-lo — geralmente porque esse armazenamento mudou, foi redefinido ou está bloqueado. Tudo o que depende disso (publicação automática, Discord) fica pausado até você entrar novamente ou inserir a credencial de novo nas Configurações."
     },
     general: {
       title: "Geral",

@@ -291,7 +291,9 @@ export const en = {
       appKeyTitle: "Your saved credentials aren't fully encrypted on this computer",
       appKeyDetail: "This system has no keyring for apps to store secrets in, so your VRChat session and any Discord token are protected with a key file kept in the data folder. That keeps them safe if you share your settings or a backup, but anyone who can open the files on this computer could still read them. Install a keyring (GNOME Keyring or KWallet) and restart to turn on full encryption.",
       plaintextTitle: "Your saved credentials are stored unencrypted on this computer",
-      plaintextDetail: "This system has no keyring, and the app couldn't create its own key file, so your VRChat session and any Discord token are saved as plain text — anyone who can open the files on this computer can read them. Install a keyring (GNOME Keyring or KWallet), or make the data folder writable, then restart."
+      plaintextDetail: "This system has no keyring, and the app couldn't create its own key file, so your VRChat session and any Discord token are saved as plain text — anyone who can open the files on this computer can read them. Install a keyring (GNOME Keyring or KWallet), or make the data folder writable, then restart.",
+      unreadableTitle: "A saved credential can no longer be read on this computer",
+      unreadableDetail: "Your VRChat sign-in or a Discord token was encrypted using this computer's secure storage, and the app can no longer decrypt it — usually because that storage changed, was reset, or is locked. Anything that depends on it (automated posting, Discord) is paused until you sign in again or re-enter the credential in Settings."
     },
     general: {
       title: "General",

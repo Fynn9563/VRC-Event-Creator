@@ -154,7 +154,9 @@ export const zh = {
       appKeyTitle: "已保存的凭据在此计算机上未完全加密",
       appKeyDetail: "此系统没有可供应用存储密钥的密钥环，因此您的 VRChat 会话和任何 Discord 令牌均由保存在数据文件夹中的密钥文件来保护。若您分享了设置或备份，它们是安全的；但任何能打开此计算机上文件的人仍可能读取它们。请安装密钥环（GNOME Keyring 或 KWallet）并重启以启用完全加密。",
       plaintextTitle: "已保存的凭据在此计算机上以未加密方式存储",
-      plaintextDetail: "此系统没有密钥环，且应用无法创建自己的密钥文件，因此您的 VRChat 会话和任何 Discord 令牌均以明文保存——任何能打开此计算机上文件的人都可以读取。请安装密钥环（GNOME Keyring 或 KWallet），或将数据文件夹设为可写，然后重启。"
+      plaintextDetail: "此系统没有密钥环，且应用无法创建自己的密钥文件，因此您的 VRChat 会话和任何 Discord 令牌均以明文保存——任何能打开此计算机上文件的人都可以读取。请安装密钥环（GNOME Keyring 或 KWallet），或将数据文件夹设为可写，然后重启。",
+      unreadableTitle: "此计算机上已无法读取某个已保存的凭据",
+      unreadableDetail: "您的 VRChat 登录信息或 Discord 令牌是用此计算机的安全存储加密的，但应用现在无法解密它——通常是因为该存储已更改、被重置或被锁定。依赖它的功能（自动发布、Discord）将暂停，直到您重新登录或在设置中重新输入该凭据。"
     },
     general: {
       title: "常规",

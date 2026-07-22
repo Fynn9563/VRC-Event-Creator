@@ -1832,16 +1832,20 @@ import {
       dom.aboutVersion.textContent = info.version || "-";
       dom.aboutDataDir.textContent = info.dataDir || "-";
     }
-    // Credential-protection disclosure. Only surfaces when real OS encryption
-    // isn't in effect (keyring-less Linux) — on Windows/macOS `secure` is always
-    // true, so the notice stays hidden and nothing here runs visibly. Setting
-    // data-i18n keeps the copy correct across a language switch.
+    // Credential-protection disclosure. Surfaces when real OS encryption isn't in
+    // effect (keyring-less Linux), OR when a saved secret has become unreadable (a
+    // keyring change) — which can happen even on an otherwise-secure machine. On
+    // Windows/macOS with everything readable, `secure` is true and `unreadable` is
+    // 0, so the notice stays hidden. Setting data-i18n keeps the copy correct
+    // across a language switch.
     if (api.getEncryptionStatus) {
       try {
         const enc = await api.getEncryptionStatus();
         const notice = document.getElementById("credential-protection-notice");
-        if (notice && enc && !enc.secure) {
-          const variant = enc.mode === "plaintext" ? "plaintext" : "appKey";
+        if (notice && enc && (!enc.secure || enc.unreadable > 0)) {
+          const variant = enc.unreadable > 0
+            ? "unreadable"
+            : enc.mode === "plaintext" ? "plaintext" : "appKey";
           const titleEl = document.getElementById("credential-protection-title");
           const detailEl = document.getElementById("credential-protection-detail");
           titleEl.setAttribute("data-i18n", `settings.security.${variant}Title`);

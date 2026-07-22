@@ -154,7 +154,9 @@ export const nl = {
       appKeyTitle: "Je opgeslagen inloggegevens zijn op deze computer niet volledig versleuteld",
       appKeyDetail: "Dit systeem heeft geen sleutelbos waarin apps geheimen kunnen bewaren, dus je VRChat-sessie en een eventueel Discord-token worden beschermd met een sleutelbestand in de gegevensmap. Dat houdt ze veilig als je je instellingen of een back-up deelt, maar iedereen die de bestanden op deze computer kan openen, zou ze nog steeds kunnen lezen. Installeer een sleutelbos (GNOME Keyring of KWallet) en start opnieuw op om volledige versleuteling in te schakelen.",
       plaintextTitle: "Je opgeslagen inloggegevens worden op deze computer onversleuteld opgeslagen",
-      plaintextDetail: "Dit systeem heeft geen sleutelbos en de app kon geen eigen sleutelbestand aanmaken, dus je VRChat-sessie en een eventueel Discord-token worden als platte tekst opgeslagen — iedereen die de bestanden op deze computer kan openen, kan ze lezen. Installeer een sleutelbos (GNOME Keyring of KWallet) of maak de gegevensmap beschrijfbaar en start daarna opnieuw op."
+      plaintextDetail: "Dit systeem heeft geen sleutelbos en de app kon geen eigen sleutelbestand aanmaken, dus je VRChat-sessie en een eventueel Discord-token worden als platte tekst opgeslagen — iedereen die de bestanden op deze computer kan openen, kan ze lezen. Installeer een sleutelbos (GNOME Keyring of KWallet) of maak de gegevensmap beschrijfbaar en start daarna opnieuw op.",
+      unreadableTitle: "Een opgeslagen inloggegeven kan niet meer worden gelezen op deze computer",
+      unreadableDetail: "Je VRChat-aanmelding of een Discord-token is versleuteld met de beveiligde opslag van deze computer, en de app kan het niet meer ontsleutelen — meestal doordat die opslag is gewijzigd, gereset of vergrendeld. Alles wat ervan afhangt (automatisch plaatsen, Discord) is gepauzeerd totdat je opnieuw inlogt of het inloggegeven opnieuw invoert in Instellingen."
     },
     general: {
       title: "Algemeen",

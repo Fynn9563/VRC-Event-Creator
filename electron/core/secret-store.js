@@ -80,6 +80,16 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
   const log = typeof logger === "function" ? logger : () => {};
   const keyPath = path.join(dataDir, KEY_FILE);
   let appKey = null; // Buffer once loaded/created; null until needed
+  let decryptFailures = 0; // real ciphertext that couldn't be decrypted this run
+
+  // A stored secret that should have decrypted but didn't (keyring gone, tampered
+  // file, regenerated key). Counted so the UI can tell the user a saved credential
+  // has become unreadable, instead of it only failing silently at use time.
+  function noteDecryptFailure(reason, err) {
+    decryptFailures += 1;
+    log("secret", reason, err ? err.message : "");
+    return "";
+  }
 
   // --- keyring detection ------------------------------------------------------
 
@@ -178,8 +188,16 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
       platform,
       backend: platform === "linux" ? linuxBackend() || null : null,
       secure: mode === "keyring", // genuine at-rest encryption
-      sharingSafe: mode !== "plaintext" // safe against an accidental config/backup leak
+      sharingSafe: mode !== "plaintext", // safe against an accidental config/backup leak
+      unreadable: decryptFailures // >0 means a stored secret couldn't be decrypted this run
     };
+  }
+
+  // Attempt to decrypt a stored value purely to detect an unreadable secret (its
+  // failure feeds getStatus().unreadable). Used to probe existing credentials at
+  // load so a keyring change is surfaced up front, not only when a post fails.
+  function probeSecret(stored) {
+    decryptSecret(stored);
   }
 
   // --- encrypt / decrypt ------------------------------------------------------
@@ -243,16 +261,14 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
       try {
         return safeStorage.decryptString(Buffer.from(s.slice(SK_PREFIX.length), "base64"));
       } catch (err) {
-        log("secret", "keyring decrypt failed:", err.message);
-        return "";
+        return noteDecryptFailure("keyring decrypt failed:", err);
       }
     }
     if (s.startsWith(AK_PREFIX)) {
       try {
         return appKeyDecrypt(s);
       } catch (err) {
-        log("secret", "app-key decrypt failed:", err.message);
-        return "";
+        return noteDecryptFailure("app-key decrypt failed:", err);
       }
     }
     if (s.startsWith(PT_PREFIX)) {
@@ -260,11 +276,12 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
     }
     if (s.startsWith(LEGACY_ENC_PREFIX)) {
       try {
-        if (!safeStorage.isEncryptionAvailable()) return "";
+        if (!safeStorage.isEncryptionAvailable()) {
+          return noteDecryptFailure("legacy decrypt unavailable (no keyring)", null);
+        }
         return safeStorage.decryptString(Buffer.from(s.slice(LEGACY_ENC_PREFIX.length), "base64"));
       } catch (err) {
-        log("secret", "legacy decrypt failed:", err.message);
-        return "";
+        return noteDecryptFailure("legacy decrypt failed:", err);
       }
     }
     // Legacy un-prefixed plaintext (pre-encryption Discord token, or a cookie
@@ -284,6 +301,7 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
     encryptSecret,
     decryptSecret,
     needsUpgrade,
+    probeSecret,
     getMode,
     getStatus,
     // exposed for the store wrapper / diagnostics

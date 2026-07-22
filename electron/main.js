@@ -928,21 +928,27 @@ function normalizeProfiles(raw) {
   return output;
 }
 
-// Rewrite any legacy plaintext / old-format secrets to the current encryption
-// scheme so existing installs don't sit on plaintext credentials until the user
-// happens to re-save. One-time in practice: once every value is v1-marked,
-// nothing needs upgrading. The write no-ops if profiles.json is quarantined.
-function reEncryptProfileSecrets(profilesObj) {
+// Prepare stored secrets on load: rewrite any legacy plaintext / old-format value
+// to the current encryption scheme (so existing installs don't sit on plaintext),
+// and probe the already-encrypted ones so a keyring change that makes a secret
+// unreadable is detected here and surfaced in Settings, rather than only failing
+// silently at post time. The re-encrypt write no-ops if profiles.json is quarantined.
+function prepareStoredSecrets(profilesObj) {
   let changed = false;
   for (const groupId of Object.keys(profilesObj)) {
     const p = profilesObj[groupId];
     if (!p || typeof p !== "object") continue;
     for (const field of ["discordBotToken", "webhookUrl"]) {
-      if (!secretStore.needsUpgrade(p[field])) continue;
-      const plain = secretStore.decryptSecret(p[field]);
-      if (!plain) continue; // undecryptable legacy value — leave it, don't lose it
-      p[field] = secretStore.encryptSecret(plain);
-      changed = true;
+      const val = p[field];
+      if (!val) continue;
+      if (secretStore.needsUpgrade(val)) {
+        const plain = secretStore.decryptSecret(val);
+        if (!plain) continue; // undecryptable legacy value — leave it, don't lose it
+        p[field] = secretStore.encryptSecret(plain);
+        changed = true;
+      } else {
+        secretStore.probeSecret(val);
+      }
     }
   }
   if (changed) {
@@ -961,7 +967,7 @@ function loadProfiles() {
   // not the real file, so re-encrypting + saving it would be exactly the clobber
   // the quarantine exists to prevent (and the write would no-op anyway).
   if (!blocked) {
-    reEncryptProfileSecrets(normalized);
+    prepareStoredSecrets(normalized);
   }
   return normalized;
 }

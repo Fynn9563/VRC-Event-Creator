@@ -151,7 +151,9 @@ export const fr = {
       appKeyTitle: "Vos identifiants enregistrés ne sont pas entièrement chiffrés sur cet ordinateur",
       appKeyDetail: "Ce système ne dispose d'aucun trousseau de clés où les applications peuvent stocker des secrets ; votre session VRChat et tout jeton Discord sont donc protégés par un fichier de clé conservé dans le dossier de données. Cela les protège si vous partagez vos paramètres ou une sauvegarde, mais toute personne pouvant ouvrir les fichiers sur cet ordinateur pourrait tout de même les lire. Installez un trousseau de clés (GNOME Keyring ou KWallet) et redémarrez pour activer le chiffrement complet.",
       plaintextTitle: "Vos identifiants enregistrés sont stockés sans chiffrement sur cet ordinateur",
-      plaintextDetail: "Ce système ne dispose d'aucun trousseau de clés et l'application n'a pas pu créer son propre fichier de clé ; votre session VRChat et tout jeton Discord sont donc enregistrés en clair — toute personne pouvant ouvrir les fichiers sur cet ordinateur peut les lire. Installez un trousseau de clés (GNOME Keyring ou KWallet), ou rendez le dossier de données accessible en écriture, puis redémarrez."
+      plaintextDetail: "Ce système ne dispose d'aucun trousseau de clés et l'application n'a pas pu créer son propre fichier de clé ; votre session VRChat et tout jeton Discord sont donc enregistrés en clair — toute personne pouvant ouvrir les fichiers sur cet ordinateur peut les lire. Installez un trousseau de clés (GNOME Keyring ou KWallet), ou rendez le dossier de données accessible en écriture, puis redémarrez.",
+      unreadableTitle: "Un identifiant enregistré ne peut plus être lu sur cet ordinateur",
+      unreadableDetail: "Votre connexion VRChat ou un jeton Discord a été chiffré avec le stockage sécurisé de cet ordinateur, et l'application ne peut plus le déchiffrer — généralement parce que ce stockage a changé, a été réinitialisé ou est verrouillé. Tout ce qui en dépend (publication automatique, Discord) est suspendu jusqu'à ce que vous vous reconnectiez ou saisissiez à nouveau l'identifiant dans les Paramètres."
     },
     general: {
       title: "Général",
