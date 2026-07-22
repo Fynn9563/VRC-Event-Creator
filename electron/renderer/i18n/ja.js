@@ -504,8 +504,6 @@ export const ja = {
       patternsRequired: "自動化には少なくとも1つのパターンが必要です",
       confirmTitle: "自動化を有効にしますか？",
       confirmEnable: "自動化にはイベントを投稿するためにアプリの実行が必要です。見逃した自動化は「イベントを変更」タブから処理できます。",
-      offsetCorrected: "オフセット（{oldOffset}日）がパターン頻度（{frequency}日）を超えました。「前」モードに切り替え、{newOffset}日のオフセットに設定しました。",
-      offsetCapped: "オフセット（{oldOffset}日）がパターン頻度を超えました。{newOffset}日に制限しました。",
       offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
       offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
@@ -643,7 +641,8 @@ export const ja = {
     title: "イベントの重複",
     message: "イベント「{title}」はすでにこの時間に予定されています。",
     changeTime: "時間を再選択",
-    continue: "そのまま作成"
+    continue: "そのまま作成",
+    unavailable: "この時間に別のイベントがすでに予定されているか確認できませんでした。VRChat に接続できない可能性があります。"
   },
   schedules: {
     announcements: {

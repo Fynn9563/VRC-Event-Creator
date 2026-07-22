@@ -504,8 +504,6 @@ export const nl = {
       patternsRequired: "Minstens één patroon is vereist voor automatisering",
       confirmTitle: "Automatisering inschakelen?",
       confirmEnable: "Automatiseringen vereisen dat de app actief is om evenementen te plaatsen. Gemiste automatiseringen kunnen worden afgehandeld via het tabblad Evenementen wijzigen.",
-      offsetCorrected: "Offset ({oldOffset} dagen) overschreed patroonfrequentie ({frequency} dagen). Overgeschakeld naar \"vooraf\"-modus met {newOffset}-dagen-offset.",
-      offsetCapped: "Offset ({oldOffset} dagen) overschreed patroonfrequentie. Afgekapt op {newOffset} dagen.",
       offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
       offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
@@ -643,7 +641,8 @@ export const nl = {
     title: "Evenementconflict",
     message: "Een evenement \"{title}\" staat al gepland op dit tijdstip.",
     changeTime: "Tijd opnieuw kiezen",
-    continue: "Toch aanmaken"
+    continue: "Toch aanmaken",
+    unavailable: "Kon niet controleren of er al een ander evenement op dit tijdstip gepland staat. VRChat is mogelijk niet bereikbaar."
   },
   schedules: {
     announcements: {

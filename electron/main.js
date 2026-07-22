@@ -1441,7 +1441,11 @@ async function findConflictingEvent(groupId, startsAtUtc) {
     return null;
   } catch (err) {
     debugLog("findConflictingEvent", "Error checking for conflicts:", err.message);
-    return null;
+    // Couldn't reach VRChat to check. Return a sentinel instead of null so the
+    // renderer can tell "couldn't verify" apart from "verified, no conflict"
+    // and (only when the user has warnings on) let them decide, rather than
+    // silently reporting all-clear.
+    return { unavailable: true };
   }
 }
 

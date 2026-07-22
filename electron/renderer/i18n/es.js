@@ -504,8 +504,6 @@ export const es = {
       patternsRequired: "Se requiere al menos un patrón para la automatización",
       confirmTitle: "¿Activar automatización?",
       confirmEnable: "La automatización requiere que la aplicación esté en ejecución para publicar eventos. Las automatizaciones perdidas se pueden gestionar desde la pestaña Modificar Eventos.",
-      offsetCorrected: "El desplazamiento ({oldOffset} días) excedió la frecuencia del patrón ({frequency} días). Se cambió al modo \"antes\" con desplazamiento de {newOffset} días.",
-      offsetCapped: "El desplazamiento ({oldOffset} días) excedió la frecuencia del patrón. Limitado a {newOffset} días.",
       offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
       offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
@@ -643,7 +641,8 @@ export const es = {
     title: "Conflicto de evento",
     message: "Ya existe un evento \"{title}\" programado en este horario.",
     changeTime: "Reseleccionar hora",
-    continue: "Crear de todas formas"
+    continue: "Crear de todas formas",
+    unavailable: "No se pudo comprobar si ya hay otro evento programado en este horario. Puede que VRChat no esté disponible."
   },
   schedules: {
     announcements: {

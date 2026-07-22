@@ -638,8 +638,6 @@ export const en = {
       patternsRequired: "At least one pattern is required for automation",
       confirmTitle: "Enable Automation?",
       confirmEnable: "Automations require the app to be running to post events. Missed automations can be handled from the Modify Events tab.",
-      offsetCorrected: "Offset ({oldOffset} days) exceeded pattern frequency ({frequency} days). Switched to \"before\" mode with {newOffset}-day offset.",
-      offsetCapped: "Offset ({oldOffset} days) exceeded pattern frequency. Capped to {newOffset} days.",
       offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
       offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
@@ -777,6 +775,7 @@ export const en = {
     title: "Event Conflict",
     message: "An event \"{title}\" is already scheduled at this time.",
     changeTime: "Reselect Time",
-    continue: "Create Anyway"
+    continue: "Create Anyway",
+    unavailable: "Couldn't check whether another event is already scheduled at this time. VRChat may be unreachable."
   }
 };

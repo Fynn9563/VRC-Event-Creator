@@ -504,8 +504,6 @@ export const fr = {
       patternsRequired: "Au moins un modèle est requis pour l'automatisation",
       confirmTitle: "Activer l'automatisation ?",
       confirmEnable: "L'automatisation nécessite que l'application soit en cours d'exécution pour publier les événements. Les automatisations manquées peuvent être gérées depuis l'onglet Modifier les événements.",
-      offsetCorrected: "Le décalage ({oldOffset} jours) a dépassé la fréquence du modèle ({frequency} jours). Passé en mode \"avant\" avec un décalage de {newOffset} jours.",
-      offsetCapped: "Le décalage ({oldOffset} jours) a dépassé la fréquence du modèle. Limité à {newOffset} jours.",
       offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
       offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
@@ -643,7 +641,8 @@ export const fr = {
     title: "Conflit d'événement",
     message: "Un événement \"{title}\" est déjà programmé à cette heure.",
     changeTime: "Resélectionner l'heure",
-    continue: "Créer quand même"
+    continue: "Créer quand même",
+    unavailable: "Impossible de vérifier si un autre événement est déjà programmé à cette heure. VRChat est peut-être injoignable."
   },
   schedules: {
     announcements: {

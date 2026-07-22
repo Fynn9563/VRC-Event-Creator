@@ -56,10 +56,12 @@ let conflictResolve = null;
 /**
  * Resolves with { continue: true } to proceed, or { continue: false, changeTime: true/false }.
  */
-function showConflictModal(eventTitle) {
+function showConflictModal(eventTitle, { unavailable = false } = {}) {
   return new Promise(resolve => {
     conflictResolve = resolve;
-    dom.conflictMessage.textContent = t("conflict.message", { title: eventTitle });
+    dom.conflictMessage.textContent = unavailable
+      ? t("conflict.unavailable")
+      : t("conflict.message", { title: eventTitle });
     dom.conflictOverlay.classList.remove("is-hidden");
   });
 }
@@ -997,9 +999,10 @@ export async function handleEventCreate(api) {
     });
 
     if (prep.conflictEvent && warnConflicts) {
+      const unavailable = prep.conflictEvent.unavailable === true;
       let conflictResult;
       try {
-        conflictResult = await showConflictModal(prep.conflictEvent.title);
+        conflictResult = await showConflictModal(prep.conflictEvent.title, { unavailable });
       } catch (modalErr) {
         state.event.createInProgress = false;
         updateEventCreateDisabled();

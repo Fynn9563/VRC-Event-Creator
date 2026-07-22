@@ -504,8 +504,6 @@ export const zh = {
       patternsRequired: "自动化至少需要一个模式",
       confirmTitle: "启用自动化？",
       confirmEnable: "自动化需要应用保持运行才能发布活动。可在「编辑活动」选项卡处理错过的自动化。",
-      offsetCorrected: "偏移量（{oldOffset} 天）超过了模式频率（{frequency} 天）。已切换到「之前」模式，偏移量设为 {newOffset} 天。",
-      offsetCapped: "偏移量（{oldOffset} 天）超过了模式频率。已限制为 {newOffset} 天。",
       offsetImpossible: "The automatic posting time cannot be set to post after the next event is meant to take place.",
       offsetWillAdjust: "{afterText} after the previous event is {beforeText} before the next event. Calculations that set the posting time closer to the next event's scheduled time than the previous event's end time will automatically adjust.",
       prose: {
@@ -643,7 +641,8 @@ export const zh = {
     title: "活动冲突",
     message: "活动「{title}」已在此时间安排。",
     changeTime: "重新选择时间",
-    continue: "仍然创建"
+    continue: "仍然创建",
+    unavailable: "无法检查此时间是否已安排其他活动。可能无法连接到 VRChat。"
   },
   schedules: {
     announcements: {
