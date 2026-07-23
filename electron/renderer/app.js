@@ -1,6 +1,6 @@
 import { CATEGORIES, ACCESS_TYPES, DATE_MODES, PATTERN_TYPES, WEEKDAYS, MONTHS, TAG_LIMIT } from "./config.js";
 import { dom, state, setEventWizard, setProfileWizard, getProfileWizard, getProfileEditConfirmed, setProfileEditConfirmed } from "./state.js";
-import { setStatus, setFootMeta, showToast, setAuthState, setUpdateAvailable, setUpdateProgress, refreshStatusPill, showView, renderSelect, setupWizard, bindWindowControls, initThemeControls, loadTheme, handleThemeChange, handleThemeReset, handleThemePresetSave, handleThemePresetDelete, handleThemePresetImport, handleThemePresetExport, syncThemeLocalization } from "./ui.js";
+import { setStatus, setFootMeta, showToast, setAuthState, setUpdateAvailable, setUpdateProgress, refreshStatusPill, showView, renderSelect, setupWizard, bindWindowControls, initThemeControls, loadTheme, handleThemeChange, handleThemeReset, handleThemePresetSave, handleThemePresetDelete, handleThemePresetImport, handleThemePresetExport, syncThemeLocalization, showConfirmModal } from "./ui.js";
 import { initI18n, setLanguage, getCurrentLanguage, getLanguageOptions, applyTranslations, t } from "./i18n/index.js";
 import { createTagInput, handleOpenDataDir, handleChangeDataDir, buildTimezones, normalizeDurationInput, sanitizeDurationInputValue, enforceGroupAccess, getTodayDateString, getMaxEventDateString, parseDurationInput, getTimeZoneAbbr } from "./utils.js";
 import { checkSession, handleLogin, handleLoginClose, handleLogout, handleSettingsSave } from "./auth.js";
@@ -728,9 +728,12 @@ import {
     validateAndCorrectAutomationOffset();
   }
 
-  function handlePatternClear() {
+  async function handlePatternClear() {
     if (!state.profile.patterns.length) return;
-    if (!window.confirm(t("profiles.patterns.confirmClear"))) return;
+    if (!(await showConfirmModal({
+      message: t("profiles.patterns.confirmClear"),
+      cancelLabel: t("common.cancel") || "Cancel"
+    }))) return;
     state.profile.patterns = [];
     renderPatternList();
     validateAndCorrectAutomationOffset();

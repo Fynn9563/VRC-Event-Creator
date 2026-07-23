@@ -4,7 +4,7 @@ import { t, getLanguageDisplayName } from "./i18n/index.js";
 import { enforceTagsInput, sanitizeText, formatDuration, normalizeDurationInput, parseDurationInput, formatDurationPreview, enforceGroupAccess } from "./utils.js";
 import { fetchGroupRoles, renderRoleList } from "./roles.js";
 import { applySeriesToWizard, showScheduleMode } from "./series.js";
-import { showToast, renderChecklist } from "./ui.js";
+import { showToast, renderChecklist, showConfirmModal } from "./ui.js";
 
 let roleFetchToken = 0;
 let _discordApi = null;
@@ -1063,7 +1063,12 @@ export async function handleProfileDelete(api) {
   const profile = state.profiles?.[groupId]?.profiles?.[profileKey];
   const label = getProfileLabel(profileKey, profile);
 
-  const confirmDelete = window.confirm(t("profiles.confirmDelete", { name: label }));
+  const confirmDelete = await showConfirmModal({
+    message: t("profiles.confirmDelete", { name: label }),
+    confirmLabel: t("common.delete") || "Delete",
+    cancelLabel: t("common.cancel") || "Cancel",
+    danger: true
+  });
   if (!confirmDelete) {
     return { success: false, cancelled: true };
   }

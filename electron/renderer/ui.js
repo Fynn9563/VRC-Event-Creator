@@ -601,7 +601,12 @@ export async function handleThemePresetDelete() {
     return;
   }
   const label = getPresetLabel(selected) || selected;
-  const confirmed = window.confirm(t("settings.theme.toasts.confirmDelete", { name: label }));
+  const confirmed = await showConfirmModal({
+    message: t("settings.theme.toasts.confirmDelete", { name: label }),
+    confirmLabel: t("common.delete") || "Delete",
+    cancelLabel: t("common.cancel") || "Cancel",
+    danger: true
+  });
   if (!confirmed) {
     return;
   }
