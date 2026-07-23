@@ -119,6 +119,7 @@ function upsertOptimisticEvent(pendingEvent, details, eventId) {
       if (current && current.createdAt === armedAt) {
         state.modify.optimisticEvents.delete(pendingId);
         renderModifyEventGrid();
+        renderModifyCount();
       }
     }, OPTIMISTIC_TTL_MS);
   }
@@ -532,7 +533,14 @@ function getMergedEvents() {
 
   const realSlots = new Set(realEvents.map(getEventSlotKey).filter(Boolean));
   const realIds = new Set(realEvents.map(event => event.id).filter(Boolean));
+  const currentGroupId = dom.modifyGroup?.value;
   const filteredOptimistic = optimisticEvents.filter(event => {
+    // Never render an optimistic card from another group — a refresh error can
+    // otherwise leave a cross-group card in this grid. Truthy guard so entries
+    // without a groupId still show, matching shouldDropOptimistic.
+    if (event.groupId && currentGroupId && event.groupId !== currentGroupId) {
+      return false;
+    }
     if (event.eventId && realIds.has(event.eventId)) {
       return false;
     }

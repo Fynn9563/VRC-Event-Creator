@@ -214,10 +214,11 @@ function getEveryOtherAnchors(profileState) {
 
 /**
  * Resolve the every-other anchors for a profile, backfilling any that are
- * missing. Backfill order (rollout continuity, so an existing series doesn't
- * silently stop when this fix lands): the most recent event actually posted on
- * that weekday, then the activation event if it falls on that weekday. A
- * pattern with no derivable anchor stays unanchored and generates nothing.
+ * missing. Backfill order (rollout continuity, so a series created before
+ * anchoring existed doesn't silently stop): the most recent event actually
+ * posted on that weekday, then the activation event if it falls on that
+ * weekday. A pattern with no derivable anchor stays unanchored and generates
+ * nothing.
  * @param {boolean} persist - Write derived anchors back to state (real
  *   generation) vs compute in-memory only (preview/projection).
  * @returns {Record<string,string>}
@@ -725,6 +726,7 @@ function initializeAutomation(config) {
   // Check for missed events
   const now = Date.now();
   let missedCount = 0;
+  let recoveredCount = 0;
   for (const event of pendingEvents) {
     // "queued" events were mid-flight through the rate limiter, which doesn't
     // survive a restart — treat them like scheduled events here so they don't
@@ -732,12 +734,23 @@ function initializeAutomation(config) {
     if (event.status === "scheduled" || event.status === "queued") {
       const publishTime = new Date(event.scheduledPublishTime).getTime();
       if (publishTime <= now) {
-        // Its posting time passed while the app was closed — a missed card the
-        // user decides on, never a silent late post.
-        event.status = "missed";
-        event.missedAt = new Date().toISOString();
-        missedCount++;
-        onMissedEvent(event);
+        const pState = automationState?.profiles?.[getProfileStateKey(event.groupId, event.profileKey)];
+        if (pState && !event.eventId && pState.lastPublishedSlot && pState.lastPublishedSlot === (event.slotKey || event.id)) {
+          // This slot was actually posted (automation-state recorded it) but a
+          // crash lost the pending write before it flipped to "published" — recover
+          // it rather than surfacing a phantom "missed" card for an event that
+          // already exists on VRChat (which a Post Now would then duplicate).
+          event.status = "published";
+          event.eventId = pState.lastEventId || null;
+          recoveredCount++;
+        } else {
+          // Its posting time passed while the app was closed — a missed card the
+          // user decides on, never a silent late post.
+          event.status = "missed";
+          event.missedAt = new Date().toISOString();
+          missedCount++;
+          onMissedEvent(event);
+        }
       } else if (event.status === "queued") {
         // Still in the future — re-arm it (the fresh rate-limit window will
         // gate it again if needed).
@@ -745,7 +758,7 @@ function initializeAutomation(config) {
       }
     }
   }
-  if (missedCount > 0) {
+  if (missedCount > 0 || recoveredCount > 0) {
     savePendingEvents();
   }
 
@@ -757,13 +770,16 @@ function initializeAutomation(config) {
   }
 
   initialized = true;
-  debugLogFn("Automation", `Initialized with ${pendingEvents.length} pending events, ${missedCount} missed`);
+  debugLogFn("Automation", `Initialized with ${pendingEvents.length} pending events, ${missedCount} missed, ${recoveredCount} recovered`);
   return { pendingEvents, automationState };
 }
 
 function loadPendingEvents() {
   try {
-    const { data, recovered } = readJsonSafe(PENDING_EVENTS_PATH, null);
+    const { data, recovered, blocked } = readJsonSafe(PENDING_EVENTS_PATH, null);
+    if (blocked) {
+      debugLogFn("Automation", "Pending-events file is locked/unreadable — running on recovered-or-empty state read-only; writes are refused until it can be read again.");
+    }
     if (data && typeof data === "object") {
       if (recovered) {
         debugLogFn("Automation", "Recovered pending events from backup (primary file was unreadable)");
@@ -820,7 +836,10 @@ function updatePendingSettings(newSettings) {
 
 function loadAutomationState() {
   try {
-    const { data, recovered } = readJsonSafe(AUTOMATION_STATE_PATH, null);
+    const { data, recovered, blocked } = readJsonSafe(AUTOMATION_STATE_PATH, null);
+    if (blocked) {
+      debugLogFn("Automation", "Automation-state file is locked/unreadable — the count-cap tally is recovered from backup or empty; writes are refused until it can be read again.");
+    }
     if (data && typeof data === "object" && data.profiles && typeof data.profiles === "object") {
       automationState = data;
       if (recovered) {
@@ -890,6 +909,7 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
   }
 
   const newPendingEvents = [];
+  let scheduledPushed = 0; // will-post (non-born-missed) events, for the count cap
   const now = new Date();
 
   // Check repeat limit
@@ -900,10 +920,13 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
   for (const dateOption of dateOptions) {
     if (newPendingEvents.length >= maxEvents) break;
 
-    // Check repeat limit for count mode
-    if (automation.repeatMode === "count") {
-      const totalWillCreate = profileState.eventsCreated + newPendingEvents.length + 1;
-      if (totalWillCreate > automation.repeatCount) break;
+    // Check repeat limit for count mode. Only events that will actually POST
+    // (scheduled) count toward the cap — a born-missed slot is a recoverable card
+    // that counts only if the user Post-Now's it, so it must leave room for a real
+    // replacement. Mirrors the eventsCreated/backstop and projection accounting.
+    if (automation.repeatMode === "count"
+        && profileState.eventsCreated + scheduledPushed >= automation.repeatCount) {
+      break;
     }
 
     const eventStartTime = new Date(dateOption.iso);
@@ -963,6 +986,7 @@ function calculatePendingEvents(groupId, profileKey, profile, maxEvents = 10, op
     };
 
     newPendingEvents.push(pendingEvent);
+    if (!bornMissed) scheduledPushed += 1;
   }
 
   return newPendingEvents;
@@ -1045,13 +1069,13 @@ function projectFutureEvents(groupId, fromMs, toMs) {
     if (!dateOptions.length) continue;
 
     // Count limit prep: profileState.eventsCreated tracks past *published*
-    // events. Existing pending events for this profile (status=scheduled or
-    // missed) also count toward the cap once they publish. Mirror the
-    // engine's count math in calculatePendingEvents.
+    // events. Pending events that will still post (scheduled or queued) also count
+    // toward the cap; missed events do NOT — a miss only counts if it's actually
+    // posted via Post Now, so it leaves room for a replacement to be generated.
     const profileStateKey = getProfileStateKey(groupId, profileKey);
     const profileState = automationState?.profiles?.[profileStateKey] || { eventsCreated: 0 };
     const existingPendingForProfile = pendingEvents.filter(
-      e => e.groupId === groupId && e.profileKey === profileKey && (e.status === "scheduled" || e.status === "missed" || e.status === "queued")
+      e => e.groupId === groupId && e.profileKey === profileKey && (e.status === "scheduled" || e.status === "queued")
     ).length;
 
     let projectedSoFar = 0;
@@ -1669,11 +1693,11 @@ async function processQueue() {
     rateLimitState.processing = false;
   }
 
-  // If queue still has items, schedule another processing run
-  if (rateLimitState.queue.length > 0) {
-    if (rateLimitState.processTimeout) {
-      clearTimeout(rateLimitState.processTimeout);
-    }
+  // If queue still has items, schedule another processing run — but never clobber
+  // a precise rate-limit backoff timer the loop just armed (that would degrade an
+  // hour-long wait into a 1-second busy-poll). The loop only breaks with items
+  // still queued via the rate-limit path, which always leaves that timer set.
+  if (rateLimitState.queue.length > 0 && !rateLimitState.processTimeout) {
     rateLimitState.processTimeout = setTimeout(() => {
       rateLimitState.processTimeout = null;
       processQueue();
@@ -1710,6 +1734,22 @@ async function executeAutomatedPostInternal(pendingEvent) {
       return;
     }
 
+    // Count-cap backstop: never post once this profile has hit its "repeat N
+    // times" limit. eventsCreated only counts successful posts, so this single
+    // chokepoint enforces the cap across every path that funnels through here —
+    // the scheduled timer, queue retries, and Post Now — cancelling the surplus
+    // rather than overshooting. A missed event that stayed unposted never counted,
+    // which is why generation was free to make a replacement.
+    const capStateKey = getProfileStateKey(pendingEvent.groupId, pendingEvent.profileKey);
+    const capState = getOrCreateProfileState(capStateKey);
+    const capAutomation = profilesRef?.[pendingEvent.groupId]?.profiles?.[pendingEvent.profileKey]?.automation;
+    if (capAutomation?.repeatMode === "count" && capState.eventsCreated >= capAutomation.repeatCount) {
+      debugLogFn("Automation", `Refusing to post ${pendingEvent.id}: count limit ${capAutomation.repeatCount} reached`);
+      pendingEvent.status = "cancelled";
+      savePendingEvents();
+      return;
+    }
+
     const durationMs = (eventDetails.duration || 120) * 60 * 1000;
     const endTime = new Date(startTime.getTime() + durationMs);
 
@@ -1725,9 +1765,14 @@ async function executeAutomatedPostInternal(pendingEvent) {
         // Record successful creation for rate limiting
         recordEventCreation(pendingEvent.groupId);
 
-        // Update pending event status
-        pendingEvent.eventId = result.eventId || pendingEvent.eventId || null;
-        pendingEvent.status = "published";
+        // The pendingEvents array may have been reassigned by a concurrent
+        // profiles:update while we awaited the post — detaching the object we
+        // captured and regenerating this slot as a fresh "missed" card. Apply the
+        // result to the CURRENT event by id so "published" actually persists, and
+        // so the queue skips that regenerated card instead of re-posting it.
+        const live = pendingEvents.find(e => e.id === pendingEvent.id) || pendingEvent;
+        live.eventId = result.eventId || live.eventId || null;
+        live.status = "published";
 
       // Update automation state
       const profileStateKey = getProfileStateKey(pendingEvent.groupId, pendingEvent.profileKey);
@@ -1739,12 +1784,15 @@ async function executeAutomatedPostInternal(pendingEvent) {
       // lastSuccess (a wall-clock post-receipt timestamp) is no longer used for
       // timing — "after" mode now anchors on real occurrences, not this stamp.
       profileState.lastEventId = result.eventId;
+      // Record the posted slot so a crash between this state write and the pending
+      // write below can be reconciled at next launch (recovered, not shown missed).
+      profileState.lastPublishedSlot = live.slotKey || live.id;
 
       saveAutomationState();
       savePendingEvents();
 
       debugLogFn("Automation", `Successfully created event for ${pendingEvent.id}`);
-      onEventCreated(pendingEvent, result.eventId);
+      onEventCreated(live, result.eventId);
     } else {
       // Check if it's a rate limit error
       const isRateLimit = result.error?.code === "UPCOMING_LIMIT" ||
@@ -1806,6 +1854,14 @@ async function handleMissedEvent(pendingEventId, action) {
   const pendingEvent = pendingEvents[eventIndex];
 
   if (action === "postNow") {
+    // Already posted or cancelled — never re-post it. Closes a TOCTOU where a Post
+    // Now click dispatched while the card still showed "missed" arrives just after
+    // that same slot was published (e.g. by a concurrent template edit + repost),
+    // which would otherwise reset it to "scheduled" and create a duplicate.
+    if (pendingEvent.status === "published" || pendingEvent.status === "cancelled") {
+      return { ok: false, error: { message: "This event has already been posted." } };
+    }
+
     // Prevent posting if event is queued (waiting for rate limits)
     if (pendingEvent.status === "queued") {
       return { ok: false, error: { message: "Event is queued waiting for rate limits to clear. Please wait." } };
@@ -1816,6 +1872,15 @@ async function handleMissedEvent(pendingEventId, action) {
     // here gives the button honest, immediate feedback.)
     if (new Date(pendingEvent.eventStartsAt).getTime() <= Date.now()) {
       return { ok: false, error: { message: "This event's start time has already passed and can no longer be posted." } };
+    }
+
+    // Respect the count cap: a Post Now can't push a "repeat N times" profile past
+    // its limit. (The engine backstops this too, but refusing here gives the button
+    // honest feedback instead of a silent no-op.)
+    const capState = getOrCreateProfileState(getProfileStateKey(pendingEvent.groupId, pendingEvent.profileKey));
+    const capAutomation = profilesRef?.[pendingEvent.groupId]?.profiles?.[pendingEvent.profileKey]?.automation;
+    if (capAutomation?.repeatMode === "count" && capState.eventsCreated >= capAutomation.repeatCount) {
+      return { ok: false, error: { message: `This template has reached its limit of ${capAutomation.repeatCount} event${capAutomation.repeatCount === 1 ? "" : "s"}. Raise the repeat count to post more.` } };
     }
 
     // Execute immediately
@@ -2185,9 +2250,9 @@ function updatePendingEventOverrides(pendingEventId, overrides) {
   return { ok: true };
 }
 
-// Normalize a title for the "same event" match: trim, collapse inner
-// whitespace, Unicode-normalize, then lowercase. Harmless on non-Latin scripts
-// and emoji, so a trailing space or case difference can't sneak a duplicate in.
+// Normalize a title for the "same event" match so a trailing space or case
+// difference can't sneak a duplicate in. Harmless on non-Latin scripts and
+// emoji.
 function normalizeTitleForMatch(title) {
   return (title || "")
     .normalize("NFC")

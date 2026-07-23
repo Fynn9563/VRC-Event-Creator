@@ -134,7 +134,8 @@ async function sendWebhook({ webhookUrl, icsContent, filename, content, embed, i
       headers: {
         "Content-Type": `multipart/form-data; boundary=${boundary}`
       },
-      body
+      body,
+      signal: AbortSignal.timeout(20000)
     });
 
     if (!response.ok) {

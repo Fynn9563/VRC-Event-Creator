@@ -210,7 +210,7 @@ function loadSettings() {
 
 function saveSettings(nextSettings) {
   settings = normalizeSettings(nextSettings);
-  writeJsonAtomic(SETTINGS_PATH, settings);
+  const saved = writeJsonAtomic(SETTINGS_PATH, settings);
 
   if (settings.minimizeToTray && !appTray) {
     createTray();
@@ -227,7 +227,7 @@ function saveSettings(nextSettings) {
     });
   }
 
-  return settings;
+  return saved;
 }
 
 // Credential encryption. Both the Discord/webhook secrets (here) and the VRChat
@@ -333,17 +333,25 @@ async function tryDiscordSync(groupId, profileKey, eventData, startsAtUtc, endsA
   }
 }
 
+// Resolve-based containment check: only ever read/write image files that truly
+// live inside the gallery cache dir, so a crafted imageId can't traverse out.
+function isWithinGalleryCache(candidate) {
+  const dir = path.resolve(GALLERY_CACHE_DIR);
+  const resolved = path.resolve(candidate);
+  return resolved === dir || resolved.startsWith(dir + path.sep);
+}
+
 async function getImageBase64ForDiscord(imageId) {
   if (!imageId) return null;
   const cachePath = path.join(GALLERY_CACHE_DIR, `${imageId}.png`);
-  if (fs.existsSync(cachePath)) {
+  if (isWithinGalleryCache(cachePath) && fs.existsSync(cachePath)) {
     const data = fs.readFileSync(cachePath);
     return `data:image/png;base64,${data.toString("base64")}`;
   }
   // Fall back to VRChat API.
   const imageUrl = `https://api.vrchat.cloud/api/1/file/${imageId}/1`;
   try {
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, { signal: AbortSignal.timeout(20000) });
     if (!response.ok) return null;
     const buffer = Buffer.from(await response.arrayBuffer());
     const contentType = response.headers.get("content-type") || "image/png";
@@ -360,7 +368,7 @@ async function getImageBufferForWebhook(fileId) {
   if (!fileId) return null;
   // Event images are often pre-cached in the gallery cache.
   const cachePath = path.join(GALLERY_CACHE_DIR, `${fileId}.png`);
-  if (fs.existsSync(cachePath)) {
+  if (isWithinGalleryCache(cachePath) && fs.existsSync(cachePath)) {
     return fs.readFileSync(cachePath);
   }
   // Fall back to authenticated SDK download.
@@ -482,7 +490,13 @@ function tryWebhookPost(groupId, profileKey, eventData, startsAtUtc, endsAtUtc, 
 
   const customMessage = hasGroupKit && eventData?.webhookMessage ? eventData.webhookMessage : "";
 
-  const customImagePath = hasGroupKit && eventData?.webhookImagePath ? eventData.webhookImagePath : "";
+  const rawCustomImagePath = hasGroupKit && eventData?.webhookImagePath ? eventData.webhookImagePath : "";
+  // Confine the kit image to the webhook-images dir — never read an arbitrary
+  // absolute path a compromised renderer might persist (which would attach any
+  // local file to the group's webhook).
+  const customImagePath = rawCustomImagePath && WEBHOOK_IMAGES_DIR && pathIsWithin(WEBHOOK_IMAGES_DIR, rawCustomImagePath)
+    ? rawCustomImagePath
+    : "";
   const customImageFilename = customImagePath ? path.basename(customImagePath) : null;
   const customImagePromise = customImagePath
     ? fs.promises.readFile(customImagePath).catch(() => null)
@@ -803,7 +817,10 @@ function trySeriesAnnouncements(groupId, seriesData, startsAtUtc, endsAtUtc, ann
       ]
     };
 
-    const customImagePath = hasGroupKit && customMessage?.imagePath ? customMessage.imagePath : "";
+    const rawCustomImagePath = hasGroupKit && customMessage?.imagePath ? customMessage.imagePath : "";
+    const customImagePath = rawCustomImagePath && WEBHOOK_IMAGES_DIR && pathIsWithin(WEBHOOK_IMAGES_DIR, rawCustomImagePath)
+      ? rawCustomImagePath
+      : "";
     const customImagePromise = customImagePath
       ? fs.promises.readFile(customImagePath).catch(() => null)
       : Promise.resolve(null);
@@ -978,7 +995,7 @@ function loadProfiles() {
 
 function saveProfiles(nextProfiles) {
   profiles = normalizeProfiles(nextProfiles);
-  writeJsonAtomic(PROFILES_PATH, profiles);
+  return writeJsonAtomic(PROFILES_PATH, profiles);
 }
 
 // Local metadata for VRChat native recurring series.
@@ -1164,10 +1181,14 @@ function removeRasterizeEntry(id) {
 // opts in. The SDK's 401 interceptor uses these to re-authenticate silently
 // (reusing the persisted twoFactorAuth cookie) and retry the failed request.
 function saveLoginCredentials(username, password) {
-  writeJsonAtomic(AUTH_PATH, {
+  const saved = writeJsonAtomic(AUTH_PATH, {
     username: secretStore.encryptSecret(username),
     password: secretStore.encryptSecret(password)
   });
+  if (!saved) {
+    debugLog("auth", "Could not persist saved login — auth file is temporarily locked; stay-signed-in won't survive a restart until the next successful write.");
+    return false;
+  }
   // Owner-only, matching the app-managed key file. Matters most in the plaintext
   // fallback (no keyring, key file unwritable), where auth.json would otherwise be
   // world-readable on a multi-user box. Windows ignores the mode and uses DPAPI.
@@ -1176,6 +1197,7 @@ function saveLoginCredentials(username, password) {
   } catch (err) {
     // Best-effort.
   }
+  return true;
 }
 
 function loadLoginCredentials() {
@@ -1232,9 +1254,9 @@ function buildCredentialsThunk(username, password) {
   };
 }
 
-// Auto-relogin has clearly stopped working (usually a password changed elsewhere):
-// forget the saved login, turn the preference off, stop the client re-trying, and
-// surface the app so the user can re-sign-in rather than silently losing automation.
+// Auto-relogin has clearly stopped working (usually a password changed elsewhere).
+// Forget the saved login and surface the app for a fresh sign-in, rather than
+// silently losing automation.
 function disableSavedLoginAndPrompt() {
   reauthAttempts = [];
   clearLoginCredentials();
@@ -1297,9 +1319,8 @@ function resetClient() {
 }
 
 async function clearSession() {
-  // Explicit sign-out: drop the saved login so we don't auto-relogin, then the
-  // cached session, then rebuild the client (which now has no credentials). The
-  // "stay signed in" preference itself is left as-is, so the box stays ticked for
+  // Explicit sign-out drops the saved login too, so we don't auto-relogin. The
+  // "stay signed in" preference itself is left as-is — the box stays ticked for
   // next time; only the stored secret is removed.
   clearLoginCredentials();
   try {
@@ -2104,8 +2125,11 @@ ipcMain.handle("app:openExternal", (_, target) => {
   if (!target || typeof target !== "string") {
     return false;
   }
+  // A Windows drive-letter path (C:\..., D:/...) is a local path, not a URL
+  // scheme — check it before the scheme test so the Open-folder button works.
+  const isDriveLetterPath = /^[a-zA-Z]:[\\/]/.test(target);
   // Explicit scheme: must be allow-listed.
-  if (/^[a-z][a-z0-9+.-]*:/i.test(target)) {
+  if (!isDriveLetterPath && /^[a-z][a-z0-9+.-]*:/i.test(target)) {
     if (!ALLOWED_OPEN_EXTERNAL_SCHEMES.test(target)) {
       const scheme = target.slice(0, target.indexOf(":")).toLowerCase();
       debugLog("security", "Blocked openExternal with scheme:", scheme);
@@ -2114,8 +2138,13 @@ ipcMain.handle("app:openExternal", (_, target) => {
     shell.openExternal(target);
     return true;
   }
-  // No scheme: treat as a local path. shell.openPath returns "" on success,
-  // error string on failure.
+  // Local path. Reject UNC (\\host\share or //host/share — opening one triggers
+  // SMB auth and can leak an NTLM hash) and any non-absolute path.
+  if (/^[\\/]{2}/.test(target) || !path.isAbsolute(target)) {
+    debugLog("security", "Blocked openExternal path");
+    return false;
+  }
+  // shell.openPath returns "" on success, an error string on failure.
   shell.openPath(target);
   return true;
 });
@@ -2191,8 +2220,16 @@ ipcMain.handle("security:getEncryptionStatus", () => secretStore.getStatus());
 
 ipcMain.handle("settings:set", (_, payload) => {
   const next = payload && typeof payload === "object" ? payload : {};
-  return saveSettings({ ...settings, ...next });
+  const ok = saveSettings({ ...settings, ...next });
+  if (!ok) {
+    throw new Error("Couldn't save settings — the settings file is temporarily locked. Please try again in a moment.");
+  }
+  return settings;
 });
+
+// Object keys that would corrupt Object.prototype if used as a group/profile map
+// key from a (compromised) renderer — profiles is a plain object, so guard writes.
+const UNSAFE_OBJECT_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 // Discord IPC handlers.
 
@@ -2202,7 +2239,7 @@ ipcMain.handle("discord:testConnection", async (_, botToken) => {
 });
 
 ipcMain.handle("discord:updateGroupDiscord", (_, { groupId, discordBotToken, discordGuildId, webhookDisplayName, webhookAvatarUrl, webhookEmbedColor }) => {
-  if (!groupId || !profiles[groupId]) return { ok: false, error: "Group not found." };
+  if (!groupId || UNSAFE_OBJECT_KEYS.has(groupId) || !profiles[groupId]) return { ok: false, error: "Group not found." };
   if (typeof discordBotToken === "string") {
     profiles[groupId].discordBotToken = encryptToken(discordBotToken);
   }
@@ -2233,7 +2270,7 @@ ipcMain.handle("webhook:test", async (_, webhookUrl) => {
 });
 
 ipcMain.handle("webhook:updateGroupWebhook", (_, { groupId, webhookUrl }) => {
-  if (!groupId || !profiles[groupId]) return { ok: false, error: "Group not found." };
+  if (!groupId || UNSAFE_OBJECT_KEYS.has(groupId) || !profiles[groupId]) return { ok: false, error: "Group not found." };
   if (typeof webhookUrl === "string") {
     profiles[groupId].webhookUrl = encryptToken(webhookUrl);
   }
@@ -2745,7 +2782,11 @@ ipcMain.handle("profiles:list", async () => {
 
 ipcMain.handle("profiles:create", async (_, payload) => {
   const { groupId, groupName, groupIconId, profileKey, data } = payload || {};
-  if (!groupId || !profileKey || !data) {
+  // groupId is VRChat-sourced (grp_…), so rejecting any unsafe key there is pure
+  // defense-in-depth. profileKey is user-named via slugify, where "constructor"/
+  // "prototype" are legitimate names and only harmless own-property writes — so
+  // reject just "__proto__" there, the sole key that pollutes the inner object.
+  if (!groupId || !profileKey || !data || UNSAFE_OBJECT_KEYS.has(groupId) || profileKey === "__proto__") {
     throw new Error("Invalid profile payload.");
   }
   const existing = profiles[groupId]?.profiles?.[profileKey];
@@ -2758,13 +2799,19 @@ ipcMain.handle("profiles:create", async (_, payload) => {
   profiles[groupId].groupName = groupName || profiles[groupId].groupName;
   if (groupIconId) profiles[groupId].groupIconId = groupIconId;
   profiles[groupId].profiles[profileKey] = data;
-  saveProfiles(profiles);
+  if (!saveProfiles(profiles)) {
+    throw new Error("Couldn't save the profile — the profiles file is temporarily locked. Please try again in a moment.");
+  }
   return profiles;
 });
 
 ipcMain.handle("profiles:update", async (_, payload) => {
   const { groupId, groupName, groupIconId, profileKey, data } = payload || {};
-  if (!groupId || !profileKey || !data) {
+  // groupId is VRChat-sourced (grp_…), so rejecting any unsafe key there is pure
+  // defense-in-depth. profileKey is user-named via slugify, where "constructor"/
+  // "prototype" are legitimate names and only harmless own-property writes — so
+  // reject just "__proto__" there, the sole key that pollutes the inner object.
+  if (!groupId || !profileKey || !data || UNSAFE_OBJECT_KEYS.has(groupId) || profileKey === "__proto__") {
     throw new Error("Invalid profile payload.");
   }
   if (!profiles[groupId]) {
@@ -2773,7 +2820,9 @@ ipcMain.handle("profiles:update", async (_, payload) => {
   profiles[groupId].groupName = groupName || profiles[groupId].groupName;
   if (groupIconId) profiles[groupId].groupIconId = groupIconId;
   profiles[groupId].profiles[profileKey] = data;
-  saveProfiles(profiles);
+  if (!saveProfiles(profiles)) {
+    throw new Error("Couldn't save the profile — the profiles file is temporarily locked. Please try again in a moment.");
+  }
 
   // Trigger automation recalculation for this profile.
   if (automationEngine.isInitialized()) {
@@ -4175,10 +4224,9 @@ ipcMain.handle("gallery:getImageAsBase64", async (_, payload) => {
     const localFileName = `${imageId}${ext}`;
     const localPath = path.join(GALLERY_CACHE_DIR, localFileName);
 
-    // Validate path is within cache directory
-    const normalizedPath = path.normalize(localPath);
-    const normalizedCacheDir = path.normalize(GALLERY_CACHE_DIR);
-    if (!normalizedPath.startsWith(normalizedCacheDir)) {
+    // Validate path is within cache directory (resolve-based, so a sibling like
+    // gallery-cache-evil can't satisfy a prefix match).
+    if (!isWithinGalleryCache(localPath)) {
       debugLog("gallery", `Invalid path detected for ${imageId}`);
       return null;
     }
@@ -4688,9 +4736,8 @@ app.whenReady().then(() => {
     drainRasterizeQueue().catch(err => debugLog("rasterize", "Hourly drain error:", err.message));
   }, 60 * 60 * 1000);
 
-  // Reconcile the app's own already-posted events ~35s after launch (after auth
-  // settles and the engine has initialized at 2s). Best-effort and idempotency
-  // only — never removes a card, never blocks startup.
+  // Reconcile the app's own already-posted events ~35s after launch, after auth
+  // settles and the engine has come up at 2s.
   setTimeout(() => {
     runStartupReconcile().catch(err => debugLog("startup-reconcile", "Error:", err?.message));
   }, 35 * 1000);

@@ -52,9 +52,9 @@ let createBlockTimer = null;
 let hourlyHistoryLoaded = false;
 let createdEventIdsLoaded = false;
 let conflictResolve = null;
-// Per-group cache of the engine's unified hourly count (manual + automated),
-// fetched over IPC in refreshUpcomingEventCount. The displayed count reads this
-// so it reflects automation's posts too, not just this screen's manual creates.
+// Per-account, per-group cache of the engine's unified hourly count (manual + automated),
+// keyed like the local history so it can't bleed across an account switch. The
+// displayed count reflects automation's posts too, not just manual creates.
 let engineHourlyCount = {};
 
 /**
@@ -294,11 +294,10 @@ function getHourlyCount(groupId) {
     return 0;
   }
   const local = pruneHourlyHistory(groupId).length;
-  const engine = engineHourlyCount[groupId];
-  // The engine tally already includes this app's manual AND automated posts, so
-  // it's the unified truth; use it once fetched, falling back to the local
-  // (manual-only) count until then. max() guards a just-made create that's in
-  // the local history but not yet re-fetched from the engine.
+  const engine = engineHourlyCount[getHistoryKey(groupId)];
+  // Engine tally is the unified truth (manual + automated); prefer it once
+  // fetched, else the local manual-only count. max() guards a just-made create
+  // that's in local history but not yet re-fetched from the engine.
   return typeof engine === "number" ? Math.max(engine, local) : local;
 }
 
@@ -477,10 +476,16 @@ function handleCreateRateLimit(groupId) {
 
   // Case A: user hit their 10/hour limit.
   if (userLocalCount >= EVENT_HOURLY_LIMIT) {
+    // Local history can be incomplete when the limit was reached via automation
+    // posts we don't track locally, so its expiry is only trustworthy with a full
+    // window of local timestamps; otherwise block a full window from now so the
+    // button is always throttled after a genuine hard-limit hit.
+    const localCount = pruneHourlyHistory(groupId).length;
     const nextExpiry = getNextHourlyExpiry(groupId);
-    if (nextExpiry) {
-      setHourlyLimitUntil(groupId, nextExpiry);
-    }
+    const until = localCount >= EVENT_HOURLY_LIMIT && nextExpiry
+      ? nextExpiry
+      : Date.now() + EVENT_HOURLY_WINDOW_MS;
+    setHourlyLimitUntil(groupId, until);
     scheduleCreateBlockTimer(groupId);
     return { case: "A", minutes: null };
   }
@@ -622,13 +627,12 @@ export async function refreshUpcomingEventCount(api, options = {}) {
       // List failure: keep local history.
     }
   }
-  // Pull the engine's unified count (manual + automated) so the display reflects
-  // automation's posts too. Best-effort: keep the last known count on failure.
+  // Pull the engine's unified count so the display reflects automation's posts too.
   if (api?.getRateLimitCount) {
     try {
       const engineCount = await api.getRateLimitCount({ groupId });
       if (typeof engineCount === "number") {
-        engineHourlyCount[groupId] = engineCount;
+        engineHourlyCount[getHistoryKey(groupId)] = engineCount;
       }
     } catch (err) {
       // Keep the last known engine count.

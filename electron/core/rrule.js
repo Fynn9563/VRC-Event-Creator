@@ -1,3 +1,5 @@
+const { DateTime } = require("luxon");
+
 /**
  * Convert a VRChat recurrence object into an RFC 5545 RRULE string.
  *
@@ -46,16 +48,12 @@ function recurrenceToRRule(recurrence) {
     if (recurrence.end.type === "afterOccurrences" && Number.isFinite(recurrence.end.count) && recurrence.end.count >= 1) {
       parts.push(`COUNT=${Math.floor(recurrence.end.count)}`);
     } else if (recurrence.end.type === "afterDate" && typeof recurrence.end.date === "string") {
-      // "2026-12-31T23:59:00" to RFC 5545 UTC "20261231T235900Z"
-      const isoDate = new Date(recurrence.end.date);
-      if (!Number.isNaN(isoDate.getTime())) {
-        const yyyy = isoDate.getUTCFullYear().toString().padStart(4, "0");
-        const mm = (isoDate.getUTCMonth() + 1).toString().padStart(2, "0");
-        const dd = isoDate.getUTCDate().toString().padStart(2, "0");
-        const hh = isoDate.getUTCHours().toString().padStart(2, "0");
-        const mi = isoDate.getUTCMinutes().toString().padStart(2, "0");
-        const ss = isoDate.getUTCSeconds().toString().padStart(2, "0");
-        parts.push(`UNTIL=${yyyy}${mm}${dd}T${hh}${mi}${ss}Z`);
+      // The end date string carries no offset, so parse it in the recurrence's
+      // own timezone rather than the host OS zone — otherwise UNTIL drifts
+      // between machines in different zones from identical input.
+      const endUtc = DateTime.fromISO(recurrence.end.date, { zone: recurrence.timezone || "UTC" });
+      if (endUtc.isValid) {
+        parts.push(`UNTIL=${endUtc.toUTC().toFormat("yyyyMMdd'T'HHmmss'Z'")}`);
       }
     }
   }

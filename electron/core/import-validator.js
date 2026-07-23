@@ -38,6 +38,15 @@ function asString(v, max = STRING_CAP) {
   return v.length > max ? v.slice(0, max) : v;
 }
 
+// VRChat file IDs are `file_<uuid>` — a strict charset. Reject anything with a
+// path separator or traversal so a crafted imageId can't escape the gallery
+// cache directory when it's later joined into a filesystem path.
+function asFileId(v) {
+  if (typeof v !== "string") return "";
+  const s = v.slice(0, 128);
+  return /^[A-Za-z0-9_-]+$/.test(s) ? s : "";
+}
+
 function asBoolean(v, fallback = false) {
   return typeof v === "boolean" ? v : fallback;
 }
@@ -76,6 +85,17 @@ const VALID_CATEGORIES = [
 ];
 const VALID_ACCESS_TYPES = ["public", "group"];
 const VALID_PLATFORMS = ["standalonewindows", "android", "ios"];
+
+// Mirrors the value codes in renderer/config.js LANGUAGES. Kept in sync manually
+// (the renderer config is an ES module the CommonJS validator can't import).
+const VALID_LANGUAGES = [
+  "eng", "jpn", "zho", "spa", "fra", "deu", "por", "rus", "kor", "ase", "bfi",
+  "jsl", "tok", "ita", "pol", "afr", "ara", "asf", "ben", "bul", "yue", "ces",
+  "dan", "nld", "epo", "est", "fil", "fin", "ell", "heb", "hin", "hmn", "hun",
+  "isl", "ind", "gle", "lav", "lit", "ltz", "mkd", "msa", "mri", "mar", "nor",
+  "nzs", "ron", "sco", "slk", "slv", "swe", "tel", "tha", "tur", "ukr", "urd",
+  "vie", "cym", "zxx"
+];
 const VALID_DATE_MODES = ["manual", "pattern", "both"];
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -97,14 +117,15 @@ function validateEventImport(raw) {
     accessType: asEnum(raw.accessType, VALID_ACCESS_TYPES, "public"),
     tags: asStringArray(raw.tags, { itemMax: 50, capacity: 5 }),
     roleIds: asStringArray(raw.roleIds, { itemMax: 100, capacity: 50 }),
-    imageId: asString(raw.imageId, 100),
+    imageId: asFileId(raw.imageId),
     imageBase64: asString(raw.imageBase64, 8 * 1024 * 1024), // 8 MB cap
     sendNotification: asBoolean(raw.sendNotification, false),
     featured: asBoolean(raw.featured, false),
     groupFair: asBoolean(raw.groupFair, false),
     duration: asNumber(raw.duration, { min: 1, max: 31 * 24 * 60, fallback: 120 }),
     timezone: asString(raw.timezone, 80),
-    languages: asStringArray(raw.languages, { itemMax: 10, capacity: 3 }),
+    languages: asStringArray(raw.languages, { itemMax: 10, capacity: 3 })
+      .filter(l => VALID_LANGUAGES.includes(l)),
     platforms: asStringArray(raw.platforms, { itemMax: 32, capacity: 5 })
       .filter(p => VALID_PLATFORMS.includes(p)),
     date: asString(raw.date, 10),  // YYYY-MM-DD
@@ -132,14 +153,15 @@ function validateProfileImport(raw) {
     accessType: asEnum(raw.accessType, VALID_ACCESS_TYPES, "public"),
     tags: asStringArray(raw.tags, { itemMax: 50, capacity: 5 }),
     roleIds: asStringArray(raw.roleIds, { itemMax: 100, capacity: 50 }),
-    imageId: asString(raw.imageId, 100),
+    imageId: asFileId(raw.imageId),
     imageBase64: asString(raw.imageBase64, 8 * 1024 * 1024),
     sendNotification: asBoolean(raw.sendNotification, false),
     featured: asBoolean(raw.featured, false),
     groupFair: asBoolean(raw.groupFair, false),
     duration: asNumber(raw.duration, { min: 1, max: 31 * 24 * 60, fallback: 120 }),
     timezone: asString(raw.timezone, 80),
-    languages: asStringArray(raw.languages, { itemMax: 10, capacity: 3 }),
+    languages: asStringArray(raw.languages, { itemMax: 10, capacity: 3 })
+      .filter(l => VALID_LANGUAGES.includes(l)),
     platforms: asStringArray(raw.platforms, { itemMax: 32, capacity: 5 })
       .filter(p => VALID_PLATFORMS.includes(p)),
     dateMode: asEnum(raw.dateMode, VALID_DATE_MODES, "manual"),

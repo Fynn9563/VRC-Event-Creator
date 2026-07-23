@@ -95,8 +95,6 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
     return "";
   }
 
-  // --- keyring detection ------------------------------------------------------
-
   function linuxBackend() {
     try {
       return safeStorage.getSelectedStorageBackend();
@@ -123,8 +121,6 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
     // Windows (DPAPI) and macOS (Keychain): available means real.
     return true;
   }
-
-  // --- app-managed key --------------------------------------------------------
 
   // Load the app key, or generate and persist one. Returns a 32-byte Buffer, or
   // null if the key can't be established (unwritable data dir) — the caller then
@@ -172,8 +168,6 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
     }
   }
 
-  // --- mode + status ----------------------------------------------------------
-
   // Resolve the active mode. Recomputed per call (the calls are rare — a
   // credential save or a cookie refresh) so a change in keyring availability is
   // always reflected, and so we never cache a decision made before app `ready`.
@@ -204,8 +198,6 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
     decryptSecret(stored);
   }
 
-  // --- encrypt / decrypt ------------------------------------------------------
-
   function appKeyEncrypt(plain) {
     const key = loadOrCreateAppKey();
     if (!key) return null;
@@ -218,7 +210,7 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
 
   function appKeyDecrypt(marked) {
     const key = loadOrCreateAppKey();
-    if (!key) return "";
+    if (!key) throw new Error("app key unavailable");
     const raw = Buffer.from(marked.slice(AK_PREFIX.length), "base64");
     const iv = raw.subarray(0, IV_BYTES);
     const tag = raw.subarray(IV_BYTES, IV_BYTES + TAG_BYTES);

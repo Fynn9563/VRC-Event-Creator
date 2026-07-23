@@ -98,14 +98,14 @@ function writeJsonAtomic(filePath, data) {
 /**
  * Read JSON, falling back to the .bak copy if the primary is missing or
  * corrupt, then to `fallback`.
- * @returns {{ data: any, source: "primary"|"backup"|"default", recovered: boolean }}
+ * @returns {{ data: any, source: "primary"|"backup"|"default", recovered: boolean, blocked: boolean }}
  */
 function readJsonSafe(filePath, fallback) {
-  // Read a file, distinguishing three outcomes: parsed data, "not there",
-  // "corrupt" (parse failed), or "locked" (a transient Windows lock from AV /
-  // indexer / backup — the same codes the write path retries). We retry a
-  // locked read rather than treating it as corruption, because falling to a
-  // stale .bak over a good-but-locked primary would silently lose data.
+  // Read a file, distinguishing four outcomes: ok, missing, corrupt (parse
+  // failed), or locked (a transient Windows lock from AV / indexer / backup —
+  // the same codes the write path retries). We retry a locked read rather than
+  // treating it as corruption, because falling to a stale .bak over a
+  // good-but-locked primary would silently lose data.
   const tryRead = (p) => {
     if (!fs.existsSync(p)) return { status: "missing" };
     for (let attempt = 0; attempt < MAX_RENAME_RETRIES; attempt += 1) {
@@ -116,7 +116,12 @@ function readJsonSafe(filePath, fallback) {
           sleepSync(RETRY_DELAY_MS);
           continue;
         }
-        return { status: "corrupt" }; // parse error or non-retryable read error
+        // A genuine parse failure is corruption; any other read error (EIO,
+        // EMFILE, ENOMEM, …) is transient/environmental — not proof the data is
+        // bad — so treat it like a lock and quarantine rather than clobber a file
+        // we merely couldn't read.
+        if (err instanceof SyntaxError) return { status: "corrupt" };
+        return { status: "locked" };
       }
     }
     return { status: "locked" };
@@ -127,21 +132,27 @@ function readJsonSafe(filePath, fallback) {
     quarantined.delete(filePath); // the real data is readable again
     return { data: primary.data, source: "primary", recovered: false, blocked: false };
   }
-  // Only recover from the backup when the primary is genuinely corrupt or
-  // missing — NOT when it's merely locked (recovering + re-saving would clobber
-  // a good primary we just couldn't read yet).
-  if (primary.status === "corrupt" || primary.status === "missing") {
+  // Recover from the backup when the primary is corrupt, missing, OR locked. A
+  // locked primary is present-but-unreadable: we still quarantine the path so the
+  // fallback can't be saved over it, but a good backup beats an empty fallback, so
+  // hand the backup's data back read-only (blocked) rather than running on nothing.
+  const lockedPrimary = primary.status === "locked";
+  if (primary.status === "corrupt" || primary.status === "missing" || lockedPrimary) {
     const backup = tryRead(backupPath(filePath));
     if (backup.status === "ok") {
-      quarantined.delete(filePath);
-      return { data: backup.data, source: "backup", recovered: true, blocked: false };
+      if (lockedPrimary) {
+        quarantined.add(filePath); // present-but-unread primary — refuse writes over it
+      } else {
+        quarantined.delete(filePath);
+      }
+      return { data: backup.data, source: "backup", recovered: true, blocked: lockedPrimary };
     }
   }
-  // A locked primary means the real data is present but temporarily unreadable —
-  // quarantine the path so the fallback we hand back can't be saved over it. Both
-  // files genuinely unusable (missing/corrupt) is left un-quarantined so the app
-  // can write good data over it. `blocked` tells the caller its state is untrusted.
-  if (primary.status === "locked") {
+  // Both files unusable. A locked primary stays quarantined so the fallback can't
+  // clobber present-but-unread data; a genuinely missing/corrupt primary is left
+  // writable so the app can save good data over it. `blocked` tells the caller its
+  // state is untrusted.
+  if (lockedPrimary) {
     quarantined.add(filePath);
   }
   return { data: fallback, source: "default", recovered: false, blocked: quarantined.has(filePath) };

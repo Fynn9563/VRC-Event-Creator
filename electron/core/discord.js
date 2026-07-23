@@ -1,3 +1,5 @@
+const { DateTime } = require("luxon");
+
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 
 /**
@@ -47,7 +49,8 @@ async function createDiscordScheduledEvent({ botToken, guildId, name, descriptio
         "Authorization": `Bot ${botToken}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20000)
     });
 
     if (!response.ok) {
@@ -138,12 +141,12 @@ function vrchatRecurrenceToDiscordRule(recurrence, startTime, endTime) {
     if (recurrence.end.type === "afterOccurrences" && Number.isFinite(recurrence.end.count)) {
       rule.count = Math.floor(recurrence.end.count);
     } else if (recurrence.end.type === "afterDate" && typeof recurrence.end.date === "string") {
-      // "YYYY-MM-DDTHH:MM:SS" (no offset) to ISO8601 by appending Z.
-      const dateStr = recurrence.end.date;
-      try {
-        rule.end = new Date(dateStr).toISOString();
-      } catch {
-        // ignore
+      // The end date carries no offset, so parse it in the recurrence's own
+      // timezone (not the host OS zone) so the Discord rule matches the .ics UNTIL
+      // and is identical across machines.
+      const dt = DateTime.fromISO(recurrence.end.date, { zone: recurrence.timezone || "UTC" });
+      if (dt.isValid) {
+        rule.end = dt.toUTC().toISO();
       }
     }
   }

@@ -1,4 +1,4 @@
-import { EVENT_DESCRIPTION_LIMIT, EVENT_NAME_LIMIT, TAG_LIMIT, LANGUAGES, PLATFORMS, MONTHS } from "./config.js";
+import { EVENT_DESCRIPTION_LIMIT, EVENT_NAME_LIMIT, TAG_LIMIT, LANGUAGES, PLATFORMS, MONTHS, CATEGORIES, DATE_MODES } from "./config.js";
 import { dom, state, setProfileEditConfirmed, getProfileEditConfirmed, getProfileWizard } from "./state.js";
 import { t, getLanguageDisplayName } from "./i18n/index.js";
 import { enforceTagsInput, sanitizeText, formatDuration, normalizeDurationInput, parseDurationInput, formatDurationPreview, enforceGroupAccess } from "./utils.js";
@@ -1238,7 +1238,7 @@ async function applyImportedJsonToProfileForm(data, api) {
       })
     : "";
 
-  const validCategories = ["hangout", "social", "gaming", "roleplay", "media", "music", "dance", "performance", "educational", "creative", "networking", "sports", "other"];
+  const validCategories = CATEGORIES.map(c => c.value);
   if (data.category && validCategories.includes(data.category)) {
     dom.profileCategory.value = data.category;
   } else {
@@ -1311,9 +1311,11 @@ async function applyImportedJsonToProfileForm(data, api) {
     }
   }
 
-  const validDateModes = ["manual", "pattern"];
+  const validDateModes = DATE_MODES.map(m => m.value);
   if (data.dateMode && validDateModes.includes(data.dateMode)) {
     dom.profileDateMode.value = data.dateMode;
+  } else {
+    dom.profileDateMode.value = "pattern";
   }
 
   if (Array.isArray(data.patterns)) {

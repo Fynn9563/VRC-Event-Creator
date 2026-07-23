@@ -1872,12 +1872,10 @@ import {
       dom.aboutVersion.textContent = info.version || "-";
       dom.aboutDataDir.textContent = info.dataDir || "-";
     }
-    // Credential-protection disclosure. Surfaces when real OS encryption isn't in
-    // effect (keyring-less Linux), OR when a saved secret has become unreadable (a
-    // keyring change) — which can happen even on an otherwise-secure machine. On
-    // Windows/macOS with everything readable, `secure` is true and `unreadable` is
-    // 0, so the notice stays hidden. Setting data-i18n keeps the copy correct
-    // across a language switch.
+    // Advisory shown when credentials aren't under real OS encryption (keyring-less
+    // Linux) or a saved secret has gone unreadable after a keyring change — the
+    // latter can hit an otherwise-secure machine. Re-set data-i18n so the copy
+    // survives a language switch.
     if (api.getEncryptionStatus) {
       try {
         const enc = await api.getEncryptionStatus();
