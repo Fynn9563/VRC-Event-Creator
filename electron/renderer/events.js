@@ -5,6 +5,7 @@ import { EVENT_DESCRIPTION_LIMIT, EVENT_NAME_LIMIT, LANGUAGES, PLATFORMS, TAG_LI
 import { t, getCurrentLanguage, getLanguageDisplayName } from "./i18n/index.js";
 import { fetchGroupRoles, renderRoleList } from "./roles.js";
 import { updateDiscordVisibility, updateCalendarVisibility, readCalendarRemindersFromDom, renderCalendarReminders } from "./profiles.js";
+import { upsertOptimisticEvent } from "./modify.js";
 
 const EVENT_HOURLY_LIMIT = 10;
 const EVENT_HOURLY_WINDOW_MS = 60 * 60 * 1000;
@@ -1095,6 +1096,19 @@ export async function handleEventCreate(api) {
     clearHourlyLimit(groupId);
     resetBackoff();
     recordHourlyEvent(groupId, Date.now(), result.eventId);
+    // Show the just-created event in Modify immediately (bridges VRChat's calendar
+    // API lag), mirroring the automation/Post-Now optimistic card so a manual
+    // create doesn't look like it vanished. Best-effort — never break a good post.
+    try {
+      const durationMinutes = Math.round((Date.parse(prep.endsAtUtc) - Date.parse(prep.startsAtUtc)) / 60000) || 120;
+      upsertOptimisticEvent(
+        { id: result.eventId, groupId, eventStartsAt: prep.startsAtUtc },
+        { ...eventData, durationMinutes, timezone },
+        result.eventId
+      );
+    } catch (err) {
+      // ignore
+    }
     state.event.createInProgress = false;
     updateEventCreateDisabled();
     const count = await refreshUpcomingEventCount(api, { useServer: false });

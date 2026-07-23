@@ -84,6 +84,7 @@ function buildOptimisticEvent(pendingEvent, details, eventId) {
     platforms: Array.isArray(resolved.platforms) ? resolved.platforms : [],
     startsAtUtc,
     endsAtUtc,
+    durationMinutes,
     timezone: resolved.timezone || "UTC",
     isOptimistic: true,
     sourcePendingId: pendingEvent?.id || null,
@@ -91,7 +92,7 @@ function buildOptimisticEvent(pendingEvent, details, eventId) {
   };
 }
 
-function upsertOptimisticEvent(pendingEvent, details, eventId) {
+export function upsertOptimisticEvent(pendingEvent, details, eventId) {
   if (!pendingEvent?.id) {
     return;
   }
@@ -2070,7 +2071,14 @@ export function initModifyEvents(api) {
     clearRefreshBackoff();
     state.modify.deletedTombstones.clear();
     state.modify.lastRefreshTime = 0;
-    state.modify.optimisticEvents.clear();
+    // Keep optimistic cards for the group being switched TO (e.g. an event just
+    // created while another group was showing); drop only the others.
+    const nextGroupId = dom.modifyGroup.value;
+    for (const [oid, oentry] of state.modify.optimisticEvents) {
+      if (oentry.event?.groupId && oentry.event.groupId !== nextGroupId) {
+        state.modify.optimisticEvents.delete(oid);
+      }
+    }
     // Filters are scoped per session per group.
     resetModifyFilters();
     // Series load happens inside refreshModifyEvents so it covers
