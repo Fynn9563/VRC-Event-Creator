@@ -136,6 +136,9 @@ let KITS_DIR;
 let WEBHOOK_IMAGES_DIR;
 let settings;
 let vrchat;
+// The SDK's persisted session store, held so an explicit sign-out can empty it
+// through keyv's own API rather than depending on deleting the backing file.
+let sessionKeyv = null;
 let secretStore;
 const groupPermissionCache = new Map();
 const groupPrivacyCache = new Map();
@@ -1212,10 +1215,31 @@ function loadLoginCredentials() {
 }
 
 function clearLoginCredentials() {
-  try {
-    fs.unlinkSync(AUTH_PATH);
-  } catch (err) {
-    // Nothing saved to clear.
+  // auth.json is written atomically, which keeps a sibling .bak of the last good
+  // copy — and readJsonSafe transparently falls back to that backup when the
+  // primary is missing. Deleting only auth.json therefore left the saved login
+  // fully recoverable, so a sign-out never actually stuck: the next launch read
+  // the backup and signed the user straight back in.
+  const rm = target => {
+    try {
+      fs.unlinkSync(target);
+      return true;
+    } catch (err) {
+      return err?.code === "ENOENT";
+    }
+  };
+  const backupGone = rm(`${AUTH_PATH}.bak`);
+  const primaryGone = rm(AUTH_PATH);
+  if (backupGone && primaryGone) {
+    return;
+  }
+  // Something resisted deletion (a Windows AV/indexer lock). Leave a valid empty
+  // object in the primary: it decrypts to no credentials, and because it reads
+  // cleanly the backup is never consulted. Then drop the .bak the write recreates.
+  if (writeJsonAtomic(AUTH_PATH, {})) {
+    rm(`${AUTH_PATH}.bak`);
+  } else {
+    debugLog("auth", "Could not clear the saved login; it may still be on disk.");
   }
 }
 
@@ -1281,13 +1305,14 @@ function createClient() {
     const { VRChat: Stub } = require(stubPath);
     return new Stub({}, { userDataDir: app.getPath("userData") });
   }
+  sessionKeyv = new EncryptedKeyvFile({ filename: CACHE_PATH });
   const clientOptions = {
     application: {
       name: "VRCEventHelper",
       version: "0.2.0",
       contact: UPDATE_REPO_URL
     },
-    keyv: new EncryptedKeyvFile({ filename: CACHE_PATH })
+    keyv: sessionKeyv
   };
 
   // "Stay signed in": hand the SDK the saved credentials so its built-in 401
@@ -1296,7 +1321,12 @@ function createClient() {
   // session that lapses in the background comes back without anyone noticing. We
   // don't optimistically pre-authenticate — the normal getCurrentUser on startup
   // drives it, so behavior stays predictable.
-  const savedLogin = settings.keepSignedIn ? loadLoginCredentials() : null;
+  // An explicit sign-out latches settings.signedOut, and that outranks the saved
+  // login: the "stay signed in" box stays ticked for the next deliberate sign-in,
+  // but we must never re-authenticate an account the user just signed out of.
+  const savedLogin = (settings.keepSignedIn && !settings.signedOut)
+    ? loadLoginCredentials()
+    : null;
   if (savedLogin) {
     clientOptions.authentication = {
       optimistic: false,
@@ -1322,16 +1352,64 @@ async function clearSession() {
   // Explicit sign-out drops the saved login too, so we don't auto-relogin. The
   // "stay signed in" preference itself is left as-is — the box stays ticked for
   // next time; only the stored secret is removed.
+  //
+  // Signing out has to actually stick. Each step below can fail on its own (a
+  // locked file, a keyring hiccup), so we do all of them and latch the intent in
+  // settings: even if the stored session survives on disk, signedOut stops the
+  // next launch from using it. Both deletes used to swallow their errors, and on
+  // Windows the SDK holds cache.json open — so a failed unlink left a live
+  // session cookie behind and the user was quietly signed back in.
+
+  // Stop the running client from re-authenticating mid-teardown.
+  if (typeof vrchat?.setCredentials === "function") {
+    try {
+      vrchat.setCredentials(undefined);
+    } catch (err) {
+      debugLog("auth", `Could not drop the client credentials: ${err.message}`);
+    }
+  }
+
+  // Empty the session store through keyv — this works even while the SDK still
+  // holds the backing file open, which deleting the file does not.
+  if (sessionKeyv) {
+    try {
+      await sessionKeyv.clear();
+    } catch (err) {
+      debugLog("auth", `Could not clear the session store: ${err.message}`);
+    }
+  }
+
   clearLoginCredentials();
+
   try {
     fs.unlinkSync(CACHE_PATH);
   } catch (err) {
-    // Ignore missing cache.
+    if (err?.code !== "ENOENT") {
+      debugLog("auth", `Could not delete the session cache (${err.code}); it was cleared in place instead.`);
+    }
   }
+
+  // A settings write failure must never skip resetClient — that would leave a
+  // live, authenticated client running behind a UI and a latch that both say
+  // signed out.
+  try {
+    if (!settings.signedOut && !saveSettings({ ...settings, signedOut: true })) {
+      debugLog("auth", "Could not persist the sign-out latch; the session was still cleared.");
+    }
+  } catch (err) {
+    debugLog("auth", `Could not persist the sign-out latch: ${err.message}`);
+  }
+
   resetClient();
 }
 
 async function getCurrentUser() {
+  // After an explicit sign-out, don't probe the API at all — a session that
+  // somehow survived on disk would otherwise answer and pull the user back in.
+  if (settings?.signedOut) {
+    debugLog("getCurrentUser", "Signed out; not checking for an existing session.");
+    return null;
+  }
   debugApiCall("getCurrentUser", {});
   try {
     const res = await requestGet(
@@ -1345,6 +1423,15 @@ async function getCurrentUser() {
       debugLog("getCurrentUser", "Invalid response data type or error in data");
       return null;
     }
+    // VRChat answers with { requiresTwoFactorAuth: [...] } — as a 200 — when it
+    // sees a session cookie but still wants a code. That is NOT a signed-in user.
+    // Accepting it made the app render a signed-in UI ("Logged in as user") whose
+    // every follow-up call returned nothing, so the group pickers looked wiped.
+    if (Array.isArray(res.data?.requiresTwoFactorAuth)) {
+      debugLog("getCurrentUser", "Session still needs a two-factor code; treating as not authenticated.");
+      currentUser = null;
+      return null;
+    }
     currentUser = res.data;
     return currentUser;
   } catch (err) {
@@ -1353,9 +1440,28 @@ async function getCurrentUser() {
   }
 }
 
+// With "stay signed in" off there is no auto-relogin, so a lapsed session simply
+// makes background automation stop posting with nothing said about it. Surface it
+// once per lapse rather than letting scheduled events quietly stop. Deliberate
+// sign-outs and sessions auto-relogin will recover on its own are not "expiry".
+let sessionExpiryNotified = false;
+function notifySessionExpiredOnce() {
+  if (sessionExpiryNotified) return;
+  if (settings?.signedOut) return;
+  if (settings?.keepSignedIn && loadLoginCredentials()) return;
+  sessionExpiryNotified = true;
+  debugLog("auth", "Session expired with no auto-relogin configured; notifying the user.");
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.webContents.send("auth:session-expired");
+  }
+}
+
 async function ensureUser() {
   const user = currentUser || await getCurrentUser();
   if (!user) {
+    notifySessionExpiredOnce();
     throw new Error("Not authenticated.");
   }
   return user;
@@ -1370,6 +1476,9 @@ function requestTwoFactorCode() {
       req.resolve = resolve;
       req.reject = reject;
     });
+    // A cancelled or timed-out background prompt may have no other awaiter, so
+    // keep a detached handler to avoid an unhandled-rejection warning.
+    req.promise.catch(() => {});
     // Fail the wait if it goes unanswered, so a background re-auth prompt can't
     // leave the SDK's auth promise pending forever — which would freeze every API
     // call awaiting it. On timeout the request fails and the normal retry /
@@ -1378,6 +1487,10 @@ function requestTwoFactorCode() {
       if (twoFactorRequest === req) {
         twoFactorRequest = null;
         req.reject(new Error("Two-factor code entry timed out."));
+        // The SDK caches its in-flight authenticate() promise and only clears it
+        // on success, so this rejection would otherwise wedge every later call —
+        // including a fresh manual sign-in. Rebuilding the client discards it.
+        resetClient();
       }
     }, TWO_FACTOR_TIMEOUT_MS);
     twoFactorRequest = req;
@@ -1409,14 +1522,26 @@ async function login(credentials) {
       throwOnError: true
     });
     debugApiResponse("login", loginRes);
+    // VRChat can answer a login with { requiresTwoFactorAuth: [...] } instead of a
+    // user when a code was never supplied or wasn't accepted. Taking that as the
+    // signed-in user reintroduces the "signed in with nothing behind it" state on
+    // the one path getCurrentUser's guard can't cover.
+    if (Array.isArray(loginRes.data?.requiresTwoFactorAuth) || !loginRes.data?.id) {
+      throw new Error("Sign-in didn't complete — a two-factor code is still required.");
+    }
     currentUser = loginRes.data;
-    // Persisting the "stay signed in" choice must not fail the login itself: the
-    // session is already established, so a disk/encrypt hiccup here shouldn't
-    // surface "login failed" to an actually-signed-in user.
+    sessionExpiryNotified = false; // fresh session — arm the notice again
+    // Persisting state must not fail the login itself: the session is already
+    // established, so a disk/encrypt hiccup here shouldn't surface "login failed"
+    // to an actually-signed-in user. That covers releasing the sign-out latch as
+    // well as the stay-signed-in choice.
     try {
+      if (settings.signedOut) {
+        saveSettings({ ...settings, signedOut: false });
+      }
       applyKeepSignedIn(Boolean(keepSignedIn), username, password);
     } catch (persistErr) {
-      debugLog("login", "Could not persist the stay-signed-in choice:", persistErr.message);
+      debugLog("login", "Could not persist the sign-in state:", persistErr.message);
     }
     return currentUser;
   } catch (err) {
@@ -2553,6 +2678,21 @@ ipcMain.handle("auth:twofactor:submit", async (_, code) => {
   return false;
 });
 
+// Backing out of the 2FA prompt. Fail the pending wait first so the SDK's auth
+// stops blocking on it — every API call queued behind that promise would hang
+// otherwise — then sign out properly. Leaving a half-authenticated session is
+// exactly what produced the "signed in, but no groups anywhere" state.
+ipcMain.handle("auth:twofactor:cancel", async () => {
+  if (twoFactorRequest?.reject) {
+    if (twoFactorRequest.timeout) clearTimeout(twoFactorRequest.timeout);
+    const req = twoFactorRequest;
+    twoFactorRequest = null;
+    req.reject(new Error("Two-factor entry cancelled."));
+  }
+  await clearSession();
+  return true;
+});
+
 // Toggle "stay signed in" from Settings. Turning it OFF forgets the saved login
 // and stops the client auto-relogging-in, right now, without signing out (the
 // current session cookie is left alone). Turning it ON only sets the preference —
@@ -2590,11 +2730,50 @@ ipcMain.handle("groups:list", async (_, options) => {
   );
   debugApiResponse("getUserGroups", groupsResponse);
   const limitedGroups = groupsResponse.data || [];
+
+  // EXPERIMENTAL — bulk permission resolution. Instead of one getGroup per group
+  // (up to ~200 unthrottled calls that can trip rate limits and make groups
+  // silently vanish from every picker), pull the permissions for every joined
+  // group in a single call. Total cost is two calls — getUserGroups plus this —
+  // no matter how many groups the user is in. No fallback yet on purpose: we're
+  // proving this path works on its own before the old per-group loop goes back
+  // in as a backstop. Privacy comes straight off LimitedUserGroups, and tags
+  // (for the featured / group-fair toggles) are fetched lazily per selected
+  // group by groups:checkFeatureFlags, so neither needs a getGroup here.
+  const permStart = Date.now();
+  let permMap = null;
+  debugApiCall("getUserAllGroupPermissions", { userId: user.id });
+  try {
+    const permsResponse = await requestGet(
+      "getUserAllGroupPermissions",
+      { path: { userId: user.id } },
+      () => vrchat.getUserAllGroupPermissions({ path: { userId: user.id } }),
+      // Never let a one-off 403/404 stick in the failure cache: that would block
+      // this call for ~15 minutes and take every group picker down with it.
+      { cacheFailures: false }
+    );
+    debugApiResponse("getUserAllGroupPermissions", permsResponse);
+    if (permsResponse?.data && typeof permsResponse.data === "object") {
+      permMap = permsResponse.data;
+    }
+  } catch (err) {
+    debugApiResponse("getUserAllGroupPermissions", null, err);
+  }
+  const permsElapsed = Date.now() - permStart;
+
+  // Worst case only: the one call gave us nothing usable, so resolve per group
+  // the old way. Throttled — an unthrottled sweep is exactly what tripped rate
+  // limits and made groups vanish — and skipped entirely for owned groups and
+  // anything already cached, so it costs far fewer calls than the original loop.
+  const usingFallback = permMap === null;
+  const FALLBACK_GAP_MS = 150;
+  let fallbackClean = true;
+  let fallbackCalls = 0;
+  if (usingFallback) {
+    debugLog("Groups", "Bulk permission call failed; falling back to throttled per-group lookups.");
+  }
+
   const enriched = [];
-  // Track whether every getGroup permission lookup in this pass succeeded.
-  // If any failed, the resulting "known groups" set isn't trustworthy;
-  // applying it would suspend/cancel automation jobs based on bad data.
-  let permissionLookupsClean = true;
   for (const group of limitedGroups) {
     const groupId = group.groupId || group.id;
     if (groupId && group.iconId) groupIconCache.set(groupId, group.iconId);
@@ -2602,49 +2781,81 @@ ipcMain.handle("groups:list", async (_, options) => {
       enriched.push({ ...group, canManageCalendar: false });
       continue;
     }
-    let permissions = groupPermissionCache.get(groupId);
-    let privacy = groupPrivacyCache.get(groupId);
-    const hasPermissions = Array.isArray(permissions);
-    const hasPrivacy = privacy !== undefined;
-    let lookupFailed = false;
-    if (!hasPermissions || !hasPrivacy) {
-      try {
-        debugApiCall("getGroup", { groupId });
-        const groupRes = await requestGet(
-          "getGroup",
-          { path: { groupId } },
-          () => vrchat.getGroup({ path: { groupId } })
-        );
-        debugApiResponse("getGroup", groupRes);
-        permissions = groupRes.data?.myMember?.permissions || [];
-        privacy = groupRes.data?.privacy;
-        const tags = groupRes.data?.tags || [];
-        groupTagsCache.set(groupId, tags);
-      } catch (err) {
-        debugApiResponse("getGroup", null, err);
-        lookupFailed = true;
-        permissionLookupsClean = false;
-        if (!hasPermissions) {
-          permissions = [];
+    const privacy = group.privacy;
+    if (privacy !== undefined) groupPrivacyCache.set(groupId, privacy);
+    // Owners implicitly hold every permission; the map should reflect that, but
+    // short-circuit on ownerId as a safety net in case it doesn't — and record
+    // that same conclusion below so the posting gate agrees with the picker.
+    // In the fallback this also spares a network call per owned group.
+    const isOwner = Boolean(group.ownerId && user.id && group.ownerId === user.id);
+
+    let effective;
+    if (isOwner) {
+      effective = ["*"];
+    } else if (!usingFallback) {
+      const mapped = permMap[groupId];
+      effective = Array.isArray(mapped) ? mapped : null;
+    } else {
+      const cached = groupPermissionCache.get(groupId);
+      if (Array.isArray(cached)) {
+        effective = cached;
+      } else {
+        // Space the calls out so a large membership can't burst into a 429.
+        if (fallbackCalls > 0) {
+          await new Promise(resolve => setTimeout(resolve, FALLBACK_GAP_MS));
         }
-      }
-      // Only cache successful results. Caching [] from a failed lookup
-      // would make the bad answer sticky for the rest of the session.
-      if (!lookupFailed) {
-        groupPermissionCache.set(groupId, permissions);
-        if (privacy !== undefined) {
-          groupPrivacyCache.set(groupId, privacy);
+        fallbackCalls += 1;
+        try {
+          debugApiCall("getGroup (permission fallback)", { groupId });
+          const groupRes = await requestGet(
+            "getGroup",
+            { path: { groupId } },
+            () => vrchat.getGroup({ path: { groupId } })
+          );
+          debugApiResponse("getGroup (permission fallback)", groupRes);
+          effective = groupRes.data?.myMember?.permissions || [];
+          groupTagsCache.set(groupId, groupRes.data?.tags || []);
+        } catch (err) {
+          debugApiResponse("getGroup (permission fallback)", null, err);
+          fallbackClean = false;
+          effective = null; // unresolved — left uncached so it retries cleanly
         }
       }
     }
+
+    // Cache ONLY a definitive answer. Writing [] for a group we never resolved
+    // would stick — [] is truthy, so ensureCalendarPermission's guard never
+    // refetches — and would deny every calendar operation for that group for the
+    // rest of the session, while the picker still offered it.
+    if (effective) {
+      groupPermissionCache.set(groupId, effective);
+    }
+    const permissions = effective || [];
     const canManageCalendar =
       permissions.includes("*") || permissions.includes("group-calendar-manage");
-    enriched.push({ ...group, groupId, canManageCalendar, privacy: privacy ?? group.privacy });
+    enriched.push({ ...group, groupId, canManageCalendar, privacy });
   }
-  // Apply the known-group filter only when every group has a definitive
-  // answer. A partial answer can wrongly suspend automation jobs for groups
-  // the user actually still manages (e.g. one getGroup hit a 429).
-  if (automationEngine.isInitialized() && permissionLookupsClean) {
+
+  const manageable = enriched.filter(group => group.canManageCalendar).length;
+  debugLog(
+    "Groups",
+    usingFallback
+      ? `Permission resolve (FALLBACK): ${limitedGroups.length} joined group(s), ` +
+        `${fallbackCalls} per-group call(s), ${manageable} manageable, ` +
+        `${fallbackClean ? "no lookup failures" : "some lookups failed"}.`
+      : `Bulk permission resolve: ${limitedGroups.length} joined group(s), ` +
+        `${Object.keys(permMap).length} in permission map, ${manageable} manageable, ` +
+        `${permsElapsed}ms for the permissions call.`
+  );
+
+  // Only drive the automation known-group filter from a trustworthy pass. If
+  // either call came back without real data — e.g. the session is mid-reauth and
+  // the SDK returned an empty/undefined body, as happens when 2FA is pending —
+  // applying the resulting empty set would wrongly suspend every pending
+  // automation. A genuinely empty membership is still an array, so it passes.
+  const groupsTrustworthy = Array.isArray(groupsResponse?.data);
+  const permsTrustworthy = usingFallback ? fallbackClean : permMap !== null;
+  if (automationEngine.isInitialized() && groupsTrustworthy && permsTrustworthy) {
     const knownGroupIds = enriched
       .filter(group => group.canManageCalendar)
       .map(group => group.groupId)
@@ -2656,8 +2867,8 @@ ipcMain.handle("groups:list", async (_, options) => {
         `Group filter changed: suspended ${result.suspended || 0}, resumed ${result.resumed || 0}`
       );
     }
-  } else if (automationEngine.isInitialized() && !permissionLookupsClean) {
-    debugLog("Automation", "Skipped group filter update; permission lookup had failures");
+  } else if (automationEngine.isInitialized()) {
+    debugLog("Automation", "Skipped group filter update; group/permission data was not trustworthy this pass.");
   }
   return enriched;
 });

@@ -26,6 +26,7 @@ export const dom = {
   twoFactorOverlay: document.getElementById("twofactor-overlay"),
   twoFactorForm: document.getElementById("twofactor-form"),
   twoFactorCode: document.getElementById("twofactor-code"),
+  twoFactorCancel: document.getElementById("twofactor-cancel"),
   aboutVersion: document.getElementById("about-version"),
   aboutDataDir: document.getElementById("about-data-dir"),
   aboutSession: document.getElementById("about-session"),

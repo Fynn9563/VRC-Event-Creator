@@ -109,6 +109,13 @@ export async function handleLogin(event, api, refreshDataFn) {
       await onLoginSuccess(api, result.user, refreshDataFn);
     }
   } catch (err) {
+    // Cancelling the two-factor prompt rejects this login on purpose. Surfacing
+    // the raw internal message as a red error toast would read as a failure the
+    // user didn't cause.
+    if (/two-factor entry cancelled/i.test(err?.message || "")) {
+      setStatus(t("auth.loggedOut"));
+      return;
+    }
     showToast(err?.message || t("auth.loginFailed"), true);
     setStatus(t("auth.loginFailed"));
   }

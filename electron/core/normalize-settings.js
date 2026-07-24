@@ -32,6 +32,7 @@ function normalizeSettings(raw) {
       autoUploadImages: false,
       startOnStartup: false,
       keepSignedIn: false,
+      signedOut: false,
       discordEnabled: false,
       calendarEnabled: false,
       calendarSaveDir: "",
@@ -48,6 +49,10 @@ function normalizeSettings(raw) {
     autoUploadImages: typeof raw.autoUploadImages === "boolean" ? raw.autoUploadImages : false,
     startOnStartup: typeof raw.startOnStartup === "boolean" ? raw.startOnStartup : false,
     keepSignedIn: typeof raw.keepSignedIn === "boolean" ? raw.keepSignedIn : false,
+    // Latched by an explicit sign-out and cleared by a deliberate sign-in. Keeps
+    // "I signed out" true across restarts even if clearing the stored session
+    // failed, so the app can never quietly sign itself back in.
+    signedOut: typeof raw.signedOut === "boolean" ? raw.signedOut : false,
     discordEnabled: typeof raw.discordEnabled === "boolean" ? raw.discordEnabled : false,
     calendarEnabled: typeof raw.calendarEnabled === "boolean" ? raw.calendarEnabled : false,
     calendarSaveDir: typeof raw.calendarSaveDir === "string" ? raw.calendarSaveDir : "",

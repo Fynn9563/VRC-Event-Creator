@@ -1769,6 +1769,36 @@ import {
       });
     }
     dom.twoFactorForm.addEventListener("submit", e => { e.preventDefault(); const code = dom.twoFactorCode.value.trim(); if (!code) { showToast(t("twoFactor.enterCode"), true); return; } api.submitTwoFactor(code); dom.twoFactorCode.value = ""; dom.twoFactorOverlay.classList.add("is-hidden"); });
+    if (dom.twoFactorCancel && api.cancelTwoFactor) {
+      // Backing out must land on a clean signed-out state rather than a
+      // half-authenticated one. Main fails the pending auth wait (so nothing stays
+      // blocked on it) and signs out, and we drop straight to the login screen —
+      // previously there was no way out of this overlay except closing the app.
+      dom.twoFactorCancel.addEventListener("click", async () => {
+        dom.twoFactorCode.value = "";
+        dom.twoFactorOverlay.classList.add("is-hidden");
+        try {
+          await api.cancelTwoFactor();
+        } catch (err) {
+          // Best-effort — the overlay is closed and main signs out regardless.
+        }
+        state.user = null;
+        setAuthState(false);
+        setStatus(t("auth.loggedOut"));
+        // The login form's "keep me signed in" box is normally synced by the
+        // startup session check, which doesn't run on this path — leaving it
+        // unchecked here would silently drop the saved preference (and the stored
+        // credential) at the next sign-in.
+        try {
+          const current = await api.getSettings();
+          if (dom.loginKeepSignedIn) {
+            dom.loginKeepSignedIn.checked = Boolean(current.keepSignedIn);
+          }
+        } catch (err) {
+          // Leave the box as-is if settings can't be read.
+        }
+      });
+    }
     bindWindowControls(windowControls);
   }
 
@@ -1854,6 +1884,21 @@ import {
         // Notifications are best-effort; the overlay is the primary prompt.
       }
     });
+    if (api.onSessionExpired) {
+      api.onSessionExpired(() => {
+        // Nothing will recover this on its own (no saved login to re-auth with),
+        // so say it plainly instead of letting automation go quiet.
+        setAuthState(false);
+        showToast(t("auth.sessionExpiredBody"), true);
+        try {
+          if (typeof Notification === "function" && Notification.permission !== "denied") {
+            new Notification(t("auth.sessionExpiredTitle"), { body: t("auth.sessionExpiredBody") });
+          }
+        } catch (err) {
+          // Best-effort; the toast and login overlay are the primary signal.
+        }
+      });
+    }
     if (api.onReloginFailed) {
       api.onReloginFailed(() => {
         // Auto sign-in stopped working (usually a stale saved password); the saved

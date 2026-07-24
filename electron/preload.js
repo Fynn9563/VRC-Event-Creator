@@ -11,6 +11,10 @@ contextBridge.exposeInMainWorld("vrcEvent", {
     ipcRenderer.on("auth:relogin-failed", () => callback());
   },
   submitTwoFactor: code => ipcRenderer.invoke("auth:twofactor:submit", code),
+  cancelTwoFactor: () => ipcRenderer.invoke("auth:twofactor:cancel"),
+  onSessionExpired: callback => {
+    ipcRenderer.on("auth:session-expired", () => callback());
+  },
   getGroups: (options) => ipcRenderer.invoke("groups:list", options),
   getGroupRoles: payload => ipcRenderer.invoke("groups:roles", payload),
   checkFeatureFlags: groupId => ipcRenderer.invoke("groups:checkFeatureFlags", groupId),
