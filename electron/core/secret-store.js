@@ -202,7 +202,9 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
     const key = loadOrCreateAppKey();
     if (!key) return null;
     const iv = crypto.randomBytes(IV_BYTES);
-    const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+    // Pin the tag length on both sides so the format is explicit rather than
+    // relying on the default, and so decrypt can demand exactly this many bytes.
+    const cipher = crypto.createCipheriv("aes-256-gcm", key, iv, { authTagLength: TAG_BYTES });
     const ct = Buffer.concat([cipher.update(String(plain), "utf8"), cipher.final()]);
     const tag = cipher.getAuthTag();
     return AK_PREFIX + Buffer.concat([iv, tag, ct]).toString("base64");
@@ -212,10 +214,17 @@ function createSecretStore({ safeStorage, platform, dataDir, fs, path, crypto, l
     const key = loadOrCreateAppKey();
     if (!key) throw new Error("app key unavailable");
     const raw = Buffer.from(marked.slice(AK_PREFIX.length), "base64");
+    // subarray() clamps rather than throwing, so a truncated or crafted blob would
+    // otherwise hand setAuthTag a short tag — and GCM accepts several shorter tag
+    // lengths unless one is pinned, which is materially easier to forge. Reject
+    // anything that can't hold a full IV + tag, then pin the length explicitly.
+    if (raw.length < IV_BYTES + TAG_BYTES) {
+      throw new Error("app-key blob is too short to contain an IV and auth tag");
+    }
     const iv = raw.subarray(0, IV_BYTES);
     const tag = raw.subarray(IV_BYTES, IV_BYTES + TAG_BYTES);
     const ct = raw.subarray(IV_BYTES + TAG_BYTES);
-    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv, { authTagLength: TAG_BYTES });
     decipher.setAuthTag(tag);
     return Buffer.concat([decipher.update(ct), decipher.final()]).toString("utf8");
   }
